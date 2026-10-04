@@ -80,7 +80,9 @@ const COMBINE = DEPTH + ACES + `
     vec2 uv = vec2(atan(d.z, d.x) * 0.1591549 + 0.5, asin(clamp(d.y, -1.0, 1.0)) * 0.3183099 + 0.5);
     return useSky > 0.5 ? unaces(textureLod(tSky, uv, 6.0).rgb) * skyIntensity : fogColor;
   }
-  vec3 lit(vec2 uv, vec3 c){ return c * mix(1.0, texture2D(tAO, uv).r, aoAmt); }
+  // occlusion from the depth buffer, at a fifth on cars (alpha 0): up close it reads a body's creases (a plate's
+  // recess, a bumper's lip) as deep and paints them in black blotches, and a car's own shading already has them
+  vec3 lit(vec2 uv, vec4 c){ return c.rgb * mix(1.0, texture2D(tAO, uv).r, aoAmt * mix(0.2, 1.0, clamp(c.a, 0.0, 1.0))); }
   void main(){
     float d = texture2D(tDepth, vUv).x;
     vec3 wp = (viewInv * vec4(viewPos(vUv, d), 1.0)).xyz;
@@ -91,14 +93,14 @@ const COMBINE = DEPTH + ACES + `
     if (L > maxBlur) vel *= maxBlur / L, L = maxBlur;
     vec4 c0 = texture2D(tColor, vUv);
     vel *= clamp(c0.a, 0.0, 1.0);
-    vec3 c = lit(vUv, c0.rgb);
+    vec3 c = lit(vUv, c0);
     if (L * c0.a > 1.0) {
       float w = 1.0, j = ign(gl_FragCoord.xy);
       for (int i = 0; i < 10; i++) {
         vec2 uv = vUv + vel * ((float(i) + j) / 10.0 - 0.5);
         vec4 s = texture2D(tColor, uv);
         float ws = clamp(s.a, 0.0, 1.0);
-        c += lit(uv, s.rgb) * ws; w += ws;
+        c += lit(uv, s) * ws; w += ws;
       }
       c /= w;
     }
