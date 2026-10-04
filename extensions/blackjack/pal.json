@@ -60,6 +60,40 @@
       "default": false
     }
   ],
+  "sync": {
+    "state": "local",
+    "winnings": "sum",
+    "stats": {
+      "fields": {
+        "hands": "sum",
+        "wins": "sum",
+        "losses": "sum",
+        "pushes": "sum",
+        "blackjacks": "sum",
+        "net": "sum"
+      }
+    },
+    "peak": "max",
+    "longest": "max"
+  },
+  "leaderboards": [
+    {
+      "id": "bankroll",
+      "title": "Biggest bankroll",
+      "order": "desc",
+      "format": "points",
+      "min": 1000,
+      "max": 1000000000
+    },
+    {
+      "id": "streak",
+      "title": "Longest winning streak",
+      "order": "desc",
+      "format": "points",
+      "min": 1,
+      "max": 1000
+    }
+  ],
   "store": {
     "tagline": "Blackjack on felt, arrows or mouse; the bankroll persists",
     "category": "fun",
@@ -68,7 +102,8 @@
       "One-handed: arrows set the bet, `enter` deals, then `up` hit, `down` stand, `right` double, `left` split",
       "Every move is a button with its key on it; the title says what happens next",
       "Standard rules: dealer stands on 17, blackjack pays 3:2, double after split; H17 and insurance as settings",
-      "Leave with `escape` any time; the hand, the bankroll and the record are there when you come back"
+      "Leave with `escape` any time; the hand, the bankroll and the record are there when you come back",
+      "Signed in to pal, your chips and record follow you to every machine; the biggest bankroll and the longest winning streak go on leaderboards"
     ],
     "permissions": [],
     "platforms": [
