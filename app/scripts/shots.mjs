@@ -75,7 +75,8 @@ async function shoot({ url, viewport, scale, theme, keys, settle, path, raw, box
   page.on("pageerror", (e) => errors.push(e.message));
   try {
     await page.goto(url, { waitUntil: "networkidle" });
-    await page.waitForSelector("html[data-ready]", { timeout: 10000 });
+    // a ceiling, not a wait: the first page after the gallery server starts compiles it cold
+    await page.waitForSelector("html[data-ready]", { timeout: 30000 });
     // data-ready says the fixture is in; the palette it opens lands a few frames later (the Launcher's open, its first search). Keys pressed before then are lost, so wait until the page stops changing.
     await page.waitForFunction(() => {
       const w = window, html = document.body.innerHTML;
