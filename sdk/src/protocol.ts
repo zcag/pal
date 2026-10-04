@@ -1116,8 +1116,8 @@ export type LinkHandler = (route: string, params: LinkParams) => Effect | void |
 /** One choice of a `select` setting: `id` is the stored value, `title` what the window shows. */
 export type SettingOption = { id: string; title: string };
 
-/** `scope: "instance"`: the setting identifies the account (a server url, a workspace) and is never inherited by another instance of a `multi` extension; a `secret` never is either. `required`: the extension does nothing without it, so an empty one is listed under "needs setup"; `only`: read only while other settings hold these values (`{ "auth": "token" }`, `{ "invidious_url": "" }`), and a `required` one is missing only then. */
-type SettingBase = { id: string; label: string; description?: string; scope?: "instance"; required?: boolean; only?: Record<string, string> };
+/** `scope: "instance"`: the setting identifies the account (a server url, a workspace) and is never inherited by another instance of a `multi` extension; a `secret` never is either. `required`: the extension does nothing without it, so an empty one is listed under "needs setup"; `only`: read only while other settings hold these values (`{ "auth": "token" }`, `{ "invidious_url": "" }`), and a `required` one is missing only then. `local`: the value belongs to this machine (a list of folders) and never syncs with a pal account; `hotkey` and `path` settings are local without it (docs/config.md "Sync"). */
+type SettingBase = { id: string; label: string; description?: string; scope?: "instance"; required?: boolean; only?: Record<string, string>; local?: boolean };
 
 /** One setting an extension declares, with its default. */
 export type SettingSpec = SettingBase &

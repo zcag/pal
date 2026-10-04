@@ -669,7 +669,7 @@ const galleryFeatures: SettingsFeature[] = FEATURE_ORDER.map((id) => featureSpec
 type GroupState = keyof typeof groupStates;
 
 /** The core's machine-local list (`core/src/config/sync.rs` `LOCAL`), the part these pages draw. */
-const galleryLocal = localMatcher(["general.hotkey", "general.launch_at_login", "general.menu_bar_icon", "general.usage", "general.extension_dirs", "general.theme_file", "bar.target", "bar.items.*.target", "bar.items.*.position", "bar.items.*.hotkey", "features.sidebar.hotkey", "features.sidebar.display", "extensions.files.folders"]);
+const galleryLocal = localMatcher(["general.hotkey", "general.launch_at_login", "general.menu_bar_icon", "general.usage", "general.extension_dirs", "general.theme_file", "bar.target", "bar.items.*.target", "bar.items.*.position", "bar.items.*.hotkey", "features.sidebar.hotkey", "features.sidebar.display"]);
 
 /** Settings › Account's fixture: a week of settings changes on two Macs, Vortex's best and plays. */
 const day = 86_400;

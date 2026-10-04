@@ -22,8 +22,8 @@ use super::{ConfigFile, Error};
 
 /// Keys (and everything under them) that stay on this machine. `*` is any
 /// one segment. Hotkeys, where the bar draws, the menu bar icon, startup,
-/// usage sharing and paths (theme file, extension dirs, the folder lists of
-/// bundled extensions); everything else syncs.
+/// usage sharing and paths (theme file, extension dirs); everything else
+/// syncs. Extensions say theirs in the manifest ([`declared_local`]).
 pub const LOCAL: &[&str] = &[
     "general.hotkey",
     "general.launch_at_login",
@@ -43,11 +43,6 @@ pub const LOCAL: &[&str] = &[
     "features.*.hotkeys",
     "features.sidebar.hotkey",
     "features.sidebar.display",
-    // Bundled extensions' lists of folders: a `list`, so the kind cannot say.
-    "extensions.apps.folders",
-    "extensions.files.folders",
-    "extensions.make.projects",
-    "extensions.services.agent_dirs",
 ];
 
 /// A dotted key's segments, quotes resolved (`palettes."a.b".enabled` is
@@ -192,7 +187,7 @@ mod tests {
     #[test]
     fn local_patterns_match_keys_and_what_is_under_them() {
         let l = Local::default();
-        for k in ["general.hotkey", "general.usage", "palettes.files.hotkey", "palettes.\"a.b\".item_hotkeys.left", "bar.items.\"github/prs\".position", "bar.target", "features.mouse.hotkeys.zoom", "extensions.files.folders"] {
+        for k in ["general.hotkey", "general.usage", "palettes.files.hotkey", "palettes.\"a.b\".item_hotkeys.left", "bar.items.\"github/prs\".position", "bar.target", "features.mouse.hotkeys.zoom"] {
             assert!(l.is_local(k), "{k}");
         }
         for k in ["general.theme", "general.position", "palettes.files.enabled", "store.installed", "bar.hover_delay", "extensions.files.exclude", "features.sidebar.width", "instances.\"gmail@work\".title"] {
@@ -217,6 +212,17 @@ mod tests {
         assert!(l.is_local("bar.items.\"obsidian/unread\".settings.key"));
         assert!(l.is_local("features.switcher.app_switcher"), "a feature's hotkey setting");
         assert!(l.patterns().contains(&"extensions.\"obsidian@work\".vault".to_string()));
+    }
+
+    #[test]
+    fn the_bundled_folder_lists_say_local_in_their_manifests() {
+        let read = |e: &str| serde_json::from_str::<Value>(&std::fs::read_to_string(format!("{}/../extensions/{e}/pal.json", env!("CARGO_MANIFEST_DIR"))).unwrap()).unwrap();
+        let ms: Vec<(String, Value)> = ["apps", "files", "make", "services"].iter().map(|e| (e.to_string(), read(e))).collect();
+        let l = Local::with_manifests(&ms);
+        for k in ["extensions.apps.folders", "extensions.files.folders", "extensions.make.projects", "extensions.services.agent_dirs"] {
+            assert!(l.is_local(k), "{k}");
+        }
+        assert!(!l.is_local("extensions.files.exclude"));
     }
 
     #[test]

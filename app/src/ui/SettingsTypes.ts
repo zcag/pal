@@ -21,6 +21,8 @@ export type SettingSpec = Base & {
   scope?: "instance";
   /** The bar item (its id) the setting is about: Settings > Bar shows it on that item's pane too. An id starting `bar_` with no `bar` is shown on every item of the extension. */
   bar?: string;
+  /** The value belongs to this machine and never syncs with a pal account (a `hotkey` or `path` is local without it). */
+  local?: boolean;
   /** Read only while other settings hold these values (`{ "auth": "token" }`, `{ "invidious_url": "" }`): a `required` one is missing only then. */
   only?: Record<string, string>;
 } &
