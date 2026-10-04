@@ -4,12 +4,16 @@
 // (so you see the car turn), and opens a few degrees with speed. A hit shakes
 // it from the side it came from; a crash lets it drift back and linger.
 import * as THREE from "./vendor/three.js";
-import type { Vehicle } from "../game/vehicle.ts";
+/** What the camera follows: the car as drawn this frame. */
+export type Pose = { x: number; z: number; yaw: number; u: number; ax: number; delta: number };
 
 type View = { name: string; dist: number; h: number; look: number; lookH: number; fov: number; follow: number; speedFov: number };
 export const VIEWS: View[] = [
-  { name: "Chase", dist: 6.6, h: 2.5, look: 14, lookH: 0.9, fov: 50, follow: 0.65, speedFov: 8 },
-  { name: "Far", dist: 10.5, h: 4.6, look: 22, lookH: 0.4, fov: 40, follow: 0.35, speedFov: 5 },
+  // higher and narrower than a usual chase cam: more road ahead to read, the car smaller in it
+  { name: "Chase", dist: 7.8, h: 3.6, look: 14, lookH: 0.5, fov: 44, follow: 0.5, speedFov: 5 },
+  // Traffic Racer's own: 38.5 degrees, about 12 m back and 28 degrees down, on the road's centre line
+  { name: "Classic", dist: 10.4, h: 5.5, look: 1.5, lookH: 0, fov: 38.5, follow: 0, speedFov: 0 },
+  { name: "Low", dist: 6.2, h: 2.1, look: 12, lookH: 0.9, fov: 52, follow: 0.7, speedFov: 8 },
   { name: "Bumper", dist: -0.6, h: 1.15, look: 40, lookH: 1.05, fov: 62, follow: 1, speedFov: 10 },
 ];
 
@@ -23,7 +27,7 @@ export class Chase {
   private t = 0;
   constructor(public camera: THREE.PerspectiveCamera) {}
 
-  reset(v: Vehicle) {
+  reset(v: Pose) {
     const V = VIEWS[this.view];
     this.pos.set(v.x * V.follow, V.h, v.z - V.dist);
     this.yaw = v.yaw;
@@ -37,7 +41,7 @@ export class Chase {
     this.shake = Math.max(this.shake, strength * 0.3);
   }
 
-  update(dt: number, v: Vehicle, roadMid: number) {
+  update(dt: number, v: Pose, roadMid: number) {
     const V = VIEWS[this.view], cam = this.camera;
     this.t += dt;
     this.yaw += (v.yaw - this.yaw) * Math.min(1, dt * 3.2);
@@ -62,7 +66,6 @@ export class Chase {
     cam.position.copy(this.pos).add(new THREE.Vector3(n(31, 0) * rumble + this.kick.x, n(37, 1) * rumble + this.kick.y, 0));
     const look = new THREE.Vector3(roadMid + (v.x - roadMid) * Math.min(1, V.follow + 0.15), V.lookH, v.z).addScaledVector(fwd, V.look);
     cam.lookAt(look);
-    cam.rotateZ(-v.delta * 0.6 * sp);
     cam.fov = V.fov + sp * sp * V.speedFov - v.ax * 0.12;
     cam.updateProjectionMatrix();
   }

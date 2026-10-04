@@ -46,17 +46,24 @@ async function makeCar(id: string) {
   return c;
 }
 
-/** Make one of every traffic model before the first run (`progress` 0..1 as they come in). */
-export async function preloadTraffic(world: World, progress: (f: number) => void) {
+/** Make two of every traffic model before the first run (`progress` 0..1 as they come in), so a
+ *  run never stops to load one, and compile their shaders while nobody is driving. */
+export async function preloadTraffic(world: World, renderer: THREE.WebGLRenderer, camera: THREE.Camera, progress: (f: number) => void) {
   glow = world.glow;
   let done = 0;
   await Promise.all(TRAFFIC.map(async (t) => {
     if (sizes.has(t.id)) return;
-    const c = await makeCar(t.id);
-    sizes.set(t.id, c.size.clone());
-    (pool.get(t.id) ?? pool.set(t.id, []).get(t.id)!).push(c);
+    const cars = await Promise.all([makeCar(t.id), makeCar(t.id)]);
+    sizes.set(t.id, cars[0].size.clone());
+    (pool.get(t.id) ?? pool.set(t.id, []).get(t.id)!).push(...cars);
     progress(++done / TRAFFIC.length);
   }));
+  const parked = new THREE.Group();
+  for (const list of pool.values()) for (const c of list) { lamps(c, true, true); parked.add(c.root); }
+  world.scene.add(parked);
+  await renderer.compileAsync(world.scene, camera);
+  world.scene.remove(parked);
+  for (const list of pool.values()) for (const c of list) c.root.removeFromParent();
 }
 
 /** Lamps for the time of day. */
@@ -92,6 +99,7 @@ export class Run {
     this.director = new Director({ lanes: layout.lanes, oncomingLanes: layout.oncoming, topSpeed: car.top / 3.6, rnd, density });
     world.scene.add(player.root);
     this.headlights();
+    this.settle();
   }
 
   /** At night, two real spotlights from the player's headlamps. */
@@ -119,6 +127,7 @@ export class Run {
     this.veh.launch(old.u);
     this.world.scene.add(player.root);
     this.headlights();
+    this.settle();
   }
 
   private pickKind(heavy: boolean) {
@@ -136,8 +145,21 @@ export class Run {
     return { lane: Math.max(0, Math.min(this.layout.lanes - 1, lane)), oncoming: onc };
   }
 
+  /** Where the player's car is drawn: between the last two steps, so motion is smooth at any frame rate. */
+  pose = { x: 0, z: 0, yaw: 0, u: 0, ax: 0, delta: 0 };
+  private prev = { x: 0, z: 0, yaw: 0 };
+
+  /** Draw exactly where the simulation is (after a jump: a start, a fast-forward). */
+  settle() {
+    const v = this.veh;
+    this.prev = { x: v.x, z: v.z, yaw: v.yaw };
+    Object.assign(this.pose, { x: v.x, z: v.z, yaw: v.yaw, u: v.u, ax: v.ax, delta: v.delta });
+  }
+
   step(dt: number, input: Input) {
     const v = this.veh, L = this.layout;
+    this.prev = { x: v.x, z: v.z, yaw: v.yaw };
+    for (const n of this.traffic.cars) n.prev = { x: n.x, z: n.z, yaw: n.hit ? n.hit.yaw : 0 };
     if (this.over) input = { throttle: 0, brake: 0.3, steer: 0 };
     v.step(dt, input);
 
@@ -222,11 +244,14 @@ export class Run {
     if (!this.over) this.score.tick(dt, kmh, lp.oncoming);
   }
 
-  /** Put the cars where the simulation says, once a frame. */
-  draw(dt: number) {
-    const v = this.veh, p = this.player;
-    p.root.position.set(v.x, 0, v.z);
-    p.root.rotation.y = v.yaw;
+  /** Put the cars where the simulation says, once a frame; `alpha` is how far into the next step (0..1). */
+  draw(dt: number, alpha = 1) {
+    const v = this.veh, p = this.player, a = alpha, b = 1 - alpha;
+    const pose = this.pose;
+    pose.x = this.prev.x * b + v.x * a; pose.z = this.prev.z * b + v.z * a; pose.yaw = this.prev.yaw * b + v.yaw * a;
+    pose.u = v.u; pose.ax = v.ax; pose.delta = v.delta;
+    p.root.position.set(pose.x, 0, pose.z);
+    p.root.rotation.y = pose.yaw;
     p.body.rotation.set(this.spring.pitch, 0, -this.spring.roll);
     for (const w of p.wheels) { w.spin.rotation.x = v.wheelSpin; if (w.front) w.pivot.rotation.y = v.delta; }
     lamps(p, this.world.night, v.braking > 0.1);
@@ -251,8 +276,9 @@ export class Run {
       }
       const at = (l: number) => (n.oncoming ? oncomingX(this.layout, l) : laneX(this.layout, l));
       const dx = n.t < 1 ? ((at(n.lane) - at(n.from)) * 6 * n.t * (1 - n.t)) / 3.2 : 0;
-      car.root.position.set(n.x, 0, n.z);
-      car.root.rotation.y = n.hit ? n.hit.yaw : (n.oncoming ? Math.PI : 0) + Math.atan2(dx, Math.max(n.v, 1));
+      const pv = n.prev ?? { x: n.x, z: n.z, yaw: n.hit?.yaw ?? 0 };
+      car.root.position.set(pv.x * b + n.x * a, 0, pv.z * b + n.z * a);
+      car.root.rotation.y = n.hit ? pv.yaw * b + n.hit.yaw * a : (n.oncoming ? Math.PI : 0) + Math.atan2(dx, Math.max(n.v, 1));
       car.setShadow(Math.abs(n.z - v.z) < 60);
       for (const w of car.wheels) w.spin.rotation.x += (n.v / 0.33) * dt;
       lamps(car, this.world.night, n.braking);

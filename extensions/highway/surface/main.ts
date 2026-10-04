@@ -31,7 +31,8 @@ let state: State = "loading";
 let names = new Map<string, string>(); // model id to its name, for the crash line
 
 let scene: Scene | null = null;
-const persist = () => { if (!scene) pal.storage.set("save", save).catch((e: unknown) => console.error("highway: save", e)); };
+let trial = false; // ?test: everything open, nothing saved
+const persist = () => { if (!scene && !trial) pal.storage.set("save", save).catch((e: unknown) => console.error("highway: save", e)); };
 const layoutOf = (mode: string) => (mode === "twoway" ? TWO_WAY : ONE_WAY);
 const money = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 const kmh = (v: number) => (save.settings.units === "mph" ? v * 0.6214 : v);
@@ -58,7 +59,8 @@ async function road(demo: boolean) {
   const player = await Car.load(car.id, owned?.paint ?? car.paint);
   run = new Run(world, layout, player, car, owned?.upgrades ?? NO_UP, events, loc.density);
   if (demo) run.veh.launch(105 / 3.6);
-  chase.reset(run.veh);
+  run.settle();
+  chase.reset(run.pose);
   veil(false);
 }
 
@@ -261,7 +263,7 @@ async function drive() {
   crashInfo = null;
   await road(false);
   chase.view = save.settings.camera;
-  chase.reset(run!.veh);
+  chase.reset(run!.pose);
   sound.setEngine(car.engine);
   if (!musicOn) { musicOn = true; sound.playMusic(); }
   state = "run";
@@ -381,19 +383,19 @@ function frame() {
   acc += dt;
   const inp = state === "garage" ? autopilot() : state === "run" || state === "over" ? (scene ? autopilot(scene.speed ?? 170) : input()) : { throttle: 0, brake: 0.2, steer: 0 };
   while (acc >= STEP) { run.step(STEP, inp); acc -= STEP; }
-  run.draw(dt);
-  const v = run.veh;
-  world.follow(v.x, v.z);
+  run.draw(dt, acc / STEP);
+  const v = run.veh, pose = run.pose;
+  world.follow(pose.x, pose.z);
   if (state === "garage") {
     // a car-advert orbit around your car as it drives
     const a = t * 0.1 + 2.4, d = 7.6;
-    r.camera.position.set(v.x + Math.sin(a) * d, 1.5 + Math.sin(t * 0.21) * 0.25, v.z + Math.cos(a) * d);
+    r.camera.position.set(pose.x + Math.sin(a) * d, 1.5 + Math.sin(t * 0.21) * 0.25, pose.z + Math.cos(a) * d);
     // aim to the car's left on screen, so it stands clear of the sign
     const right = new THREE.Vector3(Math.cos(a), 0, -Math.sin(a));
-    r.camera.lookAt(new THREE.Vector3(v.x, 0.75, v.z).addScaledVector(right, -2.1));
+    r.camera.lookAt(new THREE.Vector3(pose.x, 0.75, pose.z).addScaledVector(right, -2.1));
     r.camera.fov = 38;
     r.camera.updateProjectionMatrix();
-  } else chase.update(dt, v, (world.lo + world.hi) / 2);
+  } else chase.update(dt, pose, (world.lo + world.hi) / 2);
   sound.drive(v.rpm, v.shifting > 0 ? 0 : v.throttle, v.u, Math.max(v.slipFront, v.slipRear), v.spec.redline);
   sound.loop("scrape_metal", run.scraping > 0 ? 0.55 : 0);
   if (v.gear !== lastGear) { if (v.gear > lastGear && state === "run") sound.play("gear_change", { gain: 0.3 }); lastGear = v.gear; }
@@ -429,7 +431,8 @@ async function stage(sc: Scene) {
   run!.veh.launch((sc.speed ?? 170) / 3.6 * 0.9);
   run!.startZ = -3500; // a few kilometres in: the traffic is up to strength
   for (let i = 0; i < (sc.warm ?? 6) * 120; i++) { run!.step(1 / 120, autopilot(sc.speed ?? 170)); if (i % 60 === 0) run!.draw(1 / 2); }
-  chase.reset(run!.veh);
+  run!.settle();
+  chase.reset(run!.pose);
   if (sc.show === "results") { crashInfo = sc.crash ?? null; results(); }
 }
 
@@ -437,6 +440,15 @@ async function stage(sc: Scene) {
   pal.ready(); // the loading sign is ours to show: reveal the page at once
   scene = ((await pal.storage.get("scene").catch(() => null)) as Scene | null) ?? null;
   save = load(await pal.storage.get("save").catch(() => null));
+  if (q.has("test")) {
+    // a test drive: every car and place yours, a middling car by default, nothing written back
+    trial = true;
+    save.cash = 2_000_000;
+    for (const c of CARS) save.owned[c.id] ??= { upgrades: { ...NO_UP }, paint: c.paint, paints: [c.paint] };
+    save.locations = LOCATIONS.map((l) => l.id);
+    const want = q.get("test");
+    save.car = CARS.some((c) => c.id === want) ? want! : "thunderbolt-96";
+  }
   const settings = (await pal.settings().catch(() => ({}))) as Record<string, unknown>;
   if (typeof settings.volume === "number") save.settings.sound = settings.volume / 100;
   sound.volume = save.settings.sound;
@@ -446,7 +458,7 @@ async function stage(sc: Scene) {
   veil(true, `Driving to ${loc.name}`);
   await world.build(loc.sky, loc.asphalt, layoutOf(save.mode));
   builtFor = `${loc.id}/${save.mode}`;
-  await preloadTraffic(world, (f) => (($("loading").querySelector("em") as HTMLElement).style.width = `${Math.round(f * 100)}%`));
+  await preloadTraffic(world, r.gl, r.camera, (f) => (($("loading").querySelector("em") as HTMLElement).style.width = `${Math.round(f * 100)}%`));
   chase.view = save.settings.camera;
   if (scene) await stage(scene);
   else if (q.has("drive")) await drive();
