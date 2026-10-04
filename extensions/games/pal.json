@@ -1,7 +1,7 @@
 {
   "name": "games",
   "title": "Games",
-  "description": "Every game in one list, the installed ones and the ones you can still get. Enter opens a game, or installs it first and then opens it.",
+  "description": "Every game in one list, the installed ones and the ones you can still get, and their leaderboards. Enter opens a game, or installs it first and then opens it.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -17,6 +17,9 @@
     "fun",
     "game"
   ],
+  "sync": {
+    "hide_anon": "latest"
+  },
   "store": {
     "tagline": "All the games in one list, one Enter away",
     "category": "fun",
@@ -24,9 +27,12 @@
       "One row per game with its tile and tagline; typing narrows the list",
       "Games you have not installed yet are listed too, under Not installed",
       "`enter` opens a game, or installs it, waits for it to load and opens it",
+      "`cmd+l` on a game shows its leaderboards: a tab per board, all time, this week or today, your own row marked, anonymous players hidden with `a`",
       "A failed install stays as a row saying why; `escape` comes back to the list"
     ],
-    "permissions": [],
+    "permissions": [
+      "network"
+    ],
     "platforms": [
       "macos",
       "linux"
@@ -39,6 +45,10 @@
       {
         "file": "2-search.png",
         "caption": "Typing narrows the list, taglines included: daily finds the daily puzzles; Enter opens one"
+      },
+      {
+        "file": "3-leaderboards.png",
+        "caption": "A game's leaderboards: today's Wordle, fewest guesses first, anonymous players marked and your own row ringed"
       }
     ],
     "actions": [
@@ -51,6 +61,11 @@
         "title": "Install and play",
         "description": "On a game not installed: installs it from its registry, waits for it to load, opens it.",
         "keys": "enter"
+      },
+      {
+        "title": "Leaderboards",
+        "description": "The game's boards: `left` and `right` walk them, `p` the period, `a` hides anonymous players, `s` signs in when you are signed out.",
+        "keys": "cmd+l"
       }
     ]
   },
@@ -63,6 +78,41 @@
         {
           "keys": "enter",
           "title": "Play"
+        },
+        {
+          "keys": "cmd+l",
+          "title": "Leaderboards"
+        }
+      ]
+    },
+    "leaderboards": {
+      "title": "Leaderboards",
+      "kind": "view",
+      "description": "A game's leaderboards: a tab per board, the period, anonymous players shown or hidden. Opens on the last game looked at; G for another.",
+      "keys": [
+        {
+          "keys": "right",
+          "title": "Next board (left for the previous)"
+        },
+        {
+          "keys": "p",
+          "title": "All time, this week or today"
+        },
+        {
+          "keys": "a",
+          "title": "Hide or show anonymous players"
+        },
+        {
+          "keys": "s",
+          "title": "Sign in to put your scores here"
+        },
+        {
+          "keys": "g",
+          "title": "Another game's leaderboards"
+        },
+        {
+          "keys": "enter",
+          "title": "Play the game"
         }
       ]
     }
