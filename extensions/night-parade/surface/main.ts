@@ -552,7 +552,7 @@ function post(s: State, record: boolean) {
   if (scene) return;
   for (const [board, value] of boardsOf(s)) {
     pal.score(board, value).then((r) => {
-      if (run !== s || !r.rank || !r.total) return;
+      if (run !== s || !r?.rank || !r.total) return;
       standing.push({ board, rank: r.rank, total: r.total });
       const el = ui.querySelector(".standing");
       if (el) el.outerHTML = standingLine(record);
@@ -748,7 +748,7 @@ pal.onHidden(() => {
   keep();
 });
 pal.onShown(() => { if (!paused || tuning) audio.unsuspend(); account(); });
-const account = () => pal.account().then((a) => { signedIn = a.signedIn; }, () => {});
+const account = () => pal.account().then((a) => { signedIn = a?.signedIn !== false; }, () => {});
 ui.addEventListener("click", (e) => { if ((e.target as HTMLElement).closest(".signin")) void pal.signIn().catch(() => {}); });
 // A save sync merged with another machine's: take it, so the next night settles onto it rather than over it.
 pal.storage.onChange((k, v) => {

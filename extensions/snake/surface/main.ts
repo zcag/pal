@@ -185,7 +185,7 @@ function post() {
   const g = ph.game;
   if (!g || g.score <= 0) return;
   standing = "";
-  const top = pal.score("top", g.score).then((r) => { if (r.rank && r.total) { standing = ` · #${r.rank} of ${r.total}`; shown = -1; } });
+  const top = pal.score("top", g.score).then((r) => { if (r?.rank && r.total) { standing = ` · #${r.rank} of ${r.total}`; shown = -1; } });
   for (const b of boardsOf(g).slice(1)) pal.score(b, g.score).catch((e) => console.error(`snake: score: ${e}`));
   top.catch((e) => console.error(`snake: score: ${e}`));
 }

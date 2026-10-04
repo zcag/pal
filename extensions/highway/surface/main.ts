@@ -41,7 +41,7 @@ const viewOf = (s: Save) => Math.max(0, VIEWS.findIndex((v) => v.name === s.sett
 const persist = () => { if (!scene && !trial) pal.storage.set("save", stored(save)).catch((e: unknown) => console.error("highway: save", e)); };
 /** Whether the player is signed in to a pal account, asked again on every show; until known, no offer to sign in. */
 let signedIn = true;
-const account = () => pal.account().then((a) => { signedIn = a.signedIn; }, () => {});
+const account = () => pal.account().then((a) => { signedIn = a?.signedIn !== false; }, () => {});
 const layoutOf = (mode: string) => (MODES.find((m) => m.id === mode)?.twoWay ? TWO_WAY : ONE_WAY);
 const money = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 const kmh = (v: number) => (save.settings.units === "mph" ? v * 0.6214 : v);
@@ -396,7 +396,7 @@ function results() {
 function post(points: number, record: boolean) {
   if (scene || trial || points <= 0) return;
   pal.score(save.mode, points).then((r) => {
-    if (state !== "results" || !r.rank || !r.total) return;
+    if (state !== "results" || !r?.rank || !r.total) return;
     const keep = !signedIn && record ? ` · <a class="signin">Sign in to keep your scores</a>` : "";
     document.querySelector(".result .headline")?.insertAdjacentHTML("beforeend", `<span class="standing">#${r.rank.toLocaleString("en-US")} of ${r.total.toLocaleString("en-US")}${keep}</span>`);
   }).catch((e: unknown) => console.error("highway: score", e));

@@ -193,9 +193,9 @@ function finish(ms: number) {
 function post(res: Result, best: boolean) {
   const board = boardOf(cfg);
   if (res.invalid || repeated || !board) return;
-  void pal.account().then((a) => { signedIn = a.signedIn; }, () => {});
+  void pal.account().then((a) => { signedIn = a?.signedIn !== false; }, () => {});
   pal.score(board, res.wpm).then((r) => {
-    if (last !== res || !r.rank || !r.total) return;
+    if (last !== res || !r?.rank || !r.total) return;
     const keep = !signedIn && best ? `<br><a class="signin">sign in to keep your scores</a>` : "";
     $("#r-note").insertAdjacentHTML("beforeend", `${$("#r-note").textContent ? " · " : ""}#${r.rank} of ${r.total}${keep}`);
   }).catch((e) => console.error("typing: score", e));

@@ -619,7 +619,7 @@ pal.onAction((id) => {
 pal.onHidden(() => { held.length = 0; if (screen === "run" && run && !run.dead) setPaused(true); else music.suspend(); });
 pal.onShown(() => { if (!paused && music.ctx) music.start(); account(); });
 ui.addEventListener("click", (e) => { if ((e.target as HTMLElement).closest(".signin")) void pal.signIn().catch(() => {}); });
-const account = () => pal.account().then((a) => { signedIn = a.signedIn; }, () => {});
+const account = () => pal.account().then((a) => { signedIn = a?.signedIn !== false; }, () => {});
 // A save that sync merged with another machine's: take it, so the next run's settle writes onto it rather than over it.
 pal.storage.onChange((k, v) => {
   if (k !== "save") return;
