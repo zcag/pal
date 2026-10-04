@@ -13,14 +13,20 @@ import manifest from "./pal.json" with { type: "json" };
 function lived(): Save {
   const s = fresh();
   s.cash = 84250;
-  const own = (id: string, paint: string, speed = 0, handling = 0, brakes = 0) => { s.owned[id] = { upgrades: { speed, handling, brakes }, paint, paints: [paint] }; };
+  const own = (id: string, paint: string, speed = 0, handling = 0, brakes = 0, nitro = 0) => { s.owned[id] = { upgrades: { speed, handling, brakes, nitro }, paint, paints: [paint] }; };
   own("compact-07", "#e8e6e0", 2, 1, 1);
   own("milano-95", "#c81d25", 3, 2, 2);
   own("thunderbolt-96", "#1b3f8f", 2, 3, 1);
   own("stinger-96", "#d6421a", 1, 1, 0);
   own("saba-v12-95", "#e85d04");
   s.car = "stinger-96";
-  s.locations = ["countryside", "midday", "dusk", "night"];
+  s.level = 14;
+  s.xp = 3200;
+  s.missions = [
+    { kind: "misses", text: "Pass 22 cars closely in one run", target: 22, reward: { cash: 2750, xp: 2300 } },
+    { kind: "combo", text: "Reach a ×11 combo", target: 11, reward: { cash: 2750, xp: 2300 } },
+    { kind: "speed", text: "Reach 210 km/h", target: 210, reward: { cash: 2750, xp: 2300 } },
+  ];
   s.best = { endless: { score: 186420, distance: 14820, combo: 23, topSpeed: 281 }, twoway: { score: 98410, distance: 6210, combo: 12, topSpeed: 244 } };
   s.totals = { runs: 61, distance: 412000, misses: 2210, cash: 512000 };
   return s;

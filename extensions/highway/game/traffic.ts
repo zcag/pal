@@ -27,6 +27,7 @@ export type Npc = {
   cooldown: number; // seconds before it may change lanes again
   hit?: { vx: number; yaw: number; r: number }; // knocked by a crash: sliding, no longer driving
   passed?: boolean; // the player has gone by it
+  prev?: { x: number; z: number; yaw: number }; // where it was a step ago, for drawing between steps
 };
 
 export type Ego = { z: number; v: number; lane: number; length: number };

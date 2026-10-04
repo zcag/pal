@@ -2,20 +2,25 @@ import { expect, test } from "bun:test";
 import { Vehicle } from "../../../extensions/highway/game/vehicle.ts";
 import { Director } from "../../../extensions/highway/game/director.ts";
 import { Score } from "../../../extensions/highway/game/score.ts";
-import { CARS, spec } from "../../../extensions/highway/game/content.ts";
+import { CARS, FEEL, spec } from "../../../extensions/highway/game/content.ts";
+import { Drive } from "../../../extensions/highway/game/drive.ts";
+import { ONE_WAY } from "../../../extensions/highway/game/layout.ts";
 import { fresh, buyCar, buyUpgrade, load } from "../../../extensions/highway/game/meta.ts";
 
-const NO_UP = { speed: 0, handling: 0, brakes: 0 };
+const NO_UP = { speed: 0, handling: 0, brakes: 0, nitro: 0 };
 
-test("every car reaches about its top speed and stops from 100 km/h in under 45 m", () => {
+test("every car reaches about its top speed, and brakes from 100 km/h to a crawl in about a second", () => {
   for (const car of [CARS[0], CARS[CARS.length - 1]]) {
     const v = new Vehicle(spec(car, NO_UP, 2.6));
     for (let i = 0; i < 120 * 70; i++) v.step(1 / 120, { throttle: 1, brake: 0, steer: 0 });
-    expect(Math.abs(v.kmh - car.top) / car.top).toBeLessThan(0.08);
+    expect(Math.abs(v.kmh / FEEL.pace - car.top) / car.top).toBeLessThan(0.08);
     const b = new Vehicle(spec(car, NO_UP, 2.6));
-    b.launch(100 / 3.6);
-    while (b.u > 0.1) b.step(1 / 120, { throttle: 0, brake: 1, steer: 0 });
-    expect(b.z).toBeLessThan(45);
+    b.launch((100 / 3.6) * FEEL.pace);
+    let t = 0;
+    while (b.kmh / FEEL.pace > FEEL.crawl + 1 && t < 5) { b.step(1 / 120, { throttle: 0, brake: 1, steer: 0 }); t += 1 / 120; }
+    expect(t).toBeLessThan(1.5);
+    for (let i = 0; i < 240; i++) b.step(1 / 120, { throttle: 0, brake: 1, steer: 0 });
+    expect(b.kmh / FEEL.pace).toBeGreaterThan(FEEL.crawl - 1); // the brakes never stop you on the highway
   }
 });
 
@@ -33,7 +38,7 @@ test("the director never fills every lane of a row", () => {
   const d = new Director({ lanes: 4, oncomingLanes: 0, topSpeed: 70, rnd });
   const cars: { lane: number; z: number; oncoming: boolean }[] = [];
   for (let z = 0; z < 30000; z += 200) {
-    d.travelled = z;
+    d.time = z / 60;
     d.plan(z, 60, cars);
   }
   for (const c of cars) {
@@ -63,4 +68,14 @@ test("buying needs the cash, and a save survives a round trip", () => {
   const back = load(JSON.parse(JSON.stringify(s)));
   expect(back.owned[CARS[1].id].upgrades.speed).toBe(1);
   expect(back.car).toBe(CARS[1].id);
+});
+
+test("Speed Trap ends a run held under its floor; Time Attack's clock runs down", () => {
+  const size = { x: 1.9, z: 4.5 }, sizeOf = () => size;
+  const trap = new Drive(ONE_WAY, CARS[6], NO_UP, size, 2.6, sizeOf, {}, { seed: 3, mode: "trap" });
+  for (let i = 0; i < 120 * 6 && !trap.ended; i++) trap.step(1 / 120, { throttle: 0, brake: 1, steer: 0 });
+  expect(trap.ended).toBe("slow");
+  const time = new Drive(ONE_WAY, CARS[6], NO_UP, size, 2.6, sizeOf, {}, { seed: 3, mode: "time" });
+  for (let i = 0; i < 120; i++) time.step(1 / 120, { throttle: 0.3, brake: 0, steer: 0 });
+  expect(time.clock).toBeCloseTo(59, 1);
 });

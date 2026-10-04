@@ -8,6 +8,8 @@
 //
 // Pure: it decides kinds, lanes, gaps and speeds; the caller makes the cars.
 
+import { FEEL } from "./content.ts";
+
 export type Spawn = { lane: number; dz: number; heavy: boolean; v0: number; oncoming: boolean };
 export type Row = { z: number; spawns: Spawn[]; pattern: string };
 
@@ -33,37 +35,48 @@ const PATTERNS: { name: string; weight: (d: number) => number; make: (o: Directo
   { name: "wall", weight: (d) => Math.max(0, d * 2 - 0.8), make: (o, r) => { const open = Math.floor(r() * o.lanes); return Array.from({ length: o.lanes }, (_, l) => l).filter((l) => l !== open).map((l) => ({ lane: l, dz: (r() - 0.5) * 8 })); } },
 ];
 
+// Traffic Racer's density, measured from its code: 5 cars in the 140 m ahead of you at the start,
+// one more every 27 s, up to 14. (It then drops back to 6; a breather now and then does that job here.)
+const SPAN = 140, START = 5, MOST = 14, RAMP = 27;
+
 export class Director {
   frontier = 0; // the z the next row goes at
-  travelled = 0;
+  time = 0; // seconds into the run
+  /** A lane kept free up to a point: the start, so a run never opens with a car in your lane. */
+  spare: { lane: number; until: number } | null = null;
   breather = 0; // metres of open road left in a breather
   constructor(public o: DirectorOpts) {}
 
-  /** How dense the road is now, 0..1: rises over the first ~6 km, eases with a breather. */
-  density() { return Math.min(1, 0.2 + (this.travelled / 6000) * (this.o.density ?? 1)) * (this.breather > 0 ? 0.25 : 1); }
+  /** How dense the road is now, 0..1: busy from the first second, at full strength after ~4 km. */
+  density() { return Math.min(1, (this.time / RAMP / (MOST - START)) * (this.o.density ?? 1)) * (this.breather > 0 ? 0.3 : 1); }
+
+  /** Cars wanted in the 140 m ahead: 5, then one more every 27 s, up to 14. */
+  cap() { return START + (MOST - START) * this.density(); }
 
   /** The speed a driver in a lane wants: below yours, faster to the left, trucks slowest. */
   private speed(lane: number, heavy: boolean, oncoming: boolean) {
     const r = this.o.rnd, top = this.o.topSpeed * 3.6;
-    if (oncoming) return (70 + r() * 30) / 3.6;
-    const lo = Math.max(55, 9 + top / 5.7 + 20), hi = Math.min(135, 51.5 + top / 5.5);
+    if (oncoming) return ((50 + r() * 25) / 3.6) * FEEL.pace;
+    // the original's band, from your car's top speed: always slower than you, more so in a faster car
+    const lo = 9 + top / 5.7, hi = 51.5 + top / 5.5;
     const k = this.o.lanes > 1 ? lane / (this.o.lanes - 1) : 0.5;
-    const kmh = heavy ? 72 + r() * 14 : lo + (hi - lo) * (0.25 + 0.6 * k) + (r() - 0.5) * 14;
-    return kmh / 3.6;
+    const kmh = heavy ? Math.min(hi, lo + (hi - lo) * 0.35 + r() * 8) : lo + (hi - lo) * (0.15 + 0.6 * k + r() * 0.25);
+    return (kmh / 3.6) * FEEL.pace; // the band is in dial km/h; the world goes by at the pace
   }
 
   /** Plan rows until the frontier is far enough ahead of the player. */
   plan(playerZ: number, playerV: number, cars: Occupant[]): Row[] {
     const rows: Row[] = [];
     const reach = playerZ + Math.max(320, playerV * 7); // past where you can make anything out
-    if (this.frontier < playerZ + 120) this.frontier = playerZ + 120;
+    if (this.frontier < playerZ + 45) this.frontier = playerZ + 45; // the first cars close enough to matter at once
     while (this.frontier < reach) {
       const d = this.density();
       const row = this.row(this.frontier, d, cars);
       if (row.spawns.length) rows.push(row);
       for (const s of row.spawns) cars.push({ lane: s.lane, z: row.z + s.dz, oncoming: s.oncoming });
-      // the next row: far apart early, close later, plus some looseness
-      const gap = 95 - 62 * d + this.o.rnd() * 30;
+      // the next row: spaced so the 140 m ahead holds the cars the moment calls for
+      const ours = row.spawns.filter((s) => !s.oncoming).length || 1;
+      const gap = (SPAN * ours / this.cap()) * (0.75 + this.o.rnd() * 0.5);
       this.frontier += gap;
       if (this.breather > 0) this.breather -= gap;
       else if (d > 0.5 && this.o.rnd() < 0.025) this.breather = 600;
@@ -85,6 +98,7 @@ export class Director {
       return set;
     };
     while (spawns.length && blocked(spawns).size >= this.o.lanes) spawns.pop();
+    if (this.spare && z < this.spare.until) spawns = spawns.filter((s) => s.lane !== this.spare!.lane);
     // and keep clear of a car already in the same spot
     spawns = spawns.filter((s) => !cars.some((c) => !c.oncoming && c.lane === s.lane && Math.abs(c.z - (z + s.dz)) < 14));
     const out: Spawn[] = spawns.map((s) => ({ lane: s.lane, dz: s.dz, heavy: s.heavy, v0: this.speed(s.lane, s.heavy, false), oncoming: false }));

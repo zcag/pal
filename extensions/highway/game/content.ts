@@ -2,6 +2,17 @@
 // the places, and how the stats turn into a car that drives (spec()).
 import type { Spec } from "./vehicle.ts";
 
+/** How driving feels (DESIGN.md, "Feel").
+ *  pace: the world goes by 1.4 times what the dial says (Traffic Racer's 1.66 makes realistic cars
+ *    look like toys; true scale feels slow).
+ *  lean: the body rolls 45% of the original's 4 degrees + 0.05 per km/h at full lock (about 5 at 160).
+ *  yaw: the car is drawn turned 85% of the way it actually heads: into the move, never a drift.
+ *  across: how fast it crosses, 1 = 5.5 m/s + 7% of the speed (about 10 m/s at 100, 13 at 200 on the dial).
+ *  ramp: seconds to full steering, the original's 0.17: a tap nudges, holding commits.
+ *  brake: how much harder than a tyre's grip the brakes stop the car (1.9: about 65 km/h a second on
+ *    the dial for brakes of 1 g; the original's run 40 to 100+), down to `crawl` km/h, never a stop. */
+export const FEEL = { pace: 1.4, lean: 0.45, yaw: 0.85, across: 1, ramp: 0.17, brake: 1.9, crawl: 30 };
+
 export type Stats = { speed: number; accel: number; handling: number; brakes: number }; // 1..10 as the garage shows them
 export type PlayerCar = {
   id: string; name: string; price: number;
@@ -36,10 +47,17 @@ export const CARS: PlayerCar[] = [
   { id: "saba-v12-95", name: "Saba V12 '95", price: 680000, top: 322, mass: 1450, grip: 1.50, agility: 1.40, brake: 1.12, engine: "sport", paint: "#e85d04" },
 ];
 
-export const PAINTS = ["#e8e6e0", "#13161c", "#9aa0a6", "#c81d25", "#d6421a", "#e2b310", "#1d6b43", "#2a5caa", "#1b3f8f", "#5a2a82", "#b9bcc0", "#7a1424"];
-export const PAINT_PRICE = 1500;
+/** Paints in collections: the first is open from the start, the others open with driver levels (game/progress.ts). */
+export const PAINT_SETS: { id: string; name: string; colors: string[]; price: number }[] = [
+  { id: "basic", name: "Solid", colors: ["#e8e6e0", "#13161c", "#9aa0a6", "#c81d25", "#d6421a", "#e2b310", "#1d6b43", "#2a5caa", "#1b3f8f", "#5a2a82", "#b9bcc0", "#7a1424"], price: 1500 },
+  { id: "metallic", name: "Metallic", colors: ["#b8bcc4", "#3d4a5c", "#8c1c13", "#0d5c63", "#c5a15a", "#4a2c6b"], price: 4000 },
+  { id: "matte", name: "Matte", colors: ["#2b2d2f", "#5c6b4a", "#6e6a62", "#3b4f6b"], price: 6000 },
+  { id: "deep", name: "Deep", colors: ["#0b1d3a", "#1a3b2a", "#3a0d12", "#ff6a00"], price: 9000 },
+];
+export const PAINTS = PAINT_SETS.flatMap((p) => p.colors);
+export const paintSet = (color: string) => PAINT_SETS.find((p) => p.colors.includes(color)) ?? PAINT_SETS[0];
 
-export type Upgrades = { speed: number; handling: number; brakes: number }; // 0..5 each
+export type Upgrades = { speed: number; handling: number; brakes: number; nitro: number }; // 0..5 each
 export const UPGRADE_MAX = 5;
 /** What a level of an upgrade costs: doubling, from a twentieth of the car's price (as the original). */
 export const upgradeCost = (car: PlayerCar, level: number) => Math.round(Math.max(800, car.price / 20) * 2 ** level / 50) * 50;
@@ -48,7 +66,7 @@ const G = 9.81, RHO = 1.2, CDA = 0.62, CRR = 0.012, EFF = 0.88;
 
 /** The physics for a car with its upgrades: power solved from the top speed, gears to suit. */
 export function spec(car: PlayerCar, up: Upgrades, wheelbase: number): Spec & { agility: number } {
-  const top = (car.top + up.speed * 7) / 3.6; // each speed level is +7 km/h
+  const top = ((car.top + up.speed * 7) / 3.6) * FEEL.pace; // each speed level is +7 km/h; the world's pace scales it all
   const power = (0.5 * RHO * CDA * top ** 3 + CRR * car.mass * G * top) / EFF / 1000; // kW at the top speed
   const redline = car.engine === "sport" ? 7200 : 6400;
   const wheelRadius = 0.32;
@@ -66,8 +84,12 @@ export function spec(car: PlayerCar, up: Upgrades, wheelbase: number): Spec & { 
     brake: car.brake + up.brakes * 0.06,
     steerMax: 0.6,
     agility: car.agility + up.handling * 0.05,
+    top,
   };
 }
+
+/** The nitro a car carries with its upgrade: how long a full bar burns and how hard it pushes. */
+export const nitroOf = (up: Upgrades) => ({ burn: 2.5 + up.nitro * 0.5, push: 6 + up.nitro * 1.2, fill: 1 + up.nitro * 0.15 });
 
 /** The garage's bars, 1..10, from a car and its upgrades. */
 export function stats(car: PlayerCar, up: Upgrades): Stats {
@@ -103,17 +125,21 @@ export const TRAFFIC: TrafficKind[] = [
 ];
 
 /** Places: a sky over the land, how it pays, how its traffic runs. */
-export type Location = { id: string; name: string; sky: string; price: number; cash: number; density: number; asphalt: string };
+/** Places: a sky over the land, how it pays, how its traffic runs. They open with driver levels (game/progress.ts). */
+export type Location = { id: string; name: string; sky: string; cash: number; density: number; asphalt: string };
 export const LOCATIONS: Location[] = [
-  { id: "countryside", name: "Countryside", sky: "partly_cloudy", price: 0, cash: 1, density: 1, asphalt: "asphalt_new" },
-  { id: "midday", name: "High Noon", sky: "clear_midday", price: 15000, cash: 1.1, density: 1.05, asphalt: "asphalt_worn" },
-  { id: "dusk", name: "Golden Hour", sky: "golden_hour", price: 40000, cash: 1.2, density: 1, asphalt: "asphalt_new" },
-  { id: "overcast", name: "Grey Day", sky: "overcast", price: 80000, cash: 1.25, density: 1.15, asphalt: "asphalt_worn" },
-  { id: "night", name: "Night Run", sky: "night", price: 150000, cash: 1.4, density: 0.8, asphalt: "asphalt_new" },
+  { id: "countryside", name: "Countryside", sky: "partly_cloudy", cash: 1, density: 1, asphalt: "asphalt_new" },
+  { id: "midday", name: "High Noon", sky: "clear_midday", cash: 1.1, density: 1.05, asphalt: "asphalt_new" },
+  { id: "dusk", name: "Golden Hour", sky: "golden_hour", cash: 1.2, density: 1, asphalt: "asphalt_new" },
+  { id: "overcast", name: "Grey Day", sky: "overcast", cash: 1.25, density: 1.15, asphalt: "asphalt_new" },
+  { id: "night", name: "Night Run", sky: "night", cash: 1.4, density: 0.8, asphalt: "asphalt_new" },
 ];
 
-export type Mode = { id: "endless" | "twoway"; name: string; about: string };
+export type ModeId = "endless" | "twoway" | "time" | "trap";
+export type Mode = { id: ModeId; name: string; about: string; twoWay?: boolean; cash: number };
 export const MODES: Mode[] = [
-  { id: "endless", name: "Endless", about: "Four lanes, all going your way. One crash and the run is over." },
-  { id: "twoway", name: "Two-Way", about: "Two lanes each way. The oncoming side pays three times, and touching it ends the run." },
+  { id: "endless", name: "Endless", about: "Four lanes, all going your way. One crash and the run is over.", cash: 1 },
+  { id: "twoway", name: "Two-Way", about: "Two lanes each way. The oncoming side pays three times, and touching it ends the run.", twoWay: true, cash: 1.2 },
+  { id: "time", name: "Time Attack", about: "A clock from 60 seconds. Every 2.5 km adds time, a little less each time.", cash: 1.15 },
+  { id: "trap", name: "Speed Trap", about: "Stay above a speed that rises every 10 seconds. Three seconds under it ends the run.", cash: 1.3 },
 ];
