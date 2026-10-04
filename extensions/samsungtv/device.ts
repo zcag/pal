@@ -119,6 +119,8 @@ class RealConn implements Conn {
   token: string;
   private st: { power: Power; volume?: number; muted?: boolean; front?: AppState; media?: Media; keyboard: Keyboard } = { power: "unknown", keyboard: { open: false } };
   private appList: App[] | undefined;
+  /** The TV left `ed.installedApp.get` unanswered once: not asked again on this connection. */
+  private unlisted = false;
 
   constructor(readonly device: Paired, private w: Wired) { this.token = device.token; }
 
@@ -279,11 +281,13 @@ class RealConn implements Conn {
 
   /** `ed.installedApp.get` when the remote is up and it answers with apps; else every catalog app the TV has, over REST. */
   async apps(): Promise<App[]> {
-    if (this.r?.open || this.st.power === "on") {
+    // A 2024 QE75QN85D never answers `ed.installedApp.get`: asked once, then the known ids alone (a list waited 5 s on it every time and ran the index's 10 s out).
+    if (!this.unlisted && (this.r?.open || this.st.power === "on")) {
       const r = await this.remote().catch(() => undefined);
-      const e = r && (await r.request(appsMsg(), "ed.installedApp.get", 5000).catch(() => undefined));
+      const e = r && (await r.request(appsMsg(), "ed.installedApp.get", 2000).catch(() => undefined));
       const listed = e ? parseApps(e.data) : [];
       if (listed.length) return (this.appList = listed);
+      if (r && !e) this.unlisted = true;
     }
     const states = await Promise.all(rest.CATALOG.map((a) => rest.appState(this.device.address, a.id, 2000, this.w.restPort)));
     const seen = new Set<string>(), out: App[] = [];
