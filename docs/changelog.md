@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.1 · 2026-10-05
+
+- **Fixed: back from a game's large panel (⌘⇧F), pal opened near the top-left corner** instead of in the middle of the screen.
+
 ## 0.13.0 · 2026-10-05
 
 - **A pal account, if you want one**: Settings › Account signs in with your email and a code, no password. Your settings and installed extensions follow you to a new Mac, so there is no setup step, and every earlier version is kept: History puts back any day's settings. Hotkeys, folders and where the bar draws stay on each Mac; a key from your keychain is asked for once.
