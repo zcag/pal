@@ -165,17 +165,48 @@ hash equals `hash` and `pal.json`'s `name` equals the entry's.
 
 Served with `ETag` and gzip; apps send `If-None-Match`.
 
-Published by `.github/workflows/extensions.yml`: every green push to main
-builds into edge; `make ext-release [NAMES="a b"]` promotes edge to stable;
-an app release promotes every first-party build at its tag. Publishing talks
-to the site with a bearer token (`PAL_PUBLISH_TOKEN`):
+Our extensions live in two repositories, `zcag/pal-extensions` and
+`zcag/pal-games`; the index has one signer, pal's
+`.github/workflows/extensions.yml`. A green push to an extension repo's
+main builds its extensions with `pal-pack` (from the pal checkout it tested
+against), uploads the packages whose hash is not edge's newest, and hands
+them over (`.github/actions/publish-extensions`); extensions.yml builds
+them again from that commit, signs the ones whose hash and uploaded tarball
+agree, and adds them to edge. `make ext-release [NAMES="a b"]` promotes
+edge to stable; an app release promotes everything on edge.
+
+Publishing talks to the site with a bearer token. The signer's
+(`PAL_PUBLISH_TOKEN`) may make every call below; an extension repo's
+(`PAL_UPLOAD_TOKEN`) only the two package uploads, so a leaked one can put
+up bytes no index lists, never an index.
 
 | Call | Body |
 |---|---|
-| `PUT /api/registry/pkg/<name>/<hash>.tar.gz` | the tarball |
+| `PUT /api/registry/pkg/<name>/<hash>.tar.gz` | the tarball; refused unless it unpacks to the tree `<hash>` names, and other bytes under a stored hash are refused |
 | `PUT /api/registry/pkg/<name>/<hash>.json` | the manifest |
 | `PUT /api/registry/<channel>` | `{"index": "<text>", "sig": "<text>"}`, swapped in at once |
 | `GET /api/registry/<channel>` | the current index, to build the next from |
+
+The hand-over is a GitHub `repository_dispatch` to `zcag/pal`, sent with a
+token that may dispatch there (`PAL_DISPATCH_TOKEN`):
+
+```json
+{
+  "event_type": "publish-builds",
+  "client_payload": {
+    "repo": "zcag/pal-games",
+    "ref": "<the commit, 40 hex>",
+    "pal": "<the zcag/pal commit it was built with>",
+    "builds": ["snake@<hash>", "wordle@<hash>"]
+  }
+}
+```
+
+`repo` must be one of the two, and `ref` and `pal` commits on their main.
+The signer builds each named extension at `ref` with pal-pack and Bun from
+`pal`, and fails the run on a hash that differs from the dispatched one or
+an uploaded tarball that is not those bytes. The build's `commit` in the
+index is `ref`, a commit of that repo.
 
 ## Running your own
 

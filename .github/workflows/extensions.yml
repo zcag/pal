@@ -1,7 +1,15 @@
 # Our registry (docs/registry.md "Our registry"): every extension built with
 # pal-pack, signed with the extension key, published to pal.cagdas.io.
 #
-# - A green `ci` on a push to main builds main into the edge index; only the
+# - pal's extension repos (zcag/pal-extensions, zcag/pal-games; SOURCES
+#   below) hand their builds over with a `publish-builds` repository_dispatch
+#   `{repo, ref, pal, builds: [name@hash]}` after a green push to their main
+#   (.github/actions/publish-extensions, which also uploads the packages).
+#   Each is built again here from that repo's commit with the pal it was
+#   built against (both must be on their main), and goes to edge only when
+#   the hash is the one dispatched and the uploaded tarball is these bytes.
+# - A green `ci` on a push to main builds main's own extensions/ (while pal
+#   has one) into the edge index; only the
 #   extensions whose hash is not edge's newest go out, so a push that touched
 #   no extension publishes nothing.
 # - `make ext-release [NAMES="a b"]` dispatches `promote`: edge's newest
@@ -24,6 +32,8 @@ on:
     workflows: [ci]
     types: [completed]
     branches: [main]
+  repository_dispatch:
+    types: [publish-builds]
   workflow_dispatch:
     inputs:
       promote:
@@ -63,6 +73,8 @@ permissions:
 env:
   SITE: https://pal.cagdas.io
   BASE: https://pal.cagdas.io/registry
+  # The repos whose dispatched builds are taken (space separated).
+  SOURCES: zcag/pal-extensions zcag/pal-games
 
 jobs:
   build:
@@ -91,11 +103,53 @@ jobs:
       - id: sha
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
+      # Builds another repo dispatched: the payload's shape, a repo of ours,
+      # and both commits on their main, so what is signed was merged there
+      # (never a branch's or a fork's).
+      - name: Dispatched builds
+        if: github.event_name == 'repository_dispatch'
+        id: dispatched
+        env:
+          REPO: ${{ github.event.client_payload.repo }}
+          REF: ${{ github.event.client_payload.ref }}
+          PAL: ${{ github.event.client_payload.pal }}
+          BUILDS: ${{ join(github.event.client_payload.builds, ' ') }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          case " $SOURCES " in *" $REPO "*) ;; *) echo "::error::$REPO is not one of pal's extension repos ($SOURCES)"; exit 1 ;; esac
+          [[ $REF =~ ^[0-9a-f]{40}$ && $PAL =~ ^[0-9a-f]{40}$ ]] || { echo "::error::ref and pal are commit hashes"; exit 1; }
+          [ -n "$BUILDS" ] || { echo "::error::no builds"; exit 1; }
+          for b in $BUILDS; do [[ $b =~ ^[a-z0-9][a-z0-9-]*@[0-9a-f]{64}$ ]] || { echo "::error::$b is not name@hash"; exit 1; }; done
+          for at in "$REPO $REF" "$GITHUB_REPOSITORY $PAL"; do
+            read -r repo commit <<< "$at"
+            s=$(gh api "repos/$repo/compare/$commit...main" --jq .status)
+            case $s in ahead|identical) ;; *) echo "::error::$repo@$commit is not on its main ($s)"; exit 1 ;; esac
+          done
+          echo "names=$(for b in $BUILDS; do printf '%s ' "${b%@*}"; done)" >> "$GITHUB_OUTPUT"
+          echo "### Dispatched by $REPO@${REF:0:10}, built with pal@${PAL:0:10}" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@v4
+        if: github.event_name == 'repository_dispatch'
+        with:
+          repository: ${{ github.event.client_payload.repo }}
+          ref: ${{ github.event.client_payload.ref }}
+          path: src
+          persist-credentials: false
+      # The pal the repo built with: its pal-pack and Bun, so the hashes can agree.
+      - uses: actions/checkout@v4
+        if: github.event_name == 'repository_dispatch'
+        with:
+          ref: ${{ github.event.client_payload.pal }}
+          path: packer
+          persist-credentials: false
+
       # The same Bun as ci.yml and the app's sidecar (fetch-bun.sh pins it).
       - name: Bun version
         if: env.BUILD == 'true'
         id: bun
-        run: echo "version=$(sed -n 's/^BUN_VERSION=//p' app/scripts/fetch-bun.sh)" >> "$GITHUB_OUTPUT"
+        env:
+          FROM: ${{ github.event_name == 'repository_dispatch' && 'packer/' || '' }}
+        run: echo "version=$(sed -n 's/^BUN_VERSION=//p' "${FROM}app/scripts/fetch-bun.sh")" >> "$GITHUB_OUTPUT"
       - uses: oven-sh/setup-bun@v2
         if: env.BUILD == 'true'
         with:
@@ -108,22 +162,51 @@ jobs:
           restore-keys: bun-${{ runner.os }}-
       - name: Install JS dependencies
         if: env.BUILD == 'true'
+        env:
+          FROM: ${{ github.event_name == 'repository_dispatch' && 'src/*/' || 'extensions/*/' }}
         run: |
           bun install --frozen-lockfile
-          for d in extensions/*/; do
+          for d in $FROM; do
             if [ -f "$d/package.json" ]; then (cd "$d" && bun install --frozen-lockfile); fi
           done
 
       # Every extension at this commit, with its statement. `seq` is the
       # commit's time (docs/registry.md), the same in every workflow that
       # builds it, so the release's build of a tag and this one agree.
+      #
+      # Dispatched builds are built from the repo's commit with its pal, each
+      # held to the hash the repo dispatched and to the tarball it uploaded.
+      # pal without an extensions/ of its own builds nothing for itself.
       - name: Build
         if: env.BUILD == 'true'
+        env:
+          NAMES: ${{ steps.dispatched.outputs.names }}
+          BUILDS: ${{ join(github.event.client_payload.builds, ' ') }}
+          REPO: ${{ github.event.client_payload.repo }}
         run: |
+          set -euo pipefail
           R=$RUNNER_TEMP/registry
-          bun sdk/bin/pal-pack.ts build extensions/*/ --out "$R/all" \
-            --seq "$(git show -s --format=%ct HEAD)" --commit "$(git rev-parse HEAD)" \
-            --screenshots-base "$SITE/extensions"
+          if [ "$GITHUB_EVENT_NAME" = repository_dispatch ]; then
+            dirs=(); for n in $NAMES; do dirs+=("src/$n"); done
+            bun packer/sdk/bin/pal-pack.ts build "${dirs[@]}" --out "$R/all" \
+              --seq "$(git -C src show -s --format=%ct HEAD)" --commit "$(git -C src rev-parse HEAD)" \
+              --screenshots-base "$SITE/extensions"
+            for b in $BUILDS; do
+              n=${b%@*} h=${b#*@}
+              got=$(jq -r .build.hash "$R/all/$n.entry.json")
+              [ "$got" = "$h" ] || { echo "::error::$n: built here from $REPO it hashes to $got, the dispatch says $h"; exit 1; }
+              curl -fsS -o "$R/uploaded.tar.gz" "$BASE/pkg/$n/$h.tar.gz" || { echo "::error::$n@$h: no uploaded package"; exit 1; }
+              cmp -s "$R/uploaded.tar.gz" "$R/all/$n.tar.gz" || { echo "::error::$n@$h: the uploaded tarball is not the one built here"; exit 1; }
+            done
+            rm -f "$R/uploaded.tar.gz"
+          else
+            shopt -s nullglob
+            dirs=(extensions/*/)
+            [ ${#dirs[@]} -gt 0 ] || { echo "no extensions/ in pal: nothing of its own to build"; exit 0; }
+            bun sdk/bin/pal-pack.ts build "${dirs[@]}" --out "$R/all" \
+              --seq "$(git show -s --format=%ct HEAD)" --commit "$(git rev-parse HEAD)" \
+              --screenshots-base "$SITE/extensions"
+          fi
           bun sdk/bin/pal-pack.ts statements "$R/all"
           .github/actions/registry/registry.sh fetch "$BASE/edge/index.json" "$R/edge.json"
           .github/actions/registry/registry.sh changed "$R/all" "$R/edge.json" | tee "$R/changed.txt"
@@ -309,10 +392,11 @@ jobs:
         env:
           YANK: ${{ inputs.yank }}
           REINDEX: ${{ inputs.reindex }}
+          FROM: ${{ github.event.client_payload.repo && format('{0}@{1}', github.event.client_payload.repo, github.event.client_payload.ref) || '' }}
         run: |
           r=.github/actions/registry/registry.sh S=$RUNNER_TEMP/signed
           {
-            echo "## Registry at \`${{ needs.build.outputs.sha }}\`"
+            echo "## Registry at \`${{ needs.build.outputs.sha }}\`${FROM:+, builds of \`$FROM\`}"
             for ch in edge stable; do
               [ -f "$S/$ch/index.json" ] || continue
               echo; echo "### $ch"; echo
