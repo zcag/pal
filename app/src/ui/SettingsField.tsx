@@ -42,6 +42,9 @@ export function localMatcher(patterns: string[]): (key: string) => boolean {
 /** The matcher Settings.tsx provides from the view; nothing is local without it. */
 export const LocalKeys = createContext<(key: string) => boolean>(() => false);
 
+/** Declared secrets synced from another machine whose key was never added here (settings.rs `View.absent`), by config key. */
+export const AbsentKeys = createContext<(key: string) => boolean>(() => false);
+
 /** "this Mac only" after a row's description, when `configKey` (or `local`) says it never syncs. */
 export function LocalNote({ configKey, local }: { configKey?: string; local?: boolean }) {
   const isLocal = useContext(LocalKeys);
@@ -333,7 +336,13 @@ export function SettingsField({ spec, value, onChange, layout = "row", base, not
   const modified = inherits ? JSON.stringify(value ?? null) !== JSON.stringify(base ?? null) : spec.default !== undefined && isModified(spec, value);
   const labelled = spec.kind !== "boolean" && spec.kind !== "hotkey" && spec.kind !== "secret";
   const isLocal = useContext(LocalKeys);
-  const local = spec.kind === "hotkey" || spec.kind === "path" || (spec as { local?: boolean }).local === true || (!!configKey && isLocal(configKey));
+  const isAbsent = useContext(AbsentKeys);
+  // A synced secret without its key here: an empty field asking for it.
+  if (spec.kind === "secret" && configKey && isAbsent(configKey)) {
+    spec = { ...spec, placeholder: "Add your key" };
+    note = note ?? "Synced from another Mac; the key itself stays in each Mac's keychain, so it is added once here.";
+  }
+  const local = spec.kind === "hotkey" || spec.kind === "path" || spec.local === true || (!!configKey && isLocal(configKey));
   const back = inherits ? `Back to the inherited value: ${describeDefault({ ...spec, default: base } as SettingSpec)}` : `Reset to default: ${describeDefault(spec)}`;
   return (
     <div className="pal-setting" data-layout={layout} data-kind={spec.kind} data-modified={modified || undefined}>

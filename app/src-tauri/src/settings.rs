@@ -1023,12 +1023,31 @@ pub struct View {
     /// The config keys that stay on this machine (`pal_core::config::sync`,
     /// `*` one segment): the rows they set say "this Mac only".
     local: Vec<String>,
+    /// Declared secrets whose `keychain:` reference has nothing behind it
+    /// on this machine (a setting synced from another), as config keys
+    /// (`extensions.<key>.<id>`): the field reads "Add your key".
+    absent: Vec<String>,
+}
+
+/// [`View::absent`]: every loaded instance's declared secrets, asked of the
+/// store outside the locks (a `security` run per reference on macOS).
+fn absent_secrets(config: &Config, exts: &[Ext]) -> Vec<String> {
+    let store = platform_store();
+    let q = pal_core::config::sync::quote;
+    exts.iter()
+        .flat_map(|e| {
+            let specs = &e.manifest["settings"];
+            let values = config.extension_settings(&e.key, &pal_core::config::spec_defaults(specs), specs);
+            pal_core::config::secrets::absent_declared(&values, specs, &*store).into_iter().map(|id| format!("extensions.{}.{}", q(&e.key), q(&id))).collect::<Vec<_>>()
+        })
+        .collect()
 }
 
 /// Off the main thread: `permissions::status` probes the OS (~85 ms on
 /// hornet), and the page re-reads every 5 s while the Overview is up.
 #[tauri::command(async)]
 pub fn settings_get(app: AppHandle, st: State<'_, Settings>) -> View {
+    let absent = absent_secrets(&config(&app), &extensions(&app));
     let l = lock(&st.loaded);
     let exts = lock(&st.extensions).clone();
     let mut diagnostics = l.diagnostics.clone();
@@ -1049,6 +1068,7 @@ pub fn settings_get(app: AppHandle, st: State<'_, Settings>) -> View {
         displays: crate::bar::popover::displays(&app).0.into_iter().map(|d| d.name).collect(),
         features: crate::features::view(&app, &l.config, &perms),
         local: crate::account::local_keys(&app),
+        absent,
     }
 }
 
@@ -1097,10 +1117,18 @@ pub fn settings_unset(st: State<'_, Settings>, key: String) -> Result<(), String
 
 /// Puts `value` in the OS store under `key` and returns the reference the
 /// file should hold (`keychain:<key>`). The value never reaches the file.
+/// `extension`: the key went in behind a reference the file already holds
+/// (a synced one, "Add your key"), so no file change will tell the host:
+/// its settings are pushed now.
 #[tauri::command(async)]
-pub fn settings_set_secret(key: String, value: String) -> Result<String, String> {
+pub fn settings_set_secret(app: AppHandle, key: String, value: String, extension: Option<String>) -> Result<String, String> {
     let key = SecretRef::parse(&key).map_or(key.as_str(), |r| r.key).to_string();
     platform_store().set(&key, &value).map_err(|e| format!("{key}: could not store in the keychain: {e}"))?;
+    if let (Some(name), Some(host)) = (extension, app.try_state::<Arc<Host>>()) {
+        let (app, host) = (app.clone(), host.inner().clone());
+        tauri::async_runtime::spawn(async move { push(&app, &host, &[name]).await });
+    }
+    events::emit(&app, events::CONFIG_SECRETS, ());
     Ok(format!("keychain:{key}"))
 }
 

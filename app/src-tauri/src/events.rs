@@ -90,6 +90,9 @@ pub const STORE: &str = "pal://store";
 /// To every page: the account or its sync moved (signed in or out, a
 /// sync ran); Settings › Account re-reads (`account::account_state`).
 pub const ACCOUNT: &str = "pal://account";
+/// To every page: a secret went into the keychain behind a reference the
+/// file already held; Settings re-reads (the "Add your key" field is filled).
+pub const CONFIG_SECRETS: &str = "pal://secrets";
 
 /// Emit to every window; a failure (the payload does not serialise) is a
 /// bug worth a log line, never an error for the caller.

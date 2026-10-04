@@ -666,11 +666,14 @@ A setting the extension declared `kind: "secret"` reaches it resolved:
 the values it gets (at import and on every change) carry the secret itself,
 fetched from the store by the core (`core/src/config/secrets.rs`,
 `resolve_declared`). Anything that is not a reference passes through as
-itself. A reference that does not resolve (no such item, locked keychain)
+itself. A reference the store fails to answer (a locked keychain, a denied prompt)
 stays as the reference string and is logged as `secrets  unresolved`; the
 extension still loads. Settings of any other kind are never resolved, even
 when their value looks like a reference, and neither is a key the manifest
-does not declare. Removing a secret in Settings unsets the key; the
+does not declare. A reference with nothing behind it (a setting synced
+from another machine whose key was never added here) is left out, so the
+extension sees the setting unset and Settings shows the field as "Add
+your key". Removing a secret in Settings unsets the key; the
 keychain item stays. On Linux without `secret-tool` on PATH (package
 `libsecret` on Arch, `libsecret-tools` on Debian and Ubuntu) or without a
 Secret Service on the session bus, every `keychain:` reference is
@@ -704,7 +707,6 @@ one key), and Settings marks the rows that set them "this Mac only":
 | `general.extension_dirs`, `general.theme_file` | paths (a theme file's name is looked up in this machine's config dir) |
 | `bar.target`, `bar.sketchybar.position`, `bar.items.*.target`, `bar.items.*.position`, `bar.items.*.rules.*.position` | where the bar draws: sketchybar runs on one machine and not another |
 | `features.sidebar.display` | a display's name |
-| `extensions.apps.folders`, `extensions.files.folders`, `extensions.make.projects`, `extensions.services.agent_dirs` | folder lists of bundled extensions |
 
 On top of the table, an extension's, palette's, bar item's or feature's
 declared setting of kind `hotkey` or `path`, or one that says

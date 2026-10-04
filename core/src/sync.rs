@@ -881,6 +881,12 @@ mod tests {
     }
 
     #[test]
+    fn changed_is_the_hosts_storage_changed() {
+        let c = Changed { extension: "game".into(), key: "best".into(), value: json!(9) };
+        assert_eq!(serde_json::to_value(&c).unwrap(), json!({ "extension": "game", "key": "best", "value": 9 }), "host/src/storage.ts reads these three");
+    }
+
+    #[test]
     fn restore_writes_what_comes_back() {
         let server = Server::start();
         serve(&server);

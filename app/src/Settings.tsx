@@ -16,7 +16,7 @@ import {
   type CrashReport, type PaletteItem, type PanicReport, type ReportKind, type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type UpdateInfo, type UpdateProgress,
   badgedIcon, leavesFile, ownBrand, resolveInstance, type InstanceInfo, type RawInstance, type SettingsInstance,
   useThemeFile,
-  SettingsAccount, accountIndex, LocalKeys, localMatcher, type AccountDevice, type AccountState, type SyncRev,
+  SettingsAccount, accountIndex, LocalKeys, AbsentKeys, quoteKey, localMatcher, type AccountDevice, type AccountState, type SyncRev,
 } from "./ui";
 import { comboOf, isMac } from "./ui/keys";
 import { DESIGNS, designOf } from "./ui/designs";
@@ -66,7 +66,7 @@ type RawBarState = NonNullable<BarItem["state"]>;
 const ruleEffect = (r: RawBarRule): BarRuleEffect => ({ ...lookOf(r), ...(r.hidden !== undefined && { hidden: r.hidden }), ...(r.urgent !== undefined && { urgent: r.urgent }), ...(r.position !== undefined && { position: r.position }) });
 type RawBarRule = { when?: string; description?: string; hidden?: boolean; urgent?: boolean; position?: string } & RawLook;
 type RawBarView = { key: string; extension: string; id: string; title: string; /** A glance-only item (`ManifestBar.strip: false`). */ glance_only?: boolean; /** The manifest's `bar.<id>.settings`. */ settings_specs?: SettingSpec[]; description?: string; source: boolean; refresh_every?: number; rendered_at?: number; stale: boolean; held?: boolean; state?: RawBarState; mocks?: { id: string; title: string; item: RawBarState }[]; rules?: { id: string; when: string; description?: string; rule: RawBarRule; default?: RawBarRule; overridden: boolean; active: boolean }[]; states?: { name: string; value: boolean | number | string | null; description?: string }[] };
-type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[]; hotkey: HotkeyStatus; permissions: PermissionsStatus; bar?: { supported: boolean; sketchybar: boolean; items: RawBarView[] }; checks: Checks; /** The displays' names, the primary first (`popover::displays`), for `[sidebar] display`. */ displays?: string[]; /** Every feature (features.rs `view`). */ features?: RawFeature[]; /** The config keys that stay on this machine (`pal_core::config::sync`): their rows say "this Mac only". */ local?: string[] };
+type View = { config: RawConfig; diagnostics: Diagnostic[]; path: string; changed?: number; version: string; extensions: Ext[]; hotkey: HotkeyStatus; permissions: PermissionsStatus; bar?: { supported: boolean; sketchybar: boolean; items: RawBarView[] }; checks: Checks; /** The displays' names, the primary first (`popover::displays`), for `[sidebar] display`. */ displays?: string[]; /** Every feature (features.rs `view`). */ features?: RawFeature[]; /** The config keys that stay on this machine (`pal_core::config::sync`): their rows say "this Mac only". */ local?: string[]; /** Declared secrets synced from another machine with no key here (`extensions.<key>.<id>`): "Add your key". */ absent?: string[] };
 /** features.rs `view`: the spec as compiled in, and what the app knows of it now. */
 type RawFeature = { spec: { id: string; title: string; description: string; icon?: unknown; toggle?: string; permission?: PermissionId; why?: string; settings?: SettingSpec[]; commands?: { id: string; title: string }[] }; available: boolean; on: boolean; needs?: PermissionId | null; note?: string | null; hotkeys?: Record<string, string> };
 /** settings.rs `About`: where the docs and the source live, and what the last run left behind (crash.rs). */
@@ -118,7 +118,17 @@ const isTier = (r: unknown): r is PaletteTier => r === "primary" || r === "norma
  * no palettes. `alone` is whether the extension has one enabled instance:
  * a named default is labelled only next to another.
  */
-function toExtension(e: Ext, config: RawConfig, store: StoreState, alone: boolean): SettingsExtension {
+/** `extensions.<key>.<id>`, the config key of an extension's declared setting. */
+const extKey = (key: string, id: string) => `extensions.${quoteKey(key)}.${quoteKey(id)}`;
+
+/** The instance's own table, a synced secret whose key is not on this machine read as unset (`absent`), so it shows as missing everywhere. */
+function ownValues(e: Ext, config: RawConfig, absent: Set<string>): SettingValues {
+  const own = { ...(config.extensions[e.key] ?? {}) } as SettingValues;
+  for (const id of Object.keys(own)) if (absent.has(extKey(e.key, id))) own[id] = "";
+  return own;
+}
+
+function toExtension(e: Ext, config: RawConfig, store: StoreState, alone: boolean, absent: Set<string> = new Set()): SettingsExtension {
   const m = e.manifest;
   const extTitle = m.title ?? e.name;
   const own = m.icon ? iconOf(m.icon, extTitle) : undefined;
@@ -178,7 +188,7 @@ function toExtension(e: Ext, config: RawConfig, store: StoreState, alone: boolea
     palettes,
     settings: m.settings ?? [],
     permissions: storePermissions(m.store?.permissions),
-    values: (config.extensions[e.key] ?? {}) as SettingValues,
+    values: ownValues(e, config, absent),
     loaded: e.loaded,
     error: e.error,
     warnings: e.warnings,
@@ -367,11 +377,12 @@ export default function Settings() {
     // The hotkey's registration outcome and a permission grant land in the view too (settings.rs `View`).
     const c = listen("pal://hotkey", refresh);
     const d = listen("pal://permissions", refresh);
+    const s = listen("pal://secrets", refresh);
     // A root command opened the window on a page (settings.rs `open_page`), on a row of it when it named one (`open_at`).
     const e = listen<{ page: SettingsPage; anchor?: string | null }>("pal://settings", (ev) => { setPage(ev.payload.page); if (ev.payload.anchor) setLanding(ev.payload.anchor); });
     const onBlur = () => { if (held.current) refresh(); };
     window.addEventListener("focusout", onBlur);
-    return () => { for (const u of [a, b, c, d, e]) u.then((f) => f()); window.removeEventListener("focusout", onBlur); clearTimeout(timer.current); };
+    return () => { for (const u of [a, b, c, d, e, s]) u.then((f) => f()); window.removeEventListener("focusout", onBlur); clearTimeout(timer.current); };
   }, [read, refresh]);
   // The bar's live state (a render, a stale mark) has no event of its own: re-read while the Bar page is up.
   useEffect(() => {
@@ -400,6 +411,7 @@ export default function Settings() {
   const { state: storeState, loaded: storeLoaded, refresh: storeRefresh } = useStore();
   const account = useAccount(page);
   const isLocal = useMemo(() => localMatcher(view?.local ?? []), [view?.local]);
+  const isAbsent = useMemo(() => { const a = new Set(view?.absent ?? []); return (k: string) => a.has(k); }, [view?.absent]);
   const [checking, setChecking] = useState(false);
   // Answers what the core knows after, for the About page's row (the app's result, or its error).
   const check = useCallback((force: boolean): Promise<Checks | undefined> => {
@@ -433,7 +445,8 @@ export default function Settings() {
     if (!view) return [];
     const all = [...view.extensions, ...parkedInstances(view.extensions, view.config)];
     const enabled = (name: string) => all.filter((e) => e.name === name && view.config.instances?.[e.key]?.enabled !== false).length;
-    return all.map((e) => toExtension(e, view.config, storeState, enabled(e.name) < 2)).sort((a, b) => a.title.localeCompare(b.title));
+    const absent = new Set(view.absent ?? []);
+    return all.map((e) => toExtension(e, view.config, storeState, enabled(e.name) < 2, absent)).sort((a, b) => a.title.localeCompare(b.title));
   }, [view, storeState]);
   const groups = useMemo<DeviceGroup[]>(() => Object.entries(view?.config.groups ?? {}).map(([id, g]) => ({ id, title: g.title, members: g.members ?? [], volume: g.volume, inputs: g.inputs })), [view]);
   // Every instance whose manifest declares a device control (volume, power, inputs; a player alone is no device) can be a member; the device it drives is whatever it published last.
@@ -498,11 +511,15 @@ export default function Settings() {
     if (spec?.kind === "secret" && typeof value === "string" && value && !/^(keychain|env):/.test(value)) {
       // The value goes to the OS store; the file gets the reference (`pal/gmail@work-token` for an instance: its own item).
       try {
-        value = await invoke<string>("settings_set_secret", { key: `pal/${key.slice(1).join("-")}`, value });
+        // A synced reference with no key here ("Add your key"): the key goes in behind that reference, which the file keeps, so the host is told directly.
+        const ref = key[0] === "extensions" && key.length === 3 && view?.absent?.includes(extKey(key[1], key[2])) ? view.config.extensions[key[1]]?.[key[2]] : undefined;
+        value = typeof ref === "string"
+          ? await invoke<string>("settings_set_secret", { key: ref, value, extension: key[1] })
+          : await invoke<string>("settings_set_secret", { key: `pal/${key.slice(1).join("-")}`, value });
       } catch (e) { setError(String(e)); return; }
     }
     write(key, leavesFile(value, spec, base) ? undefined : value);
-  }, [write]);
+  }, [write, view]);
 
   /** The palette's indexed rows (index.rs `query` scoped to its source: the cached listing, every row, no cap), for the item hotkeys' picker. */
   const paletteItems = useCallback(async (p: SettingsPalette): Promise<PaletteItem[]> => {
@@ -699,6 +716,7 @@ export default function Settings() {
 
   return (
     <LocalKeys.Provider value={isLocal}>
+    <AbsentKeys.Provider value={isAbsent}>
     <SettingsWindow page={page} onPage={setPage} aside={aside} index={index} onJump={onJump} diagnostics={view.diagnostics} file={fileName} onOpenDiagnostic={() => invoke("settings_open_file").catch(fail)} mac={isMac} attention={attention}>
       {page === "overview" && (
         <SettingsOverview
@@ -827,6 +845,7 @@ export default function Settings() {
         />
       )}
     </SettingsWindow>
+    </AbsentKeys.Provider>
     </LocalKeys.Provider>
   );
 }

@@ -84,7 +84,12 @@ whose code fails to load.
   lists the extension as needing setup (nothing else is guessed at, so an
   optional key is simply not marked). `"only": { "auth": "token" }` narrows
   that to while other settings hold those values; `{ "invidious_url": "" }`
-  makes it one of two. A setting only a bar item
+  makes it one of two. `"local": true` marks one that belongs to the
+  machine (a list of folders) and never syncs with a pal account; a
+  `hotkey` or `path` setting is local without it, everything else syncs
+  ([Config](config.md#sync)). A synced `secret` syncs its `keychain:`
+  reference only: on a machine without the key the extension sees the
+  setting unset, and Settings asks for it ("Add your key"). A setting only a bar item
   reads is that item's, declared under `bar.<id>.settings` (below, "Bar
   items"); one the palettes read too stays here. The kinds and what each
   adds: `text` and `secret` (`placeholder`; a secret goes to the OS

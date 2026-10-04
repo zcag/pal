@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { SettingsAccount, byDay, summary, type AccountState, type SettingsAccountProps, type SyncRev } from "../SettingsAccount";
-import { LocalKeys, SettingsRow, keySegments, localMatcher } from "../SettingsField";
+import { AbsentKeys, LocalKeys, SettingsField, SettingsRow, keySegments, localMatcher } from "../SettingsField";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -186,5 +186,23 @@ describe("this Mac only", () => {
     const notes = [...el.querySelectorAll(".pal-setting__local")];
     expect(notes).toHaveLength(1);
     expect(notes[0].closest(".pal-setting")?.textContent).toContain("Usage");
+  });
+});
+
+describe("Add your key", () => {
+  it("a synced secret with no key here is an empty field asking for it", async () => {
+    const onChange = vi.fn();
+    const spec = { id: "token", kind: "secret" as const, label: "Token" };
+    await act(async () => {
+      root.render(
+        <AbsentKeys.Provider value={(k) => k === "extensions.github.token"}>
+          <SettingsField spec={spec} value="" onChange={onChange} configKey="extensions.github.token" />
+          <SettingsField spec={{ ...spec, id: "other" }} value="" onChange={onChange} configKey="extensions.github.other" />
+        </AbsentKeys.Provider>,
+      );
+    });
+    const inputs = [...el.querySelectorAll<HTMLInputElement>("input[type=password]")];
+    expect(inputs.map((i) => i.placeholder)).toEqual(["Add your key", "Paste the secret"]);
+    expect(el.textContent).toContain("Synced from another Mac");
   });
 });
