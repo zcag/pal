@@ -114,6 +114,8 @@ kbd {
 .over .next { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 11px; font-size: 10.5px; color: var(--faint); }
 .over .next .bar { width: 110px; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
 .over .next .bar i { display: block; height: 100%; background: var(--accent2); box-shadow: 0 0 8px var(--accent); }
+.over .board { margin-top: 10px; font-size: 10.5px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.over .board a { color: var(--accent2); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .opened { margin-top: 9px; font: 700 10px/1 var(--disp); letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); text-shadow: 0 0 12px var(--gold); animation: glow 1.4s ease-in-out infinite; }
 @keyframes glow { 50% { opacity: 0.6; } }
 

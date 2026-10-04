@@ -32,6 +32,264 @@
       "default": 80
     }
   ],
+  "sync": {
+    "save": {
+      "fields": {
+        "v": "max",
+        "boards": {
+          "fields": {
+            "pulse": {
+              "fields": {
+                "best": "max",
+                "tries": "sum",
+                "time": "sum",
+                "medals": "union"
+              }
+            },
+            "drift": {
+              "fields": {
+                "best": "max",
+                "tries": "sum",
+                "time": "sum",
+                "medals": "union"
+              }
+            },
+            "prism": {
+              "fields": {
+                "best": "max",
+                "tries": "sum",
+                "time": "sum",
+                "medals": "union"
+              }
+            },
+            "undertow": {
+              "fields": {
+                "best": "max",
+                "tries": "sum",
+                "time": "sum",
+                "medals": "union"
+              }
+            },
+            "overdrive": {
+              "fields": {
+                "best": "max",
+                "tries": "sum",
+                "time": "sum",
+                "medals": "union"
+              }
+            },
+            "singularity": {
+              "fields": {
+                "best": "max",
+                "tries": "sum",
+                "time": "sum",
+                "medals": "union"
+              }
+            },
+            "pulse+": {
+              "fields": {
+                "best": "max",
+                "tries": "sum",
+                "time": "sum",
+                "medals": "union"
+              }
+            },
+            "drift+": {
+              "fields": {
+                "best": "max",
+                "tries": "sum",
+                "time": "sum",
+                "medals": "union"
+              }
+            },
+            "prism+": {
+              "fields": {
+                "best": "max",
+                "tries": "sum",
+                "time": "sum",
+                "medals": "union"
+              }
+            },
+            "undertow+": {
+              "fields": {
+                "best": "max",
+                "tries": "sum",
+                "time": "sum",
+                "medals": "union"
+              }
+            },
+            "overdrive+": {
+              "fields": {
+                "best": "max",
+                "tries": "sum",
+                "time": "sum",
+                "medals": "union"
+              }
+            },
+            "singularity+": {
+              "fields": {
+                "best": "max",
+                "tries": "sum",
+                "time": "sum",
+                "medals": "union"
+              }
+            },
+            "endless": {
+              "fields": {
+                "best": "max",
+                "tries": "sum",
+                "time": "sum",
+                "medals": "union"
+              }
+            }
+          }
+        },
+        "ghosts": {
+          "fields": {
+            "pulse": "latest",
+            "drift": "latest",
+            "prism": "latest",
+            "undertow": "latest",
+            "overdrive": "latest",
+            "singularity": "latest",
+            "pulse+": "latest",
+            "drift+": "latest",
+            "prism+": "latest",
+            "undertow+": "latest",
+            "overdrive+": "latest",
+            "singularity+": "latest"
+          }
+        },
+        "daily": {
+          "fields": {
+            "best": "max",
+            "tries": "max"
+          }
+        },
+        "last": "latest",
+        "muted": "latest",
+        "skin": "latest",
+        "trail": "latest",
+        "ghost": "latest"
+      }
+    },
+    "scene": "local"
+  },
+  "leaderboards": [
+    {
+      "id": "stage/pulse",
+      "title": "Pulse",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 3600
+    },
+    {
+      "id": "stage/drift",
+      "title": "Drift",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 3600
+    },
+    {
+      "id": "stage/prism",
+      "title": "Prism",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 3600
+    },
+    {
+      "id": "stage/undertow",
+      "title": "Undertow",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 3600
+    },
+    {
+      "id": "stage/overdrive",
+      "title": "Overdrive",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 3600
+    },
+    {
+      "id": "stage/singularity",
+      "title": "Singularity",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 3600
+    },
+    {
+      "id": "hyper/pulse",
+      "title": "Pulse Hyper",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 3600
+    },
+    {
+      "id": "hyper/drift",
+      "title": "Drift Hyper",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 3600
+    },
+    {
+      "id": "hyper/prism",
+      "title": "Prism Hyper",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 3600
+    },
+    {
+      "id": "hyper/undertow",
+      "title": "Undertow Hyper",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 3600
+    },
+    {
+      "id": "hyper/overdrive",
+      "title": "Overdrive Hyper",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 3600
+    },
+    {
+      "id": "hyper/singularity",
+      "title": "Singularity Hyper",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 3600
+    },
+    {
+      "id": "endless",
+      "title": "Endless",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 36000
+    },
+    {
+      "id": "daily",
+      "title": "Daily",
+      "order": "desc",
+      "format": "time",
+      "period": "day",
+      "min": 0,
+      "max": 3600
+    }
+  ],
   "store": {
     "tagline": "Slip through the closing walls, on the beat",
     "category": "fun",
@@ -81,7 +339,8 @@
       "Each stage its own world: neon, a nebula, glass, deep water, acid speed, a black hole; and a hyper of each, faster and in other colours",
       "Race the ghost of your best run, see what killed you again in slow motion, hear every near miss",
       "Medals for clearing, for a steady hand and for near misses, which open new shapes and trails for the player",
-      "Endless (every stage in turn, then their hypers), a daily run with the same walls for everyone, and practice from any rank you've reached"
+      "Endless (every stage in turn, then their hypers), a daily run with the same walls for everyone, and practice from any rank you've reached",
+      "A leaderboard for every stage and its hyper, Endless and the daily; signed in, your bests, medals and looks follow you to your other machines and play.cagdas.io"
     ],
     "screenshots": [
       {

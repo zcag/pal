@@ -167,5 +167,15 @@ stages). **Practice** (P) starts a stage's chart at any rank you have
 reached there, the walls played to that moment and you set down where it is
 safe, untouchable for a moment; practice changes no record. The **daily**
 is the same board and seed for everyone all day (the stages in turn), its
-best kept for the day. The death card shows the time, the rank, the record
-or the gap to it, and how far the next rank was: the reason for one more.
+best kept for the day; days are UTC, as its leaderboard's are. The death
+card shows the time, the rank, the record or the gap to it, and how far the
+next rank was: the reason for one more; then, once the board answers, where
+the run stands on it ("#12 of 340 today").
+
+**Boards and sync** (`pal.json`): a leaderboard per stage (`stage/<id>`)
+and per hyper (`hyper/<id>`), Endless, and the daily (`period: day`), every
+finished run posted but practice. The save syncs field by field: bests
+`max`, tries and time `sum`, medals `union`, ghosts and the look `latest`;
+the daily's best and tries are day-coded numbers (the UTC day times 1e7 plus
+the value) so a `max` keeps today's over yesterday's. A save sync brings in
+replaces the page's, so the next run settles onto it.

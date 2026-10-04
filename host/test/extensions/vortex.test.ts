@@ -1,8 +1,9 @@
-import { expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { CLEAR, FEEL, RANKS, STAGES, sectionAt } from "../../../extensions/vortex/game/content.ts";
 import { GRAZE, LEGS, PATTERN_IDS, chartSeed, create, inside, sectionOf, skipTo, step, travel, type State } from "../../../extensions/vortex/game/sim.ts";
 import { decide, play, safest } from "../../../extensions/vortex/game/bot.ts";
-import { BOARDS, MEDALS_TOTAL, Player, daily, dailyOpen, fresh, ghostOf, ghostStep, keyOf, load, medalCount, open, record, settle, skinOpen, type Keys } from "../../../extensions/vortex/game/meta.ts";
+import { BOARDS, MEDALS_TOTAL, Player, boardIdOf, daily, dailyOf, dailyOpen, fresh, ghostOf, ghostStep, keyOf, load, medalCount, open, record, settle, skinOpen, type Keys, type Save } from "../../../extensions/vortex/game/meta.ts";
+import { declared, manifestOf, merge, problems, storedKeys } from "./game-accounts.ts";
 
 const TAU = Math.PI * 2;
 const wall = (a0: number, a1: number, r: number, len: number) => ({ id: 0, a0, a1, r, len });
@@ -204,25 +205,74 @@ test("medals: each once, for what the run did; looks open by the medals counted"
   expect(MEDALS_TOTAL).toBe(51);
 });
 
-test("the daily is the same board and seed all day, kept apart from the stages' bests", () => {
-  const a = daily(new Date(2026, 9, 4, 8)), b = daily(new Date(2026, 9, 4, 23)), c = daily(new Date(2026, 9, 5, 1));
+test("the daily is the same board and seed all UTC day, kept apart from the stages' bests", () => {
+  const a = daily(new Date(Date.UTC(2026, 9, 4, 0, 1))), b = daily(new Date(Date.UTC(2026, 9, 4, 23, 59))), c = daily(new Date(Date.UTC(2026, 9, 5, 0, 1)));
   expect(a).toEqual(b);
-  expect(c.day).not.toBe(a.day);
+  expect(a.day).toBe("2026-10-04");
+  expect(c.n).toBe(a.n + 1);
   expect(c.stage).not.toBe(a.stage);
   const s = fresh();
-  settle(s, "pulse", run(20), { day: a.day });
-  settle(s, "pulse", run(14), { day: a.day });
-  expect(s.daily).toEqual({ day: a.day, best: 20, tries: 2 });
+  settle(s, "pulse", run(20.25), { day: a.n });
+  expect(settle(s, "pulse", run(14), { day: a.n })).toMatchObject({ prev: 20.25, record: false, daily: true });
+  expect(dailyOf(s, a.n)).toEqual({ best: 20.25, tries: 2 });
   expect(s.boards.pulse).toBeUndefined();
-  settle(s, "pulse", run(5), { day: c.day });
-  expect(s.daily).toEqual({ day: c.day, best: 5, tries: 1 });
+  expect(dailyOf(s, c.n)).toEqual({ best: 0, tries: 0 });
+  settle(s, "pulse", run(5), { day: c.n });
+  expect(dailyOf(s, c.n)).toEqual({ best: 5, tries: 1 });
 });
 
-test("a stored save loads, and anything unknown starts fresh", () => {
+test("a stored save loads, a v1 one with its daily kept, and anything unknown starts fresh", () => {
   const s = fresh();
   settle(s, "drift", { ...run(40), keys: [3, 1] });
   expect(load(JSON.parse(JSON.stringify(s)))).toEqual(s);
   expect(load(null)).toEqual(fresh());
   expect(load({ v: 9, boards: { pulse: { best: 9 } } })).toEqual(fresh());
-  expect(load({ v: 1, muted: true })).toMatchObject({ daily: fresh().daily, skin: "dart", ghost: true, ghosts: {} });
+  expect(load({ v: 1, muted: true })).toMatchObject({ v: 2, daily: fresh().daily, skin: "dart", ghost: true, ghosts: {} });
+  const n = daily(new Date(Date.UTC(2026, 9, 4, 12))).n;
+  const v1 = load({ v: 1, boards: { pulse: { best: 61, tries: 9, time: 300, medals: ["clear"] } }, daily: { day: "2026-10-04", best: 33.5, tries: 4 }, skin: "arrow" });
+  expect(v1).toMatchObject({ v: 2, boards: { pulse: { best: 61, tries: 9, medals: ["clear"] } }, skin: "arrow" });
+  expect(dailyOf(v1, n)).toEqual({ best: 33.5, tries: 4 });
+  expect(dailyOf(load({ v: 1, daily: { day: "", best: 0, tries: 0 } }), n)).toEqual({ best: 0, tries: 0 });
+});
+
+describe("accounts", () => {
+  const m = manifestOf("vortex");
+
+  test("every stored key has a rule, the scene stays on this machine, and the boards are well formed", () => {
+    expect(problems(m)).toEqual([]);
+    expect(Object.keys(m.sync).sort()).toEqual(storedKeys("vortex"));
+    expect(m.sync.scene).toBe("local");
+  });
+
+  test("every board a run can end on is declared: each stage and its hyper, endless, the daily (by the UTC day)", () => {
+    expect([...BOARDS, "endless"].map((k) => boardIdOf(k))).toEqual([...STAGES.map((s) => `stage/${s.id}`), ...STAGES.map((s) => `hyper/${s.id}`), "endless"]);
+    for (const k of [...BOARDS, "endless"]) expect(declared(m, boardIdOf(k)), k).toBeDefined();
+    expect(declared(m, "hyper/undertow")?.title).toBe("Undertow Hyper");
+    expect(declared(m, boardIdOf("drift", true))).toMatchObject({ id: "daily", period: "day", order: "desc", format: "time" });
+  });
+
+  test("two machines that both played since they synced merge into a save holding everything either did", () => {
+    const base = fresh();
+    settle(base, "pulse", run(61));
+    const synced = JSON.parse(JSON.stringify(base)) as Save;
+    const n = daily(new Date(Date.UTC(2026, 9, 4, 9))).n;
+    const a = load(synced), b = load(synced);
+    settle(a, "pulse", { ...run(70), keys: [3, 1] });
+    settle(a, "drift", run(30, { grazes: 25 }));
+    settle(a, "pulse", run(10), { day: n });
+    a.skin = "arrow";
+    settle(b, "pulse", run(64, { focused: true }));
+    settle(b, "pulse", run(90));
+    settle(b, "pulse", run(12), { day: n });
+    settle(b, "pulse", run(3), { day: n });
+    const merged = load(merge(m.sync.save, b, merge(m.sync.save, a, synced, synced), synced));
+    expect(merged.boards.pulse).toEqual({ best: 90, tries: 1 + 1 + 2, time: 61 + 70 + 64 + 90, medals: ["clear", "steady", "marathon"] });
+    expect(merged.boards.drift).toMatchObject({ best: 30, tries: 1, medals: ["hairline"] });
+    expect(dailyOf(merged, n)).toEqual({ best: 12, tries: 2 });
+    expect(merged.skin).toBe("dart");
+    // A later day's daily beats any score of an earlier one.
+    const later = load(synced);
+    settle(later, "pulse", run(1), { day: n + 1 });
+    expect(dailyOf(load(merge(m.sync.save, later, merged, synced)), n + 1)).toEqual({ best: 1, tries: 1 });
+  });
 });

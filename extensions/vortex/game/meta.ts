@@ -1,6 +1,8 @@
 // What lasts between runs: each board's best, its medals and the ghost of its
 // best run, what is open, the daily, the player's look. Pure, so the tests
-// check the rules the page lives by.
+// check the rules the page lives by. The save syncs to the player's account
+// field by field (pal.json `sync`): bests `max`, tries and time `sum`, medals
+// `union`, so two machines that both played keep everything either did.
 import { CLEAR, SKINS, STAGES, TRAILS, rankAt, type SkinId, type StageId, type TrailId } from "./content.ts";
 import { chartSeed, create, step, type Input, type State } from "./sim.ts";
 
@@ -9,14 +11,15 @@ export type Board = { best: number; tries: number; time: number; medals?: string
 export type Keys = number[];
 export type Ghost = { t: number; keys: Keys };
 export type Save = {
-  v: 1;
+  v: 2;
   /** By board key: a stage id, with "+" for its hyper; "endless". */
   boards: Record<string, Board>;
   /** The best run of each stage board, to race. */
   ghosts: Record<string, Ghost>;
   /** The board last played, so the menu opens on it. */
   last: string;
-  daily: { day: string; best: number; tries: number };
+  /** Today's daily, each a `dayCode`, so a `max` merge keeps the later day and, within a day, the more. */
+  daily: { best: number; tries: number };
   muted: boolean;
   skin: SkinId; trail: TrailId;
   /** Ghosts on or off. */
@@ -29,13 +32,30 @@ export type Scene = { screen: "title" | "run" | "over" | "look"; board?: string;
 export const keyOf = (stage: StageId, hyper: boolean) => stage + (hyper ? "+" : "");
 export const parse = (key: string) => ({ stage: (key === "endless" ? "pulse" : key.replace("+", "")) as StageId, hyper: key.endsWith("+") });
 
-export const fresh = (): Save => ({ v: 1, boards: {}, ghosts: {}, last: "pulse", daily: { day: "", best: 0, tries: 0 }, muted: false, skin: "dart", trail: "line", ghost: true });
+export const fresh = (): Save => ({ v: 2, boards: {}, ghosts: {}, last: "pulse", daily: { best: 0, tries: 0 }, muted: false, skin: "dart", trail: "line", ghost: true });
+
+/**
+ * A value of one day as one number: the UTC day times 1e7 plus the value
+ * (a time in milliseconds, a count), so a `max` merge keeps the later day's,
+ * and of the same day the larger.
+ */
+const DAY = 1e7;
+export const dayCode = (n: number, x: number) => n * DAY + Math.min(DAY - 1, Math.max(0, Math.floor(x)));
+const dayValue = (code: number, n: number) => (Math.floor(code / DAY) === n ? code % DAY : 0);
+/** The daily's best (seconds) and tries on UTC day `n`; nothing on another day. */
+export const dailyOf = (s: Save, n: number) => ({ best: dayValue(s.daily.best, n) / 1000, tries: dayValue(s.daily.tries, n) });
 
 export function load(raw: unknown): Save {
   const s = fresh();
-  if (!raw || typeof raw !== "object" || (raw as Save).v !== 1) return s;
-  const r = raw as Partial<Save>;
-  return { ...s, ...r, boards: { ...r.boards }, ghosts: { ...r.ghosts }, daily: { ...s.daily, ...r.daily } };
+  if (!raw || typeof raw !== "object" || ![1, 2].includes((raw as Save).v)) return s;
+  const r = raw as Partial<Omit<Save, "v" | "daily">> & { v: 1 | 2; daily?: { day?: string; best?: number; tries?: number } };
+  let daily = { ...s.daily, ...r.daily };
+  // v1 kept the daily as { day: "2026-10-04", best (seconds), tries }.
+  if (r.v === 1) {
+    const n = Math.floor(Date.parse(r.daily?.day ?? "") / 864e5);
+    daily = Number.isFinite(n) ? { best: dayCode(n, (r.daily?.best ?? 0) * 1000), tries: dayCode(n, r.daily?.tries ?? 0) } : s.daily;
+  }
+  return { ...s, ...r, v: 2, boards: { ...r.boards }, ghosts: { ...r.ghosts }, daily: { best: daily.best ?? 0, tries: daily.tries ?? 0 } };
 }
 
 export const best = (s: Save, key: string) => s.boards[key]?.best ?? 0;
@@ -53,11 +73,10 @@ export function open(s: Save, key: string) {
 }
 export const dailyOpen = (s: Save) => open(s, "daily");
 
-/** The day's board and seed: every player gets the same walls today. */
+/** The day's board and seed: every player gets the same walls today. Days are UTC, as the daily leaderboard's are. */
 export function daily(date: Date) {
-  const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-  const n = Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 864e5);
-  return { day, stage: STAGES[n % STAGES.length].id, seed: (n * 2654435761) >>> 0 };
+  const n = Math.floor(date.getTime() / 864e5);
+  return { day: date.toISOString().slice(0, 10), n, stage: STAGES[n % STAGES.length].id, seed: (n * 2654435761) >>> 0 };
 }
 
 // ---- medals and looks -----------------------------------------------------------------------------------------------
@@ -95,15 +114,13 @@ export type Outcome = {
   medals: string[]; looks: string[]; daily?: boolean; practice?: boolean;
 };
 
-/** Writes a finished run into the save; answers what it changed. A practice run changes nothing. */
-export function settle(s: Save, key: string, run: Run & { keys?: Keys }, how: { day?: string; practice?: boolean } = {}): Outcome {
+/** Writes a finished run into the save; answers what it changed. A practice run changes nothing. `day` is the daily's UTC day number. */
+export function settle(s: Save, key: string, run: Run & { keys?: Keys }, how: { day?: number; practice?: boolean } = {}): Outcome {
   const t = run.t;
   if (how.practice) return { t, prev: best(s, key), record: false, rank: rankAt(t), opened: [], medals: [], looks: [], practice: true };
-  if (how.day) {
-    if (s.daily.day !== how.day) s.daily = { day: how.day, best: 0, tries: 0 };
-    const prev = s.daily.best;
-    s.daily.tries++;
-    s.daily.best = Math.max(prev, t);
+  if (how.day !== undefined) {
+    const n = how.day, { best: prev, tries } = dailyOf(s, n);
+    s.daily = { best: dayCode(n, Math.max(prev, t) * 1000), tries: dayCode(n, tries + 1) };
     return { t, prev, record: t > prev, rank: rankAt(t), opened: [], medals: [], looks: [], daily: true };
   }
   const before = [...BOARDS, "endless", "daily"].filter((k) => open(s, k)), lookBefore = looks(s);
@@ -120,7 +137,8 @@ export function settle(s: Save, key: string, run: Run & { keys?: Keys }, how: { 
   return { t, prev, record: t > prev, rank: rankAt(t), opened, medals, looks: looks(s).filter((k) => !lookBefore.includes(k)) };
 }
 
-export const totals = (s: Save) => Object.values(s.boards).reduce((a, b) => ({ tries: a.tries + b.tries, time: a.time + b.time }), { tries: s.daily.tries, time: 0 });
+/** The leaderboard a finished run goes to (pal.json `leaderboards`): `stage/<id>`, `hyper/<id>`, `endless`, or `daily`. */
+export const boardIdOf = (key: string, daily = false) => (daily ? "daily" : key === "endless" ? key : `${parse(key).hyper ? "hyper" : "stage"}/${parse(key).stage}`);
 
 // ---- keys and ghosts ------------------------------------------------------------------------------------------------
 

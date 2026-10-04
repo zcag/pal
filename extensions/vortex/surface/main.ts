@@ -5,13 +5,15 @@
 // sim's state plus everything that is only for the eye: the song's sections
 // (a build darkening into a drop), the ghost of your best run, the slow
 // replay of what killed you, flashes, rings, the camera's sway. The save goes
-// through the kit's storage; hiding pal's panel pauses a run.
-import type { SurfaceKit } from "@zcag/pal";
+// through the kit's storage (synced, and taken back when sync brings a newer
+// one); every finished run goes to its leaderboard; hiding pal's panel
+// pauses a run.
+import type { ScoreResult, SurfaceKit } from "@zcag/pal";
 import { CLEAR, RANKS, SKINS, STAGES, TRAILS, stageOf, type Look, type RGB, type SkinId, type TrailId } from "../game/content.ts";
 import { DT, LEGS, beat, chartSeed, clock, create, sectionOf, skipTo, speed, step, type Input, type State, type Wall } from "../game/sim.ts";
 import { decide, play, safest } from "../game/bot.ts";
 import {
-  BOARDS, MEDALS_TOTAL, SKIN_AT, TRAIL_AT, best, daily, fresh, ghostOf, ghostStep, keyOf, load, medalCount, medalsOf, open, parse, record,
+  BOARDS, MEDALS_TOTAL, SKIN_AT, TRAIL_AT, best, boardIdOf, daily, dailyOf, fresh, ghostOf, ghostStep, keyOf, load, medalCount, medalsOf, open, parse, record,
   settle, skinOpen, trailOpen, type Keys, type Outcome, type Save, type Scene,
 } from "../game/meta.ts";
 import { Renderer, type Frame } from "./render.ts";
@@ -35,13 +37,17 @@ const CARDS = 8, ENDLESS = 6, DAILY = 7;
 const practice: Record<string, number> = {};
 
 let run: State | null = null;
-let runKey = "", runDay: string | undefined, runPractice = 0;
+/** The daily's UTC day number while playing it. */
+let runKey = "", runDay: number | undefined, runPractice = 0;
 /** The run's step 0 on the clock. */
 let zero = 0;
 let paused = false;
 let deathAt = -1;
 let outcome: Outcome | null = null;
 let prevBest = 0, recorded = false;
+/** Where the last run landed on its board, once the score's answer came; whether the player is signed in (asked again on every show). */
+let standing: ScoreResult | null = null;
+let signedIn = true;
 /** The run's keys, for its ghost; the ghost of the board's best; the next endless leg already queued in the music. */
 let keys: Keys = [];
 let ghost: ReturnType<typeof ghostOf> = null;
@@ -136,8 +142,9 @@ function carousel() {
   const isDaily = sel === DAILY, isEndless = sel === ENDLESS, isStage = !isDaily && !isEndless;
   const st = stageOf(parse(board).stage);
   const opened = open(save, isDaily ? "daily" : board);
-  const b = isDaily ? (save.daily.day === today().day ? save.daily.best : 0) : best(save, board);
-  const tries = isDaily ? (save.daily.day === today().day ? save.daily.tries : 0) : save.boards[board]?.tries ?? 0;
+  const day = dailyOf(save, today().n);
+  const b = isDaily ? day.best : best(save, board);
+  const tries = isDaily ? day.tries : save.boards[board]?.tries ?? 0;
   const prev = STAGES[Math.max(0, sel - 1)];
   const lock = !isStage ? "Clear Pulse to open" : hyper ? `Clear ${st.name} to open its hyper` : `Clear ${prev.name} to open`;
   const hyperOpen = isStage && open(save, keyOf(st.id, true));
@@ -212,7 +219,7 @@ function lookKey(k: string) {
 function begin() {
   const key = boardOf();
   if (!open(save, sel === DAILY ? "daily" : key)) { music.sfx("back"); ui.querySelector(".card")?.animate([{ transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "none" }], { duration: 180 }); return; }
-  runDay = sel === DAILY ? today().day : undefined;
+  runDay = sel === DAILY ? today().n : undefined;
   runPractice = runDay || key === "endless" ? 0 : practice[key] ?? 0;
   start(fresh_run(key), key);
 }
@@ -229,13 +236,13 @@ function start(s: State, key: string) {
   music.slow(false);
   run = s; runKey = key;
   demo = null;
-  screen = "run"; paused = false; deathAt = -1; outcome = null; recorded = false;
+  screen = "run"; paused = false; deathAt = -1; outcome = null; recorded = false; standing = null;
   keys = []; snaps = []; queuedLeg = -1; ghostGone = -1;
   // A practice run starts at its rank: the chart played to there, you set down where it is safe for a moment.
   const at = RANKS[runPractice].at;
   if (at > 0 && s.t < at) { skipTo(s, at); s.a = safest(s); s.immune = true; }
   ghost = !runDay && !runPractice && key !== "endless" ? ghostOf(save, key) : null;
-  prevBest = runPractice ? 0 : runDay ? (save.daily.day === runDay ? save.daily.best : 0) : best(save, key);
+  prevBest = runPractice ? 0 : runDay !== undefined ? dailyOf(save, runDay).best : best(save, key);
   music.setSong(SONGS[s.stage.id]);
   music.layer = s.rank;
   zero = music.restart(0.07) - s.t;
@@ -263,6 +270,14 @@ function die() {
   fx.flash = 0.85; fx.shake = 0.45; fx.aberr = 0.024;
   outcome = settle(save, runKey, { t: run.t, grazes: run.grazes, focused: run.focused, keys: autopilot ? undefined : keys }, { day: runDay, practice: !!runPractice });
   persist();
+  if (!runPractice && !autopilot) {
+    const ended = run;
+    pal.score(boardIdOf(runKey, runDay !== undefined), Math.round(run.t * 1000) / 1000).then((r) => {
+      if (run !== ended) return;
+      standing = r;
+      if (screen === "over") ui.querySelector(".card")?.insertAdjacentHTML("beforeend", standingLine());
+    }).catch((e) => console.error("vortex: score", e));
+  }
   setTimeout(() => { if (screen === "run" && run?.dead && deathAt > 0) { music.sfx("replay"); music.slow(true); } }, REPLAY.after * 1000);
   setTimeout(() => { if (screen === "run" && run?.dead) over(); }, 520);
   setTimeout(() => { if ((screen === "over" || screen === "run") && run?.dead) { music.slow(false); music.open(1100, 1.6); } }, (REPLAY.after + REPLAY.span / REPLAY.speed) * 1000);
@@ -291,10 +306,18 @@ function over() {
         : nextRank ? `<div class="next"><span>${nextRank.name} at ${nextRank.at}s</span><div class="bar"><i style="width:${Math.min(100, (o.t / nextRank.at) * 100).toFixed(1)}%"></i></div><span>${(nextRank.at - o.t).toFixed(1)}s away</span></div>`
         : `<div class="next"><span class="gold">Cleared. Every second past ${CLEAR} is yours.</span></div>`}
       ${[...medals.map((m) => `Medal · ${m.name}`), ...looks, ...opened].map((x) => `<div class="opened">${esc(x)}</div>`).join("")}
+      ${standingLine()}
     </div>
     <div class="keys">${kbd("space")} again ${kbd("⌫")} stages</div>`;
   if (medals.length) music.sfx("medal");
   else if (o.opened.length || looks.length) music.sfx("open");
+}
+
+/** "#12 of 340 today" under the death card once the board answered; signed out after a record, the offer to keep it. */
+function standingLine() {
+  if (!standing?.rank || !standing.total) return "";
+  const keep = !signedIn && outcome?.record ? ` · <a class="signin">Sign in to keep your scores</a>` : "";
+  return `<div class="board">#${standing.rank} of ${standing.total}${runDay !== undefined ? " today" : ""}${keep}</div>`;
 }
 
 function retry() {
@@ -594,7 +617,15 @@ pal.onAction((id) => {
   if (id === "stages" && screen !== "title") title();
 });
 pal.onHidden(() => { held.length = 0; if (screen === "run" && run && !run.dead) setPaused(true); else music.suspend(); });
-pal.onShown(() => { if (!paused && music.ctx) music.start(); });
+pal.onShown(() => { if (!paused && music.ctx) music.start(); account(); });
+ui.addEventListener("click", (e) => { if ((e.target as HTMLElement).closest(".signin")) void pal.signIn().catch(() => {}); });
+const account = () => pal.account().then((a) => { signedIn = a.signedIn; }, () => {});
+// A save that sync merged with another machine's: take it, so the next run's settle writes onto it rather than over it.
+pal.storage.onChange((k, v) => {
+  if (k !== "save") return;
+  save = load(v);
+  if (screen === "title") carousel();
+});
 
 const loudness = (s: Record<string, unknown>) => { music.volume = typeof s.volume === "number" ? Math.max(0, Math.min(100, s.volume)) / 100 : 0.8; music.applyVolume(); };
 
@@ -625,6 +656,7 @@ function stage(sc: Scene) {
 
 async function boot() {
   save = load(await pal.storage.get("save").catch(() => null));
+  account();
   const scene = (await pal.storage.get("scene").catch(() => null)) as Scene | null;
   music.muted = save.muted;
   loudness(await pal.settings().catch(() => ({})));

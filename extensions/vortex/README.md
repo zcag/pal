@@ -23,6 +23,8 @@ The whole design, and why each part is there: [DESIGN.md](DESIGN.md).
   slowly with the wall that got you outlined; near misses spark.
 - **Medals** (clear, steady, hairline, marathon) open new shapes and trails:
   C on the stages. P practises a stage from any rank you have reached.
+- **Leaderboards** for every stage and hyper, Endless and the daily; signed
+  in to a pal account, the save follows you to your other machines.
 
 ## Code
 
