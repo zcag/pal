@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.0 · 2026-10-04
+
+- **Apple TV, from the keyboard** (in the store): the clickpad on the arrows, your apps with their icons on the digits, typing into the TV's search, what is playing with its cover, chapters and a seek bar, links you copy played on the TV, and the remote in the menu bar's popover. Setup finds the Apple TV and takes the code it shows.
+- **Samsung TV, from the keyboard** (in the store): the remote on the arrows, apps, the volume, power and inputs, typing whenever the TV shows its keyboard. Setup finds the TV; press Allow on it. Everything stays on your network.
+- **Devices you use together**: Settings › Groups puts an Apple TV and a TV in one group, so the Apple TV's remote turns the TV's volume, switches its inputs, and power turns both on and off. Pick the two devices; the rest is set for you.
+- **Everything playing, in one place**: Now Playing lists what plays on the Apple TV, the TV, Spotify and your Mac, and the empty panel's Now rows show each one. A new Playing card at the top shows whatever is playing, with a line for a second one; a click opens its own remote or player.
+- **The magnifier at the root** sits on your query's letters, at a size that reads.
+- **Fixed: an extension's name above the list was hard to read** on the dark panel when its colour was a deep one.
+
 ## 0.11.0 · 2026-10-03
 
 - **A new look, Ink**: type-led and calm. What you type is the headline, the selected row carries its own keys, the panel is only as tall as its results and fades in as it opens. Inside an extension the panel glows in its colour. The previous look stays as Classic, and Frappé is Ink in Catppuccin colours: Settings › General › Design.
