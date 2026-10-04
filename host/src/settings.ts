@@ -32,7 +32,9 @@ const real = (p: string) => { try { return realpathSync(p); } catch { return p; 
  * hold spaces (the store is under `Application Support` on macOS), so it
  * runs from its first `/`. `<root>/node_modules/...` is the SDK the
  * packages share (the bundled root's copy, build-extensions.sh), whose
- * `settings.get` is on the stack above the extension's frame: skipped.
+ * `settings.get` is on the stack above the extension's frame: skipped, as
+ * is a dot directory (no extension's name starts with one), such as the
+ * `.pal` checkout an extension repo's CI keeps inside its root.
  */
 function fromStack(): string | undefined {
   for (const line of (new Error().stack ?? "").split("\n")) {
@@ -40,7 +42,7 @@ function fromStack(): string | undefined {
     if (!path) continue;
     const root = roots.find((r) => path.startsWith(r));
     const name = root && path.slice(root.length).split("/")[0];
-    if (name && name !== "node_modules") return name;
+    if (name && name !== "node_modules" && !name.startsWith(".")) return name;
   }
 }
 

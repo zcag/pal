@@ -2,6 +2,7 @@
 // which extension is asking (explicit, async context, or the stack), and
 // the SDK's `settings` over it once sdk.ts has bound the two.
 import { afterAll, describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { settings as api } from "../../sdk/src/index.ts";
 import { bindSdk } from "../src/sdk.ts";
@@ -83,6 +84,16 @@ describe("caller from the stack", () => {
     expect(deep.who).toEqual({ extension: "stacky" });
     setRoots([]);
     expect(() => mod.later()).toThrow();
+  });
+
+  test("a dot directory in the root is not an extension: an extension repo's CI keeps pal's checkout as `.pal` inside its root, this file with it", async () => {
+    // settings.ts imports only types, so a copy runs on its own: its own frames are then under the root's `.pal`.
+    root.write(".pal", "settings.ts", readFileSync(SETTINGS, "utf8"));
+    const copy = await import(root.path(".pal", "settings.ts"));
+    root.write("dotted", "index.ts", `import { caller } from "${root.path(".pal", "settings.ts")}";\nexport const who = caller();`);
+    copy.setRoots([root.dir + "/"]);
+    const mod = await import(`${root.path("dotted")}?t=${Date.now()}`);
+    expect(mod.who).toEqual({ extension: "dotted" });
   });
 
   test("a root with a space in its path (macOS's Application Support) still names it", async () => {
