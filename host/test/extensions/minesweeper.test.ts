@@ -169,6 +169,7 @@ describe("the daily board", () => {
     const b = apply(dailyBoard(newGame("expert"), "2026-10-04"), "open", DEFAULTS, () => 0.5, 5000);
     expect(a).toMatchObject({ level: "intermediate", w: 16, h: 16, mines: 40, phase: "play", daily: "2026-10-04", cursor: middle(a) });
     expect(a.open[middle(a)]).toBe(true);
+    expect(status(a)).toBe("Daily · 40 mines left");
     expect(a.mine).toEqual(b.mine);
     expect(apply(dailyBoard(prev, "2026-10-05"), "open").mine).not.toEqual(a.mine);
     expect(status(dailyBoard(prev, "2026-10-04"))).toBe("Daily board: Enter opens the middle");

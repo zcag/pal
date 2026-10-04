@@ -151,7 +151,7 @@ export function status(st: State): string {
   if (st.phase === "lost") return "Boom";
   if (st.phase === "ready") return st.daily ? "Daily board: Enter opens the middle" : "Open any cell";
   const left = minesLeft(st);
-  return `${left} mine${left === 1 ? "" : "s"} left`;
+  return `${st.daily ? "Daily · " : ""}${left} mine${left === 1 ? "" : "s"} left`;
 }
 
 /** Legal actions now, in the order the view lists them (first is Enter). */
