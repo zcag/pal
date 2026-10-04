@@ -64,3 +64,27 @@ requests needed to fetch their index and packages, without the id.
 
 Events wait in `usage-queue.jsonl` in the data directory while offline and
 are dropped after 30 days unsent.
+
+## A pal account is separate
+
+Signing in to a pal account (Settings › Account) is opt-in, and has
+nothing to do with the usage id above: the account calls
+(`https://pal.cagdas.io/api/auth/*`, `/api/account`, `/api/sync`,
+`/api/scores`, `/api/boards/*`) never carry `X-Pal-Install`, and the
+events endpoint never receives the account's token. The endpoints and
+their payloads are public: `docs/accounts.md`.
+
+What the server keeps for an account: the email address, the handle,
+the synced settings and extension storage with their history (every
+version for 90 days, then at least the last 20 of each key), the scores,
+and for each signed-in device the SHA-256 of its token, its name and when
+it signed in and was last seen. Secret values never leave the keychain;
+only their `keychain:` references sync. No IP addresses are kept: the
+rate limits on sign-in codes live in memory. **Delete account** removes
+all of it at once.
+
+Leaderboard scores posted while signed out go out under an anonymous id
+of their own (`anon-id` in the data directory), never the usage id and
+never sent anywhere else; signing in moves those scores to the account
+and deletes the id. A score that cannot be sent waits in
+`score-queue.json` until it can.
