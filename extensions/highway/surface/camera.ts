@@ -18,6 +18,13 @@ export const VIEWS: View[] = [
   { name: "Classic", dist: 10.4, h: 5.5, look: 1.5, lookH: 0, fov: 38.5, follow: 0, speedFov: 0 },
   { name: "Low", dist: 6.4, h: 2.3, look: 12, lookH: 0.9, fov: 50, follow: 0.75, speedFov: 6 },
   { name: "Bumper", dist: -0.6, h: 1.15, look: 40, lookH: 1.05, fov: 62, follow: 1, speedFov: 8, attached: true },
+  // to try (added after the first four, so a saved view keeps its number):
+  // up a storey, about 25 degrees down: more of the traffic ahead, the car still close
+  { name: "High", dist: 10, h: 7, look: 5, lookH: 0, fov: 42, follow: 0.3, speedFov: 4 },
+  // nearly overhead, the road read like a map: every gap at a glance, the least sense of speed
+  { name: "Tower", dist: 8, h: 11, look: 6, lookH: 0, fov: 50, follow: 0.2, speedFov: 3 },
+  // far back on a long lens: the traffic stacked up and compressed, a TV-broadcast look
+  { name: "Long lens", dist: 20, h: 5.2, look: 14, lookH: 0.6, fov: 24, follow: 0.5, speedFov: 2 },
 ];
 
 export class Chase {

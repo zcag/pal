@@ -14,7 +14,7 @@ import { CARS, LOCATIONS, MODES, UPGRADE_MAX, FEEL, upgradeCost, stats, paintSet
 import { load, fresh, carOf, buyCar, buyUpgrade, paint, finish, places, modes, paintsOpen, opensAt, fillMissions, NO_UP, type Save, type Scene, type Result } from "../game/meta.ts";
 import { xpFor, nextUnlock, progressOf, statsOf, MAX_LEVEL } from "../game/progress.ts";
 import type { Miss } from "../game/score.ts";
-import type { End } from "../game/drive.ts";
+import type { End, Packed } from "../game/drive.ts";
 import type { Input } from "../game/vehicle.ts";
 
 declare const pal: SurfaceKit;
@@ -341,19 +341,19 @@ let tallying = false, skipTally = () => {};
 function results() {
   if (!run) return;
   state = "results";
+  keepRun(); // a finished run is not carried over
   $("hud").hidden = true;
   const s = run.score;
   const res = finish(save, s, save.mode, save.location, today());
   persist();
   const what = crashInfo ? names.get(crashInfo.kind) ?? "car" : "";
   const why = ended === "time" ? "Time's up" : ended === "slow" ? "Too slow for too long" : crashInfo
-    ? crashInfo.oncoming ? `Head-on with a ${what} at ${Math.round(kmh(crashInfo.you))} ${unit()}` : `Into a ${what}: you at ${Math.round(kmh(crashInfo.you))}, it at ${Math.round(kmh(crashInfo.them))} ${unit()}`
+    ? crashInfo.oncoming ? `Head-on with ${article(what)} ${what} at ${Math.round(kmh(crashInfo.you))} ${unit()}` : `Into ${article(what)} ${what}: you at ${Math.round(kmh(crashInfo.you))}, it at ${Math.round(kmh(crashInfo.them))} ${unit()}`
     : "You pulled over";
   card(`<div class="result">
       <div class="left">
-        <h2>${Math.round(s.points).toLocaleString("en-US")} points</h2>
+        <div class="headline"><h2>${Math.round(s.points).toLocaleString("en-US")} points</h2>${res.record && s.points > 0 ? `<span class="plate">New best for ${MODES.find((m) => m.id === save.mode)!.name}</span>` : ""}</div>
         <div class="why ${crashInfo ? "crash" : ""}">${why}</div>
-        ${res.record && s.points > 0 ? `<div class="record"><span class="plate">New best for ${MODES.find((m) => m.id === save.mode)!.name}</span></div>` : ""}
         <dl id="tally"></dl>
       </div>
       <div class="right">
@@ -368,11 +368,14 @@ function results() {
 /** Count the run's pay up line by line, then the XP bar fills, a level at a time. */
 function tally(res: Result) {
   const dl = $("tally");
+  // the multipliers in one row, and the levels gained in another, so the card fits a panel
+  const mult = res.mults.reduce((a, m) => a * m.mult, 1);
+  const lv = res.levels, lvCash = lv.reduce((a, l) => a + l.cash, 0);
   const rows: [string, string, number][] = [
     ...res.lines.map((l) => [l.label, money(l.amount), l.amount] as [string, string, number]),
-    ...res.mults.map((m) => [m.label, `×${m.mult}`, 0] as [string, string, number]),
+    ...(res.mults.length ? [[res.mults.map((m) => m.label).join(", "), `×${+mult.toFixed(2)}`, 0] as [string, string, number]] : []),
     ...(res.missionCash ? [["Missions", money(res.missionCash), res.missionCash] as [string, string, number]] : []),
-    ...res.levels.map((l) => [`Level ${l.level}`, money(l.cash), l.cash] as [string, string, number]),
+    ...(lv.length ? [[lv.length > 1 ? `Levels ${lv[0].level} to ${lv[lv.length - 1].level}` : `Level ${lv[0].level}`, money(lvCash), lvCash] as [string, string, number]] : []),
   ];
   const total = res.cash + res.missionCash + res.levels.reduce((a, l) => a + l.cash, 0);
   let i = 0, timer = 0;
@@ -403,10 +406,12 @@ function tally(res: Result) {
     if (i < rows.length) {
       const [label, value, amount] = rows[i++];
       dl.insertAdjacentHTML("beforeend", `<dt>${label}</dt><dd>${value}</dd>`);
+      dl.scrollTop = dl.scrollHeight;
       if (amount) sound.play("coin", { gain: 0.35, rate: 0.9 + i * 0.04 });
       timer = window.setTimeout(next, 170);
     } else {
       dl.insertAdjacentHTML("beforeend", `<dt class="total">Earned</dt><dd class="total">${money(total)}</dd>`);
+      dl.scrollTop = dl.scrollHeight;
       sound.play("cash", { gain: 0.6 });
       timer = window.setTimeout(xpAnim, 300);
     }
@@ -426,6 +431,8 @@ function tally(res: Result) {
 
 // ---------------------------------------------------------------- HUD bits
 
+/** "a" or "an" before a car's name, by its sound: an LCT, an Asti, a Kiri. */
+const article = (w: string) => (/^[A-Z]{2}/.test(w) ? /^[AEFHILMNORSX]/.test(w) : /^[aeiou]/i.test(w)) ? "an" : "a";
 function card(html: string) { $("card").innerHTML = `<div class="sign">${html}</div>`; $("card").hidden = false; }
 function pop(html: string, cls = "") {
   const el = document.createElement("div");
@@ -562,7 +569,28 @@ pal.onAction((id: string) => {
   if (id === "mute") onKey("m");
   if (id === "give-up" && (state === "run" || state === "paused")) giveUp();
 });
-pal.onHidden(() => { if (state === "run") pause(); sound.suspend(); });
+pal.onHidden(() => { if (state === "run") pause(); sound.suspend(); keepRun(); });
+document.addEventListener("visibilitychange", () => { if (document.hidden) keepRun(); });
+addEventListener("pagehide", keepRun);
+
+/** A run being driven is kept in storage while the page is hidden, so closing pal (which may drop the page) loses nothing. */
+type Kept = Packed & { location: string; done: number[] };
+function keepRun() {
+  if (scene || trial) return;
+  const live = run && (state === "run" || state === "paused") && !run.over;
+  const kept: Kept | null = live ? { ...run!.drive.pack(), location: save.location, done: [...done].map((m) => save.missions.indexOf(m as never)) } : null;
+  pal.storage.set("run", kept).catch((e: unknown) => console.error("highway: keep", e));
+}
+/** Back on the road where a kept run left off, paused. */
+async function carryOn(k: Kept) {
+  await drive();
+  run!.drive.unpack(k);
+  run!.settle();
+  chase.reset(run!.pose);
+  for (const i of k.done) if (save.missions[i]) done.add(save.missions[i]);
+  hint("");
+  pause();
+}
 pal.onShown(() => { if (state !== "paused") sound.start(); last = performance.now(); });
 pal.onSettings((s: Record<string, unknown>) => { if (typeof s.volume === "number") { save.settings.sound = s.volume / 100; sound.setVolume(muted ? 0 : save.settings.sound); } });
 
@@ -592,6 +620,10 @@ async function stage(sc: Scene) {
   pal.ready(); // the loading sign is ours to show: reveal the page at once
   scene = ((await pal.storage.get("scene").catch(() => null)) as Scene | null) ?? null;
   save = load(await pal.storage.get("save").catch(() => null));
+  let kept = scene ? null : ((await pal.storage.get("run").catch(() => null)) as Kept | null);
+  if (kept && save.owned[kept.car] && modes(save).some((m) => m.id === kept!.mode) && places(save).some((l) => l.id === kept!.location)) {
+    save.car = kept.car; save.mode = kept.mode; save.location = kept.location;
+  } else kept = null;
   if (q.has("test")) {
     // a test drive: every car and place yours, a middling car by default, nothing written back
     trial = true;
@@ -614,6 +646,7 @@ async function stage(sc: Scene) {
   await preloadTraffic(world, (sc) => r.warm(sc), (f) => (($("loading").querySelector("em") as HTMLElement).style.width = `${Math.round(f * 100)}%`));
   chase.view = save.settings.camera;
   if (scene) await stage(scene);
+  else if (kept) await carryOn(kept);
   else if (q.has("drive")) await drive();
   else await garage();
   frame();

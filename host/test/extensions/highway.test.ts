@@ -79,3 +79,17 @@ test("Speed Trap ends a run held under its floor; Time Attack's clock runs down"
   for (let i = 0; i < 120; i++) time.step(1 / 120, { throttle: 0.3, brake: 0, steer: 0 });
   expect(time.clock).toBeCloseTo(59, 1);
 });
+
+test("a run packed and unpacked carries on exactly as it would have", () => {
+  const size = { x: 1.9, z: 4.5 }, sizeOf = () => size;
+  const drive = (i: number) => ({ throttle: 1, brake: 0, steer: Math.sin(i / 90) * 0.6 });
+  const a = new Drive(ONE_WAY, CARS[6], NO_UP, size, 2.6, sizeOf, {}, { seed: 11, mode: "time" });
+  for (let i = 0; i < 120 * 5; i++) a.step(1 / 120, drive(i));
+  const b = new Drive(ONE_WAY, CARS[6], NO_UP, size, 2.6, sizeOf, {}, { seed: 99, mode: "time" });
+  b.unpack(JSON.parse(JSON.stringify(a.pack())));
+  for (let i = 600; i < 120 * 10; i++) { a.step(1 / 120, drive(i)); b.step(1 / 120, drive(i)); }
+  expect(b.veh.z).toBe(a.veh.z);
+  expect(b.score.points).toBe(a.score.points);
+  expect(b.traffic.cars.map((n) => n.z)).toEqual(a.traffic.cars.map((n) => n.z));
+  expect(b.clock).toBe(a.clock);
+});
