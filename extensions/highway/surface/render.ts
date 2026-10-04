@@ -1,8 +1,28 @@
 // The renderer and its finishing: bloom for lamps and the sun's glints, then
 // one pass that blurs the screen's edges with speed, darkens its corners and
 // flashes on a hit, then the tone map. Sized to the page at devicePixelRatio.
+// A look other than the plain one (looks.ts) draws through its own chain.
 import * as THREE from "./vendor/three.js";
 import { EffectComposer, RenderPass, UnrealBloomPass, ShaderPass, OutputPass } from "./vendor/three.js";
+import { Looks } from "./looks.ts";
+
+export type Fx = { speed?: number; hit?: number; dim?: number };
+
+/** The speed blur, the corners, the hit flash and the dim behind a card (shared with the looks' chains). */
+export const FINISH = {
+  uniforms: { tDiffuse: { value: null }, speed: { value: 0 }, hit: { value: 0 }, dim: { value: 0 }, vignette: { value: 0.28 } },
+  vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }",
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float speed, hit, dim, vignette; varying vec2 vUv;
+    void main(){
+      vec2 d = vUv - vec2(0.5, 0.52); float r = length(d);
+      float amt = speed * speed * 0.035 * smoothstep(0.25, 0.8, r);
+      vec3 c = vec3(0.); for (int i = 0; i < 6; i++) c += texture2D(tDiffuse, vUv - d * amt * float(i) / 5.0).rgb; c /= 6.0;
+      c *= 1.0 - vignette * smoothstep(0.35, 0.95, r * 1.2);
+      c = mix(c, c * vec3(1.6, 0.55, 0.45) + vec3(0.12, 0.0, 0.0), hit * smoothstep(0.15, 0.85, r));
+      c *= 1.0 - dim;
+      gl_FragColor = vec4(c, 1.);
+    }`,
+};
 
 export class Renderer {
   gl: THREE.WebGLRenderer;
@@ -11,6 +31,8 @@ export class Renderer {
   private pass: RenderPass;
   private finish: ShaderPass;
   bloom: UnrealBloomPass;
+  looks: Looks;
+  private last: { scene: THREE.Scene; fx: Fx } | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     const gl = (this.gl = new THREE.WebGLRenderer({ canvas, powerPreference: "high-performance" }));
@@ -24,22 +46,11 @@ export class Renderer {
     this.composer.addPass(this.pass);
     this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.1, 0.35, 2.5);
     this.composer.addPass(this.bloom);
-    this.finish = new ShaderPass({
-      uniforms: { tDiffuse: { value: null }, speed: { value: 0 }, hit: { value: 0 }, dim: { value: 0 } },
-      vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }",
-      fragmentShader: `uniform sampler2D tDiffuse; uniform float speed, hit, dim; varying vec2 vUv;
-        void main(){
-          vec2 d = vUv - vec2(0.5, 0.52); float r = length(d);
-          float amt = speed * speed * 0.035 * smoothstep(0.25, 0.8, r);
-          vec3 c = vec3(0.); for (int i = 0; i < 6; i++) c += texture2D(tDiffuse, vUv - d * amt * float(i) / 5.0).rgb; c /= 6.0;
-          c *= 1.0 - 0.28 * smoothstep(0.35, 0.95, r * 1.2);
-          c = mix(c, c * vec3(1.6, 0.55, 0.45) + vec3(0.12, 0.0, 0.0), hit * smoothstep(0.15, 0.85, r));
-          c *= 1.0 - dim;
-          gl_FragColor = vec4(c, 1.);
-        }`,
-    });
+    this.finish = new ShaderPass(FINISH);
     this.composer.addPass(this.finish);
     this.composer.addPass(new OutputPass());
+    this.looks = new Looks(gl, this.camera);
+    this.looks.redraw = () => this.last && this.render(this.last.scene, this.last.fx);
     addEventListener("resize", () => this.resize());
     this.resize();
   }
@@ -47,6 +58,7 @@ export class Renderer {
   /** Compile every shader the scene needs, as the frame will draw it (into the post chain's buffer,
    *  where there is no tone map yet: a plain compile builds the on-screen variants instead). */
   async warm(scene: THREE.Scene) {
+    this.looks.prepare(scene);
     this.gl.setRenderTarget(this.composer.readBuffer);
     await this.gl.compileAsync(scene, this.camera);
     this.camera.position.set(0, 2, 0);
@@ -55,16 +67,18 @@ export class Renderer {
     this.gl.setRenderTarget(null);
   }
 
-  resize() {
-    const w = innerWidth, h = innerHeight;
+  resize(w = innerWidth, h = innerHeight) {
     this.gl.setSize(w, h, false);
     this.composer.setSize(w, h);
+    this.looks.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
   }
 
   /** speed 0..1 for the edge blur, hit 0..1 for the flash, dim 0..1 to darken behind a card. */
-  render(scene: THREE.Scene, fx: { speed?: number; hit?: number; dim?: number } = {}) {
+  render(scene: THREE.Scene, fx: Fx = {}) {
+    this.last = { scene, fx };
+    if (this.looks.render(scene, fx)) return;
     this.pass.scene = scene;
     const u = this.finish.uniforms;
     u.speed.value = fx.speed ?? 0;
