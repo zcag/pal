@@ -396,7 +396,7 @@ function frame() {
   run.draw(dt, acc / STEP);
   const v = run.veh, pose = run.pose;
   const t2 = performance.now();
-  world.follow(pose.x, pose.z);
+  world.follow(pose.z);
   const t3 = performance.now();
   if (state === "garage") {
     // a car-advert orbit around your car as it drives

@@ -30,11 +30,13 @@ export class World {
 
   constructor(public renderer: THREE.WebGLRenderer) {
     this.scene.add(this.sun, this.sun.target, this.fill);
-    this.sun.shadow.mapSize.set(2048, 2048);
+    // one shadow map over the whole stretch you can make out (~90 m each side, 230 m ahead): its
+    // edge is out in the haze, not a line across the road in front of you; 4096 px keeps it ~7 cm a texel
+    this.sun.shadow.mapSize.set(4096, 4096);
     const sc = this.sun.shadow.camera;
-    sc.left = -18; sc.right = 18; sc.top = 40; sc.bottom = -16; sc.near = 1; sc.far = 200;
-    this.sun.shadow.bias = -0.0002;
-    this.sun.shadow.normalBias = 0.02;
+    sc.left = -130; sc.right = 130; sc.top = 150; sc.bottom = -150; sc.near = 1; sc.far = 700;
+    this.sun.shadow.bias = -0.0004;
+    this.sun.shadow.normalBias = 0.05;
     this.glow = glowTexture();
   }
 
@@ -72,12 +74,14 @@ export class World {
   }
 
   /** Follow the player: the road and rails snap ahead, the land streams, the sun's shadow box moves. */
-  follow(x: number, z: number) {
+  follow(z: number) {
     this.road.follow(z);
     this.rails.position.z = Math.floor(z / 100) * 100;
     this.land.update(z);
-    this.sun.target.position.set(x, 0, z + 12);
-    this.sun.position.copy(this.sun.target.position).addScaledVector(this.sky.sun, 80);
+    // centred ahead of the car, snapped to whole texels so the shadows don't crawl as it moves
+    const texel = 260 / 4096, tz = Math.round((z + 95) / texel) * texel;
+    this.sun.target.position.set(0, 0, tz);
+    this.sun.position.copy(this.sun.target.position).addScaledVector(this.sky.sun, 300);
   }
 }
 

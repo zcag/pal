@@ -224,6 +224,7 @@ export class Run {
       const j = resolve(me, them, c);
       v.x = me.x; v.z = me.z; v.r = me.r;
       v.u = Math.max(0, me.vx * sy + me.vz * cy); v.v = me.vx * cy - me.vz * sy;
+      v.knocked = 0.9; // the tyres, not the driver, until it settles
       n.x = them.x; n.z = them.z;
       n.v = Math.abs(them.vz);
       n.hit = { vx: them.vx, yaw: nyaw, r: them.r };
@@ -280,7 +281,7 @@ export class Run {
       const pv = n.prev ?? { x: n.x, z: n.z, yaw: n.hit?.yaw ?? 0 };
       car.root.position.set(pv.x * b + n.x * a, 0, pv.z * b + n.z * a);
       car.root.rotation.y = n.hit ? pv.yaw * b + n.hit.yaw * a : (n.oncoming ? Math.PI : 0) + Math.atan2(dx, Math.max(n.v, 1));
-      car.setShadow(Math.abs(n.z - v.z) < 60);
+      car.setShadow(Math.abs(n.z - v.z) < 150); // as far as anything is still big enough for its shadow to read
       for (const w of car.wheels) w.spin.rotation.x += (n.v / 0.33) * dt;
       lamps(car, this.world.night, n.braking);
       const hazard = !!n.hit;

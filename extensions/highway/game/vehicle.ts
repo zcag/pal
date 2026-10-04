@@ -60,6 +60,8 @@ export class Vehicle {
   ax = 0; ay = 0; // longitudinal and lateral acceleration, m/s^2
   slipFront = 0; slipRear = 0; // how far each axle is into its grip (0..1+)
   wheelSpin = 0; // rad, for the wheels on screen
+  steer = 0; // the driver's input, eased in as a thumb on a key does
+  knocked = 0; // seconds of the tyre model taking over after a hit
   constructor(public spec: Spec) { this.rpm = spec.idle; }
 
   get kmh() { return this.u * 3.6; }
@@ -146,6 +148,36 @@ export class Vehicle {
     const engineBrake = (1 - this.throttle) * (this.rpm / s.redline) * ratio() * 22 / s.wheelRadius;
     const resist = 0.5 * RHO * s.drag * speed * speed + CRR * W + engineBrake;
     const Flong = Fx - (speed > 0.05 ? brakeF + resist : 0);
+
+    // --- Traffic Racer's control, as its code does it: the key sets how fast the car crosses the
+    // road (about 8.5 m/s at 100 km/h, more as it goes faster), reached in a fifth of a second and
+    // dropped as soon as the key is let go. The car points where it goes, so it yaws into a lane
+    // change and straightens out of it; the body leans and the wheels steer to match. After a knock
+    // the tyre model below takes over for a moment, so a hit still sends the car sliding.
+    if (this.knocked > 0) this.knocked -= dt;
+    if (this.knocked <= 0 && speed > 3) {
+      const ag = (s.agility ?? 1.2) / 1.2;
+      this.steer += Math.max(-dt * 6, Math.min(dt * 6, input.steer - this.steer));
+      const lat = speed * Math.sin(this.yaw) + this.v * Math.cos(this.yaw); // sideways speed on the road
+      const across = (5.5 + speed * 0.07) * ag;
+      const aMax = 34 * ag;
+      const next = lat + Math.max(-aMax * dt, Math.min(aMax * dt, this.steer * across - lat));
+      const du = Flong / s.mass;
+      this.u = Math.max(0, this.u + du * dt);
+      const yaw = Math.asin(Math.max(-0.6, Math.min(0.6, next / Math.max(this.u, 1))));
+      this.r = (yaw - this.yaw) / dt;
+      this.yaw = yaw;
+      this.v = 0;
+      this.x += next * dt;
+      this.z += this.u * Math.cos(yaw) * dt;
+      this.ax += (du - this.ax) * Math.min(1, dt * 12);
+      this.ay += ((next - lat) / dt - this.ay) * Math.min(1, dt * 12);
+      this.delta = Math.max(-0.35, Math.min(0.35, Math.atan((L * this.r) / Math.max(this.u, 1)) * 2.5 + this.steer * 0.04));
+      this.slipFront = this.slipRear = Math.abs(this.ay) / (4.5 * G); // the tyres only cry out on the most violent moves
+      this.wheelSpin += (this.u / s.wheelRadius) * dt;
+      return;
+    }
+    this.steer = input.steer;
 
     // --- integrate in the car's frame
     const cosD = Math.cos(this.delta);
