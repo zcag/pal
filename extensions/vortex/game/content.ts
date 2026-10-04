@@ -16,8 +16,15 @@ export type Look = {
   hue: number;
 };
 
+export type SectionKind = "intro" | "build" | "drop" | "break";
+/** A stretch of a song: what it is, how long (bars of four beats), how hard it hits (0..1). */
+export type Section = { kind: SectionKind; bars: number; energy: number };
+/** A stage's song form: its sections in order, then the ones from `loop` on repeat for as long as you last. The music arranges itself by it and the walls are choreographed to it. */
+export type Form = { sections: Section[]; loop: number };
+
 export type Stage = {
   id: StageId; name: string; blurb: string;
+  form: Form;
   /** Music tempo. A multiple of 12, so every rank (10, 20, 30, 45, 60 s) lands on a beat. */
   bpm: number;
   /** Walls' speed in apothem units a second at 0:00. */
@@ -39,11 +46,18 @@ export type Stage = {
   look: Look; hyperLook: Look;
 };
 
+const sec = (kind: SectionKind, bars: number, energy: number): Section => ({ kind, bars, energy });
+/** After the written minute: a drop, a breath, a build, round and round. */
+const LOOP = [sec("drop", 8, 1), sec("break", 4, 0.5), sec("build", 4, 0.75)];
+/** Two drops either side of a break, sized so the second ends near the minute that clears the stage. */
+const form = (...sections: Section[]): Form => ({ sections: [...sections, ...LOOP], loop: sections.length });
+
 const rgb = (hex: string): RGB => [parseInt(hex.slice(1, 3), 16) / 255, parseInt(hex.slice(3, 5), 16) / 255, parseInt(hex.slice(5, 7), 16) / 255];
 
 export const STAGES: Stage[] = [
   {
     id: "pulse", name: "Pulse", blurb: "Learn the turn",
+    form: form(sec("intro", 4, 0.3), sec("build", 4, 0.55), sec("drop", 8, 0.8), sec("break", 4, 0.35), sec("build", 4, 0.65), sec("drop", 8, 1)),
     bpm: 132, speed: 5.6, rot: 1.05, flip: [4, 8], margin: 0.2, sides: [6], morph: 0,
     patterns: { barrage: 5, run: 4, alt: 3, spiral: 2, zigzag: 2, tunnel: 1 },
     tilt: 24, sway: 6, pulse: 0.05, strobe: 0, surge: 0,
@@ -52,6 +66,7 @@ export const STAGES: Stage[] = [
   },
   {
     id: "drift", name: "Drift", blurb: "The world turns on you",
+    form: form(sec("intro", 4, 0.3), sec("build", 4, 0.55), sec("drop", 8, 0.8), sec("break", 4, 0.4), sec("build", 4, 0.65), sec("drop", 12, 1)),
     bpm: 144, speed: 6.4, rot: 1.55, flip: [2.5, 5.5], margin: 0.17, sides: [6, 5], morph: 0.22,
     patterns: { barrage: 3, run: 5, alt: 3, spiral: 3, zigzag: 3, tunnel: 2, mirror: 2 },
     tilt: 30, sway: 10, pulse: 0.06, strobe: 0, surge: 0.2,
@@ -60,6 +75,7 @@ export const STAGES: Stage[] = [
   },
   {
     id: "prism", name: "Prism", blurb: "Shapes that will not hold still",
+    form: form(sec("intro", 4, 0.35), sec("build", 4, 0.6), sec("drop", 12, 0.85), sec("break", 4, 0.4), sec("build", 4, 0.7), sec("drop", 12, 1)),
     bpm: 156, speed: 7.0, rot: 1.8, flip: [3, 6], margin: 0.15, sides: [4, 5, 6], morph: 0.45,
     patterns: { barrage: 3, run: 4, alt: 3, spiral: 3, zigzag: 3, tunnel: 2, mirror: 3, scatter: 2 },
     tilt: 26, sway: 8, pulse: 0.07, strobe: 0.15, surge: 0.25,
@@ -68,6 +84,7 @@ export const STAGES: Stage[] = [
   },
   {
     id: "undertow", name: "Undertow", blurb: "Deep, slow, heavy",
+    form: form(sec("intro", 4, 0.35), sec("build", 2, 0.6), sec("drop", 8, 0.85), sec("break", 4, 0.4), sec("build", 4, 0.7), sec("drop", 8, 1)),
     bpm: 120, speed: 7.6, rot: 1.35, flip: [3, 7], margin: 0.14, sides: [5, 6, 7], morph: 0.3,
     patterns: { barrage: 2, run: 4, alt: 2, spiral: 2, zigzag: 2, tunnel: 4, mirror: 2, rails: 4, whirl: 2 },
     tilt: 36, sway: 7, pulse: 0.1, strobe: 0, surge: 0.2,
@@ -76,6 +93,7 @@ export const STAGES: Stage[] = [
   },
   {
     id: "overdrive", name: "Overdrive", blurb: "Everything at once, faster",
+    form: form(sec("intro", 4, 0.4), sec("build", 4, 0.65), sec("drop", 12, 0.9), sec("break", 4, 0.45), sec("build", 4, 0.75), sec("drop", 16, 1)),
     bpm: 168, speed: 8.6, rot: 2.3, flip: [2, 4.5], margin: 0.12, sides: [6, 4, 5], morph: 0.25,
     patterns: { barrage: 2, run: 4, alt: 3, spiral: 4, zigzag: 4, tunnel: 3, mirror: 3, scatter: 3, whirl: 3 },
     tilt: 32, sway: 12, pulse: 0.08, strobe: 0.45, surge: 0.4,
@@ -84,6 +102,7 @@ export const STAGES: Stage[] = [
   },
   {
     id: "singularity", name: "Singularity", blurb: "The end of the line",
+    form: form(sec("intro", 2, 0.45), sec("build", 4, 0.7), sec("drop", 12, 0.9), sec("break", 4, 0.45), sec("build", 4, 0.8), sec("drop", 20, 1)),
     bpm: 180, speed: 9.4, rot: 2.7, flip: [1.6, 4], margin: 0.105, sides: [4, 5, 6, 7], morph: 0.4,
     patterns: { barrage: 2, run: 4, alt: 2, spiral: 4, zigzag: 4, tunnel: 3, mirror: 4, scatter: 3, rails: 3, whirl: 4 },
     tilt: 30, sway: 10, pulse: 0.1, strobe: 0.6, surge: 0.55,
@@ -122,3 +141,20 @@ export const FEEL = {
   rampAfter: 0.0016,
   spinRamp: 0.006,
 };
+
+/** The section at a number of beats into the song, with where it began and how long it lasts (beats); `n` counts sections from the start, loops included. */
+export function sectionAt(f: Form, beats: number) {
+  let at = 0, i = 0, n = 0;
+  for (;;) {
+    const s = f.sections[i], len = s.bars * 4;
+    if (beats < at + len) return { ...s, start: at, len, index: i, n };
+    at += len; n++;
+    i = i + 1 < f.sections.length ? i + 1 : f.loop;
+  }
+}
+
+/** How the player looks: a shape, and what it leaves behind. Opened by medals (meta.ts). */
+export const SKINS = ["dart", "arrow", "diamond", "comet", "star"] as const;
+export const TRAILS = ["line", "ribbon", "sparks", "prism"] as const;
+export type SkinId = (typeof SKINS)[number];
+export type TrailId = (typeof TRAILS)[number];

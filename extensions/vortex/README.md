@@ -15,10 +15,14 @@ The whole design, and why each part is there: [DESIGN.md](DESIGN.md).
   the next one and its hyper.
 - **Space** plays, and plays again after a death; Backspace goes back to the
   stages; M turns the sound off. Escape (or closing pal) pauses a run.
-- **Stages**: Pulse, Drift, Prism, Undertow, Overdrive, Singularity, each with
-  a song, colours, camera and patterns of its own; up on a cleared stage
-  picks its hyper. The last card is the **daily**: today's walls, the same for
-  everyone.
+- **Stages**: Pulse, Drift, Prism, Undertow, Overdrive, Singularity, each a
+  chart written to its own song, in a world of its own; up on a cleared stage
+  picks its hyper. Then **Endless** (every stage in turn, new walls each run)
+  and the **daily** (today's walls, the same for everyone).
+- **Your best run** races you as a ghost; a death replays its last second
+  slowly with the wall that got you outlined; near misses spark.
+- **Medals** (clear, steady, hairline, marathon) open new shapes and trails:
+  C on the stages. P practises a stage from any rank you have reached.
 
 ## Code
 

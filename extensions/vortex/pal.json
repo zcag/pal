@@ -1,7 +1,7 @@
 {
   "name": "vortex",
   "title": "Vortex",
-  "description": "Turn around the centre and slip through the gaps as walls close in on the beat. Six stages, each with its own song, colours and tricks, and a hyper version of each; ranks every few seconds up to the minute that clears a stage, a daily run with the same walls for everyone, and a retry one key away.",
+  "description": "Turn round the centre and slip through the gaps as walls close in on the beat. Six stages written to their own songs, each in a world of its own, and a hyper of each; race the ghost of your best, medals that open new looks, Endless, a daily run, practice from any rank, and a retry one key away.",
   "version": "1.0.0",
   "icon": {
     "tile": {
@@ -57,6 +57,16 @@
         "keys": "left, right, up"
       },
       {
+        "title": "Practice",
+        "description": "On a stage: start from a rank you've reached there.",
+        "keys": "p"
+      },
+      {
+        "title": "Your look",
+        "description": "The player's shape and trail, opened by medals; the ghost on or off.",
+        "keys": "c"
+      },
+      {
         "title": "Back to the stages",
         "keys": "backspace"
       },
@@ -67,36 +77,36 @@
     ],
     "features": [
       "Walls close in on the centre with one way through; turn to the gap before they reach you, while the world spins, reverses and changes shape",
-      "Six stages, Pulse to Singularity, each with its own song, colours, camera and patterns: spirals, tunnels you have to go all the way round, rails, mirrors and whirlwinds",
-      "Music made as you play, and the walls land on its beat; the song builds a layer at every rank",
-      "Ranks every few seconds, Point to Hexagon: a minute clears a stage, opens the next one and the stage's hyper, faster and in other colours",
-      "Every pattern is spaced for the turn it asks of you, so a death is always yours to fix; the next run is one key away",
-      "A daily run: the same walls for everyone all day, your best kept for the day"
+      "Six stages written to their songs: walls land on the beat, builds tighten and go dark, every drop hits with a slam on its downbeat",
+      "Each stage its own world: neon, a nebula, glass, deep water, acid speed, a black hole; and a hyper of each, faster and in other colours",
+      "Race the ghost of your best run, see what killed you again in slow motion, hear every near miss",
+      "Medals for clearing, for a steady hand and for near misses, which open new shapes and trails for the player",
+      "Endless (every stage in turn, then their hypers), a daily run with the same walls for everyone, and practice from any rank you've reached"
     ],
     "screenshots": [
       {
         "file": "1-pulse.png",
-        "caption": "Pulse, 27 seconds in: past Triangle, a run of gaps to read while the world turns"
+        "caption": "Pulse: a neon grid far below, walls that read at a glance, and you, racing a minute against the song"
       },
       {
-        "file": "2-prism.png",
-        "caption": "Prism at Square: the centre changes shape between patterns and the colours never sit still"
+        "file": "2-undertow.png",
+        "caption": "Undertow: caustics and bubbles under a half-time song, the moment a record falls"
       },
       {
-        "file": "3-undertow.png",
-        "caption": "Undertow's steep camera and half-time song, the moment a record falls: the time turns gold"
+        "file": "3-singularity.png",
+        "caption": "Singularity in hyper: a black hole at the centre, the last stage, faster"
       },
       {
-        "file": "4-singularity.png",
-        "caption": "Singularity in hyper: the last stage, faster, in its other colours"
+        "file": "4-over.png",
+        "caption": "A death replays slowly with the wall that got you outlined; the card says how close the record and the next rank were"
       },
       {
-        "file": "5-over.png",
-        "caption": "A death: the walls roll back, and the card says how close the record and the next rank were; Space is the next run"
+        "file": "5-title.png",
+        "caption": "The stages, each playing itself behind its card: your best, its rank, your medals, practice from a rank you reached"
       },
       {
-        "file": "6-title.png",
-        "caption": "The stages, each playing itself behind its card: your best, its rank and your tries"
+        "file": "6-look.png",
+        "caption": "Medals open new shapes and trails for the player; the ghost of your best run, on or off"
       }
     ]
   },
@@ -117,6 +127,14 @@
         {
           "keys": "up",
           "title": "Hyper, on the stages"
+        },
+        {
+          "keys": "p",
+          "title": "Practice from a rank, on the stages"
+        },
+        {
+          "keys": "c",
+          "title": "Your look, on the stages"
         },
         {
           "keys": "backspace",

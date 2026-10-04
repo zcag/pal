@@ -3399,10 +3399,14 @@ there, is [`extensions/vortex/DESIGN.md`](../extensions/vortex/DESIGN.md).
 - Ranks at 10, 20, 30, 45 and 60 seconds; a minute clears a stage and opens
   the next and the stage's hyper. Six stages, each with its own song,
   colours, camera and patterns; the walls land on the song's beat.
-- On the stages, `←` `→` choose, `↑` picks a cleared stage's hyper, `space`
-  plays; the last card is the daily (the same walls for everyone all day,
-  open once Pulse is cleared). After a death, `space` is the next run and
-  Backspace the stages; `M` turns the sound off.
+- A stage is a chart, the same walls every run, written to its song; Endless
+  runs every stage in turn with new walls each time, and the daily has the
+  same walls for everyone all day (both open once Pulse is cleared).
+- On the stages, `←` `→` choose, `↑` picks a cleared stage's hyper, `P`
+  practises from a rank you reached, `C` opens your look (shapes and trails
+  opened by medals, the ghost on or off), `space` plays. After a death (and
+  its slow replay), `space` is the next run and Backspace the stages; `M`
+  turns the sound off.
 - Escape (or closing pal) pauses a run; `space` carries on. Each board's
   best, tries and time persist in the extension's storage. One setting,
   `volume`.

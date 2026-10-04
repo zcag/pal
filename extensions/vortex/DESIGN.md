@@ -26,6 +26,31 @@ judged against the rest.
    of the dark well before they reach you, their inner edge burns so the
    edge that kills is the brightest thing on screen.
 
+## Charts, not dice
+
+A stage is a **chart**: the same seed every run (`chartSeed`), so its walls
+are the same every time, like a level in a rhythm game. You learn it, the
+ghost of your best is exact, and a drop lands on the same moment every run.
+Chance lives in **Endless** (every stage in turn, a new run each time) and the
+**daily** (the same chance for everyone all day). Walls never depend on what
+the player does, which is what makes the ghost, practice starts and the
+death replay cheap: the chart plays out the same whatever you did.
+
+## Choreography
+
+Each stage's song has a form (`content.ts`): intro, build, drop, break, with
+bars and an energy, written to end near the minute that clears the stage,
+then a loop (drop, break, build) for as long as you last. The music arranges
+itself by it and the walls follow it (`plan` in `sim.ts`): plain patterns in
+an intro and a break, with room to breathe; spirals, zigzags, whirls and
+mirrors tightening through a build; the stage's whole repertoire in a drop,
+whose **first downbeat lands a slam** (a wall all round but one gap). The
+centre changes shape at the start of a section and the world reverses on bar
+lines, so everything that happens, happens on the music. The page adds the
+light: a build darkens over its last two beats, the drop throws it back with
+a flash, a ring and the camera swung round (inverted for a moment in hyper);
+breaks flatten the camera and pull back.
+
 ## The run
 
 The player is a point on a circle round the centre (`FEEL.orbit`), drawn as
@@ -86,14 +111,23 @@ the plain three.
 
 ## Sound
 
-Everything is synthesised (`surface/music.ts`, songs in `surface/songs.ts`):
-kick, snare, hats, a two-saw bass with a sub, a pad, a pluck arp, a lead
-(five saws at the higher ranks), chord stabs at the last. The kick ducks the
-rest (the pump). The run's time is the heard audio time since its step 0, so
-sight and sound never drift. Layers by rank: drums and bass, then the snare
-and arp, the lead, wider lead and rides, quicker hats, stabs. On the menus a
-song plays muffled; a death closes the filter like a tape stop, with a crunch
-and a glitch, and a retry throws it open on a downbeat.
+Everything is synthesised (`surface/music.ts`, songs in `surface/songs.ts`),
+and the run's time is the heard audio time since its step 0, so sight and
+sound never drift. Each song has an 8-bar progression (7ths, 9ths, sus
+chords, a major V home) and an 8-bar call-and-response hook, and arranges
+itself by its stage's form: an **intro** behind a closed filter with the hook
+on a bell; a **build** whose filter sweeps open while the snare rolls from
+quarters to 32nds, a riser climbs, a reversed cymbal swells and the kick
+drops out for the last bar; a **drop** that lands a crash and a sub boom on
+its downbeat, then full drums with ghost notes and fills, pumped supersaw
+chords, the hook on a supersaw lead (a harmony and an octave shimmer from
+the second drop); a **break** with no kick, the hook half time. The rank adds
+a little on top. On the menus a song plays intro and break material,
+muffled. A death closes the filter with a crunch and a glitch; its replay
+bends the music down like slowed tape; a retry throws it open on a downbeat.
+Endless queues the next stage's song on the bar its walls begin, with a
+riser into it. Near misses zing in the current chord, climbing it through a
+quick run.
 
 ## Picture
 
@@ -110,10 +144,28 @@ beaten mid-run (gold time, a chime); a **death** (shards, a white flash,
 shake, the world slowing, walls drawn back outward in a rewind, colour
 draining, the camera pushing in); a **retry** (flash, ring, the drop).
 
+## Feedback
+
+- **Near misses**: a wall's edge passing within 0.06 rad of you (`GRAZE`)
+  throws sparks off that edge and a bright zing, louder the closer.
+- **Ghost**: your best run on a board plays alongside you as a faint
+  hologram (its keys recorded run-length, replayed tick for tick on the same
+  chart); overtaking it is the record.
+- **Death replay**: after the impact, the last 1.1 s plays again at 0.42×
+  speed with the wall that killed you outlined, the music slowed with it;
+  then the walls roll back. Space retries at any point.
+
 ## Lasting
 
-`game/meta.ts`: per board its best, tries and time; the stages open one by
-one, a hyper with its stage's clear, the daily with Pulse's. The **daily**
+`game/meta.ts`: per board its best, tries, time, medals and the ghost of its
+best; the stages open one by one, a hyper with its stage's clear, Endless
+and the daily with Pulse's. **Medals**: per stage board Clear (a minute),
+Steady (a minute without Shift), Hairline (20 near misses in a run),
+Marathon (90 s); Endless has Tour, Voyage and Odyssey (2, 4, 6 minutes).
+Medals open the player's **look**: five shapes and four trails (C on the
+stages). **Practice** (P) starts a stage's chart at any rank you have
+reached there, the walls played to that moment and you set down where it is
+safe, untouchable for a moment; practice changes no record. The **daily**
 is the same board and seed for everyone all day (the stages in turn), its
 best kept for the day. The death card shows the time, the rank, the record
 or the gap to it, and how far the next rank was: the reason for one more.

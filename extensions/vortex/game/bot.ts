@@ -19,7 +19,8 @@ const PAD = 0.035;
 /** How often it looks again. */
 const EVERY = 1 / 120;
 
-export function decide(s: State): Input {
+/** Which bins walls cover, step by step over the horizon. */
+function blocks(s: State) {
   const v = speed(s), pad = v * PAD;
   const block = Array.from({ length: STEPS + 1 }, () => new Uint8Array(B));
   for (const w of s.walls) {
@@ -38,6 +39,11 @@ export function decide(s: State): Input {
       }
     }
   }
+  return block;
+}
+
+export function decide(s: State): Input {
+  const block = blocks(s);
   const here = Math.floor((((s.a % TAU) + TAU) % TAU) / W) % B;
   let way = route(block, here, SPEEDS[0]);
   for (let i = 1; i < SPEEDS.length && way.depth < STEPS; i++) way = route(block, here, SPEEDS[i]);
@@ -47,15 +53,25 @@ export function decide(s: State): Input {
   return { dir: d > 0 ? 1 : d < 0 ? -1 : 0 };
 }
 
-/** Where to be a step from now, from how long each bin lasts, worked back from the horizon. */
-function route(block: Uint8Array[], here: number, reach: number) {
+/** How long each bin lasts, worked back from the horizon to a step from now. */
+function lasting(block: Uint8Array[], reach: number) {
   let next = new Int16Array(B).map((_, b) => (block[STEPS][b] ? STEPS - 1 : STEPS));
   let cur = new Int16Array(B);
   for (let j = STEPS - 1; j >= 1; j--) {
     for (let b = 0; b < B; b++) cur[b] = block[j][b] ? j - 1 : best(next, block[j], block[j + 1], b, reach).depth;
     [next, cur] = [cur, next];
   }
-  return best(next, block[0], block[1], here, reach);
+  return next;
+}
+/** Where to be a step from now. */
+const route = (block: Uint8Array[], here: number, reach: number) => best(lasting(block, reach), block[0], block[1], here, reach);
+
+/** The angle that lasts longest from here on, for a player set down mid-run (a practice start). */
+export function safest(s: State) {
+  const depth = lasting(blocks(s), SPEEDS[0]);
+  let top = 0;
+  for (let b = 1; b < B; b++) if (depth[b] > depth[top]) top = b;
+  return (top + 0.5) * W;
 }
 
 /** The deepest bin reachable from b within one step's turn, not crossing a blocked one; the nearest among equals. */
