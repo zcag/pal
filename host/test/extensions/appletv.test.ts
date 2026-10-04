@@ -304,6 +304,8 @@ describe("over the host against the stand-in TV", () => {
   test("commands at the root: play or pause sends the button and says so; typing from the root; users switch", async () => {
     const rows = await host.list(E, "commands");
     expect(rows.map((r) => r.id)).toContain("type");
+    // Paired: pairing another is the Set Up Apple TV palette's own row, not one of these.
+    expect(rows.map((r) => r.id)).not.toContain("setup");
     expect(rows.find((r) => r.id === "sleep")).toMatchObject({ subtitle: "Living Room" });
     expect(await host.pick(E, "commands", "play-pause", "run")).toMatchObject({ hud: "Living Room: Play or Pause" });
     expect(ops("key").at(-1)).toMatchObject({ key: "play_pause" });
@@ -360,6 +362,11 @@ describe("over the host against the stand-in TV", () => {
     const isOffer = (i: BarItem) => !!i.title?.startsWith("Play on TV: Video abc123");
     await afterAdvance(2000, barSince(isOffer), "the offer on the bar");
     expect(host.updates(E, "playing").filter(isOffer).at(-1)).toMatchObject({ color: "accent" });
+    // The root's Now section: the offer under Now, no "Apple TV" section of its own; what plays is media's row (published `player`), not one of the Apple TV's.
+    const now = ((await host.request<{ extension: string; palette: string; items: any[] }[]>("suggest")) ?? []).filter((x) => x.extension === E);
+    expect(now.map((x) => x.palette)).toEqual(["play"]);
+    expect(now[0].items[0]).toMatchObject({ name: "Video abc123", subtitle: "Copied · Enter plays it on Living Room" });
+    expect(now[0].items[0].section).toBeUndefined();
     const remote = await view("remote");
     expect(text(remote)).toContain("Video abc123");
     expect(remote.actions.find((a) => a.id === "play-link")?.title).toBe("Play “Video abc123”");

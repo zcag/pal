@@ -971,6 +971,8 @@ export type PlayerState = ControlBase & {
   palette?: string;
   /** The provider's own bar item for this playback (`"playing"`): media's item steps aside while that one shows. */
   item?: string;
+  /** The provider has its own row in the root's Now section for this playback (Spotify's): `media`'s Now row leaves it out. */
+  now?: boolean;
   same?: string[];
 };
 export type ControlStates = { volume: VolumeState; power: PowerState; inputs: InputsState; player: PlayerState };

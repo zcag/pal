@@ -288,8 +288,6 @@ async function pickCommand(id: string, action: string | undefined, ctx?: Ctx): P
   if (id === "users") return { push: { extension: NAME, palette: "users" } };
   if (id === "now-playing") return { push: { extension: NAME, palette: "now" } };
   if (id === "play-link") return { push: { extension: NAME, palette: "play" } };
-  // The Now row (`suggest`): Enter opens Now Playing, cmd+Enter pauses.
-  if (id === "now") return action === "play-pause" ? (await act("play-pause")) ?? { hud: "Paused" } : { push: { extension: NAME, palette: "now" } };
   if (id.startsWith("device:")) { await settings.set({ device: id.slice(7) }, NAME); await drop(); return { hud: `Apple TV: ${id.slice(7)}` }; }
   if (id === "type") {
     const text = String(ctx?.values?.text ?? "");
@@ -405,12 +403,6 @@ export default {
         return dev ? commandRows(dev.name, list.filter((d) => d.id !== dev.id).map((d) => d.name)) : [SETUP_ROW];
       },
       pick: (id, action, ctx) => pickCommand(id, action, ctx),
-      suggest: async () => {
-        const n = tv.conn?.nowPlaying();
-        if (!n?.title || n.state !== "playing") return [];
-        const dev = tv.conn!.device, t = titles(n, frontApp()?.name);
-        return [{ id: "now", name: t.title, subtitle: `${[t.sub, frontApp()?.name].filter(Boolean).join(" · ")} on ${dev.name}`, icon: coverArt.data ? { image: coverArt.data } : G.tv, section: "Apple TV", actions: [{ id: "now", title: "Now Playing" }, { id: "play-pause", title: "Pause", shortcut: "cmd+enter" }] }];
-      },
     },
     users: {
       title: "Apple TV Users",

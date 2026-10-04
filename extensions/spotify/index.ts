@@ -154,7 +154,7 @@ function playerState(l: Live): PlayerState | null {
   const mac = p.device?.type === "Computer" && p.device.name.toLowerCase() === THIS_MAC;
   return {
     device: p.device?.name, app: "Spotify", state: p.playing ? "playing" : "paused", title: t.name, artist: t.artist, album: t.album, artwork: t.cover,
-    position: p.progress / 1000, at: p.at, duration: t.duration / 1000, palette: "now-playing", item: ITEM, ...(mac && { same: ["com.spotify.client"] }),
+    position: p.progress / 1000, at: p.at, duration: t.duration / 1000, palette: "now-playing", item: ITEM, now: true, ...(mac && { same: ["com.spotify.client"] }),
   };
 }
 

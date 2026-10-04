@@ -57,8 +57,8 @@ const ARTWORK_TIMEOUT_MS = 3000;
 
 /** The core's shapes with what the SDK does not type yet: the stream's cover id and whether the stream is up; `ext` on a player another extension publishes. */
 type Player = MediaPlayer & { artwork_id?: string | null; ext?: Published };
-/** What a published player (`controls.all("player")`) adds: its provider, its own Now Playing palette, whether its own bar item is on a strip, the system players it duplicates. */
-type Published = { key: string; palette?: string; shown: boolean; same: string[] };
+/** What a published player (`controls.all("player")`) adds: its provider, its app and device, its own Now Playing palette, whether its own bar item is on a strip, whether it has its own Now row, the system players it duplicates. */
+type Published = { key: string; app?: string; device?: string; palette?: string; shown: boolean; now: boolean; same: string[] };
 type Playing = NowPlaying & { stream?: boolean };
 type Settings = { exclude?: string[] };
 /** The `now-playing` item's own settings (`[bar.items."media/now-playing".settings]`). */
@@ -85,7 +85,7 @@ export function fromPublished(s: Served<"player">, at = now()): Player {
   const p: Player = {
     id: `${PUBLISHED}${s.provider.key}`, name: [s.app, s.device].filter(Boolean).join(" · ") || s.provider.key, state: s.state ?? "stopped",
     title: s.title ?? null, artist: s.artist ?? null, album: s.album ?? null, artwork: s.artwork ?? null, url: null, app: null, position: s.position ?? null, duration: s.duration ?? null,
-    ext: { key: s.provider.key, palette: s.palette, shown: s.item_shown === true, same: s.same ?? [] },
+    ext: { key: s.provider.key, app: s.app, device: s.device, palette: s.palette, shown: s.item_shown === true, now: s.now === true, same: s.same ?? [] },
   };
   return s.at !== undefined ? { ...p, position: positionAt(p, s.at, at) ?? null } : p;
 }
@@ -192,6 +192,29 @@ function empty(systemWide: boolean): Item {
     ? "No player is running"
     : MAC ? "No player is running (this build has no MediaRemote adapter: only Spotify and Music are watched)" : "Install playerctl to control MPRIS players";
   return hint("empty", "Nothing playing", subtitle, { icon: MUSIC });
+}
+
+// ---- the root's Now section -------------------------------------------------------
+
+/** Where a row's player plays: "YouTube on yatak" for a published one, the player's name for the system's. */
+const whereOf = (p: Player) => (p.ext ? [p.ext.app, p.ext.device].filter(Boolean).join(" on ") || p.name : p.name);
+
+/**
+ * The empty root's Now rows: every playing player, the published ones
+ * first (an Apple TV, a Samsung TV, Jellyfin: a device needs no
+ * suggestion of its own), less the excluded ones and those whose provider
+ * has its own Now row (`now`: Spotify's). Paused ones have none. The
+ * subtitle is "artist · YouTube on yatak"; a published row's Enter opens
+ * its extension's own Now Playing, ⌘Enter plays or pauses.
+ */
+export async function nowRows(np: { players: Player[] }): Promise<Item[]> {
+  const rows = np.players.filter((p) => p.state === "playing" && !excluded(p) && !p.ext?.now);
+  return Promise.all(rows.map(async (p) => {
+    const it = await item(p);
+    if (!p.title) return it;
+    const actions = p.ext && openPublished(p) ? [it.actions![0], { ...it.actions![1], shortcut: "cmd+enter" }, ...it.actions!.slice(2)] : it.actions;
+    return { ...it, subtitle: [p.artist, whereOf(p)].filter(Boolean).join(" · "), accessories: it.accessories?.filter((a) => !("text" in a) || a.text !== p.name), actions };
+  }));
 }
 
 // ---- the bar item -----------------------------------------------------------
@@ -364,9 +387,9 @@ export default {
       title: "Now Playing",
       live: true,
       placeholder: "Play, pause, skip",
-      // The empty root's Now section: the playing track, nothing while nothing plays.
+      // The empty root's Now section: every playing player (`nowRows`), nothing while nothing plays.
       suggest: async () => {
-        try { const p = playingForBar(await nowPlaying()); return p ? [await item(p)] : []; } catch { return []; }
+        try { return await nowRows(await nowPlaying()); } catch { return []; }
       },
       list: async () => {
         try {

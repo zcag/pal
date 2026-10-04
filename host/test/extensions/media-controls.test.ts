@@ -86,6 +86,32 @@ describe("published players in Now Playing", () => {
   });
 });
 
+describe("the root's Now section", () => {
+  const nowRows = async () => ((await host.request<{ extension: string; items: any[] }[]>("suggest")) ?? []).find((x) => x.extension === "media")?.items ?? [];
+
+  test("every playing player has a row, the published one first even while its own bar item shows it: a device with no suggestion of its own (the Samsung, Jellyfin) is there through media", async () => {
+    np = { players: [{ ...music, state: "playing" }, spotify], system_wide: true };
+    await publish(PLAYING);
+    host.itemsShown.add("box/playing");
+    const rows = await nowRows();
+    expect(rows.map((r) => r.id)).toEqual(["ctl:box", "music"]);
+    expect(rows[0]).toMatchObject({ name: "A Talk", subtitle: "A Channel · YouTube on Living room" });
+    expect(rows[0].section).toBeUndefined();
+    expect(rows[0].actions.slice(0, 2)).toEqual([{ id: "open", title: "Open" }, { id: "play_pause", title: "Pause", shortcut: "cmd+enter" }]);
+    expect(rows[1]).toMatchObject({ name: "Song 2", subtitle: "Blur · Music" });
+    host.itemsShown.delete("box/playing");
+  });
+
+  test("a player whose provider has its own Now row (`now`, Spotify's) and a paused one have none", async () => {
+    await publish({ ...PLAYING, now: true });
+    expect((await nowRows()).map((r) => r.id)).toEqual(["music"]);
+    np = { players: [spotify, music], system_wide: true };
+    await publish({ ...PLAYING, state: "paused" });
+    expect(await nowRows()).toEqual([]);
+    await publish(null);
+  });
+});
+
 describe("merging (pure)", () => {
   test("the system-wide row naming the app is dropped too; an unknown bundle id drops nothing", () => {
     const system: MediaPlayer = { ...spotify, id: "system", name: "Spotify" };

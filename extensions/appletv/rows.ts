@@ -59,7 +59,7 @@ export function commandRows(device: string, others: string[]): Item[] {
     actions: [{ id: "type", title: "Type it", args: true }, { id: "type:append", title: "Add to what is there", shortcut: "cmd+enter", args: true }],
   });
   for (const o of others) rows.push({ id: `device:${o}`, name: `Switch to ${o}`, subtitle: "Make it the Apple TV the remote and these commands control", icon: G.tv, keywords: ["apple tv"], actions: [{ id: "run", title: `Switch to ${o}` }] });
-  rows.push({ id: "setup", name: "Set Up Apple TV", subtitle: "Pair another Apple TV, or pair this one again", icon: G.remote, keywords: ["apple tv", "pair"], actions: [{ id: "setup", title: "Set up" }] });
+  // Pairing another is the Set Up Apple TV palette's own row at the root: a second one here sat in the empty root's Apple TV rows.
   return rows;
 }
 

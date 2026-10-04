@@ -159,7 +159,7 @@ export async function pickPlay(id: string, action: string | undefined): Promise<
 export async function suggestPlay(): Promise<Item[]> {
   const dev = current(await paired());
   if (!dev || !offer || !offerFresh(OFFER_ROOT_MS)) return [];
-  return [{ ...linkRow(offer.link, "Just copied", { info: offer.info, thumb: offer.thumb, at: offer.at, device: dev.name }), name: offer.info?.title ?? linkLabel(offer.link), subtitle: `Copied · Enter plays it on ${dev.name}`, section: "Apple TV" }];
+  return [{ ...linkRow(offer.link, "Just copied", { info: offer.info, thumb: offer.thumb, at: offer.at, device: dev.name }), name: offer.info?.title ?? linkLabel(offer.link), subtitle: `Copied · Enter plays it on ${dev.name}` }];
 }
 
 /** `pal://appletv/play`: the url given, else the copied link, else the browser tab in front. */
