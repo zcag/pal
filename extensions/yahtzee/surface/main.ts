@@ -1,9 +1,12 @@
 // Yahtzee's page: the state, the input, the save. A move from a key, a
 // click or cmd+k (`pal.onAction`) is `apply` from game.ts, the rules the
-// host tests; the new state is drawn (board.ts), saved whole under the key
-// the extension reads ("state"), and the extension is told, so the view's
-// actions and title follow. New game mid-game asks first; from cmd+k the
-// panel already has.
+// host tests; the new state is drawn (board.ts), saved under the keys the
+// extension reads (progress.ts: the card stays here, the record syncs, and
+// a record sync brought in replaces the one in memory), and the extension
+// is told, so the view's actions and title follow. A finished card goes to
+// its boards (`pal.score`) and the result says the rank. New game (or Y,
+// the daily dice: the same dice for everyone that UTC day) mid-game asks
+// first; from cmd+k the panel already has.
 //
 // The keys, one hand on the arrows: the cursor is on the dice (← → pick a
 // die, Enter holds it, ↑ or space rolls) or on the card (↓ from the dice
@@ -11,21 +14,38 @@
 // the dice may go in, ↑ past the top goes back to the dice; Enter scores).
 // 1 to 5 hold a die and R rolls from anywhere. After the third roll the
 // cursor is on the card by itself.
-import { LOWER, ROLLS, UPPER, apply, bestOption, isState, newGame, options, started, type Category, type Move, type State } from "../game.ts";
+import { LOWER, ROLLS, UPPER, apply, bestOption, options, started, utcDay, type Category, type Move, type State } from "../game.ts";
 import { moveOf, titleOf } from "../moves.ts";
+import { KEYS, changes, restore, scores, type Key, type Saved } from "../progress.ts";
 import { Board, type Cursor } from "./board.ts";
 import type { SurfaceKit } from "@zcag/pal";
 
 declare const pal: SurfaceKit;
 
-const KEY = "state";
-
 let st: State;
 let cur: Cursor = { zone: "dice", die: 0 };
 
+/** What storage holds, as this page last wrote or heard it. */
+let saved: Saved = {};
 /** Saves in order, each after the last, then says so: the extension re-reads and pushes the view's actions. */
 let saving: Promise<unknown> = Promise.resolve();
-const save = (snap: State) => { saving = saving.then(() => pal.storage.set(KEY, snap)).then(() => pal.send({ moved: true })).catch((e) => console.error("yahtzee: save", e)); };
+const save = (snap: State) => {
+  const ch = changes(snap, saved);
+  Object.assign(saved, ch);
+  saving = saving.then(() => Promise.all(Object.entries(ch).map(([k, v]) => pal.storage.set(k, v)))).then(() => pal.send({ moved: true })).catch((e) => console.error("yahtzee: save", e));
+};
+
+const rankEl = document.getElementById("rank")!, signInEl = document.getElementById("signin")!;
+/** A finished card to its boards; the rank, when a board answers, beside the record. */
+async function post(done: State) {
+  const answers = await Promise.all(scores(done, utcDay()).map(([board, value]) => pal.score(board, value).catch((e) => void console.error(`yahtzee: score ${board}`, e))));
+  const daily = answers[1], r = daily ?? answers[0];
+  if (st !== done || !r || r.rank == null) return;
+  rankEl.textContent = `#${r.rank} of ${r.total}${daily ? " today" : ""}`;
+  signInEl.hidden = (await pal.account().catch(() => ({ signedIn: true }))).signedIn;
+}
+signInEl.addEventListener("click", () => void pal.signIn());
+document.getElementById("daily")!.addEventListener("click", () => play(moveOf("daily")!));
 
 const confirmBox = document.getElementById("confirm")!;
 const confirming = () => confirmBox.classList.contains("open");
@@ -44,8 +64,10 @@ function point(next: Cursor) {
   board.render(st, cur);
 }
 
+/** The move a confirmed New game makes: New game or the daily dice, whichever asked. */
+let asked: Move = { type: "new" };
 function play(m: Move, confirmed = false) {
-  if (m.type === "new" && !confirmed && started(st)) { confirmBox.classList.add("open"); return; }
+  if ((m.type === "new" || m.type === "daily") && !confirmed && started(st)) { asked = m; confirmBox.classList.add("open"); return; }
   const next = apply(st, m);
   if (next === st) { if (m.type === "roll" && !st.ended) board.nudge(); return; }
   const prev = st;
@@ -60,13 +82,15 @@ function play(m: Move, confirmed = false) {
   board.render(st, cur, prev);
   pal.title(titleOf(st));
   save(st);
+  if (st.ended && !prev.ended) void post(st);
+  if (!st.ended) { rankEl.textContent = ""; signInEl.hidden = true; }
 }
 
 confirmBox.addEventListener("click", (e) => {
   const b = (e.target as HTMLElement).closest<HTMLElement>("[data-confirm]");
   if (!b && e.target !== confirmBox) return;
   confirmBox.classList.remove("open");
-  if (b?.dataset.confirm === "yes") play({ type: "new" }, true);
+  if (b?.dataset.confirm === "yes") play(asked, true);
 });
 
 // ---- the card cursor --------------------------------------------------
@@ -105,12 +129,13 @@ window.addEventListener("keydown", (e) => {
   if (confirming()) {
     e.preventDefault();
     confirmBox.classList.remove("open");
-    if (e.key === "Enter" || e.key === "y") play({ type: "new" }, true);
+    if (e.key === "Enter" || e.key === "y") play(asked, true);
     return;
   }
   document.body.classList.add("typing");
   const k = e.key;
   const handled = () => e.preventDefault();
+  if (k === "y" || k === "Y") { handled(); play(moveOf("daily")!); return; }
   if (st.ended) {
     if (k === "Enter" || k === "n" || k === "N") { handled(); play({ type: "new" }); }
     return;
@@ -161,8 +186,18 @@ window.addEventListener("mousemove", (e) => { if (e.movementX || e.movementY) do
 pal.onAction((id) => { const m = moveOf(id); if (m) play(m, true); });
 pal.onTheme(() => board.render(st, cur));
 
-const stored = await pal.storage.get(KEY);
-st = isState(stored) ? stored : newGame();
+pal.storage.onChange((key, value) => {
+  if (!st || key !== "record" || !KEYS.includes(key as Key)) return;
+  saved.record = value;
+  const next = restore({ ...saved, state: st });
+  if (next.record === st.record) return;
+  st = next;
+  board.render(st, cur);
+  pal.send({ moved: true }).catch(() => {});
+});
+
+saved = Object.fromEntries(await Promise.all(KEYS.map(async (k) => [k, await pal.storage.get(k)])));
+st = restore(saved);
 if (st.rolls >= ROLLS) cur = { zone: "card", die: 0, cat: bestOption(st) };
 board.render(st, cur);
 pal.title(titleOf(st));

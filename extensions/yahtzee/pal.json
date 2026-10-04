@@ -12,6 +12,35 @@
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
+  "sync": {
+    "state": "local",
+    "record": {
+      "fields": {
+        "games": "sum",
+        "sum": "sum",
+        "best": "max"
+      }
+    }
+  },
+  "leaderboards": [
+    {
+      "id": "daily",
+      "title": "Daily dice",
+      "order": "desc",
+      "format": "points",
+      "period": "day",
+      "min": 0,
+      "max": 1575
+    },
+    {
+      "id": "high",
+      "title": "High score",
+      "order": "desc",
+      "format": "points",
+      "min": 0,
+      "max": 1575
+    }
+  ],
   "store": {
     "tagline": "Solo Yahtzee with the scores in plain sight, by mouse or keys",
     "category": "fun",
@@ -21,7 +50,8 @@
       "The upper bonus as a bar toward 63, greyed once it is out of reach",
       "Hasbro's rules in full, including Yahtzee bonuses and the Joker rules",
       "Dice that tumble, confetti for a Yahtzee, and the final score beside your best and average",
-      "Leave any time and pick the game up again, even after a restart"
+      "Leave any time and pick the game up again, even after a restart",
+      "Daily dice, the same rolls for everyone that day (`Y`); signed in to pal, your record follows you, and finished cards go on leaderboards: the day's best and the all-time high"
     ],
     "permissions": [],
     "platforms": [
@@ -66,6 +96,11 @@
         "title": "New game",
         "description": "Asks first mid-game; the record is kept.",
         "keys": "n"
+      },
+      {
+        "title": "Daily dice",
+        "description": "A fresh card on the day's dice: the same rolls for everyone until midnight UTC, whatever you hold. A finished card goes on the day's board. Asks first mid-game.",
+        "keys": "y"
       }
     ],
     "play": true
@@ -103,6 +138,10 @@
         {
           "keys": "n",
           "title": "New game, after a confirm mid-game"
+        },
+        {
+          "keys": "y",
+          "title": "The daily dice, asking first mid-game"
         }
       ]
     }

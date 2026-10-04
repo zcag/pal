@@ -7,9 +7,12 @@
 // is not run here.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
-import { CATEGORIES, apply, average, bestOption, counted, gain, isJoker, isState, newGame, options, round, score, started, totals, type Category, type State } from "../../../extensions/yahtzee/game.ts";
+import { CATEGORIES, apply, average, bestOption, counted, dailyFace, dailyGame, gain, isJoker, isState, newGame, options, round, score, started, totals, utcDay, type Category, type State } from "../../../extensions/yahtzee/game.ts";
 import { moveOf, titleOf, viewActions } from "../../../extensions/yahtzee/moves.ts";
-import type { View } from "../../../sdk/src/protocol.ts";
+import { KEYS, changes, restore, scores } from "../../../extensions/yahtzee/progress.ts";
+import manifest from "../../../extensions/yahtzee/pal.json" with { type: "json" };
+import { checkLeaderboards, checkSync, leaderboardOf } from "../../../sdk/src/manifest.ts";
+import type { Manifest, View } from "../../../sdk/src/protocol.ts";
 import { Host, stored } from "../harness.ts";
 
 /** An rng that rolls these faces, in order. */
@@ -209,6 +212,60 @@ describe("the end of a game and the record", () => {
   });
 });
 
+describe("the daily dice", () => {
+  const record = { games: 4, sum: 800, best: 260 };
+  test("each die's face is the day's, by round, roll and place: what you hold picks which you see, not what they are", () => {
+    const a = apply(dailyGame(record, "2026-10-04"), { type: "roll" }, () => 0);
+    const b = apply(dailyGame({ games: 0, sum: 0, best: 0 }, "2026-10-04"), { type: "roll" }, () => 0.99);
+    expect(a.dice).toEqual(b.dice);
+    expect(a.dice).toEqual([0, 1, 2, 3, 4].map((i) => dailyFace("2026-10-04", 1, 0, i)));
+    expect(a.record).toEqual(record);
+    // Holding the first two: the other three are the second roll's faces in their places.
+    const held = apply(apply(a, { type: "hold", die: 0 }), { type: "hold", die: 1 });
+    const again = apply(held, { type: "roll" });
+    expect(again.dice).toEqual([a.dice[0], a.dice[1], ...[2, 3, 4].map((i) => dailyFace("2026-10-04", 1, 1, i))]);
+    const days = ["2026-10-05", "2026-10-06", "2026-10-07"].map((d) => apply(dailyGame(record, d), { type: "roll" }).dice);
+    expect(days.some((d) => JSON.stringify(d) !== JSON.stringify(a.dice))).toBe(true);
+    expect([...Array(600).keys()].every((i) => { const f = dailyFace("x", i, 0, 0); return f >= 1 && f <= 6; })).toBe(true);
+  });
+  test("a move from the view starts today's; New game after it is an ordinary game", () => {
+    expect(moveOf("daily", "2026-10-04")).toEqual({ type: "daily", day: "2026-10-04" });
+    const d = apply(newGame(record), { type: "daily", day: "2026-10-04" });
+    expect(d).toMatchObject({ daily: "2026-10-04", record, rolls: 0 });
+    expect(titleOf(d)).toBe("Daily · Round 1 of 13");
+    expect(titleOf(apply(d, { type: "roll" }))).toBe("Daily · Round 1 · Roll 1 of 3");
+    expect(apply(d, { type: "new" }).daily).toBeUndefined();
+    expect(utcDay(Date.UTC(2026, 9, 4, 12))).toBe("2026-10-04");
+  });
+});
+
+describe("what syncs, and the boards", () => {
+  const done = () => scoreIn(at([6, 6, 6, 6, 5], allBut("chance"), { record: { games: 2, sum: 400, best: 250 } }), "chance");
+  test("every key the game writes has a rule; the boards a card posts to are declared", () => {
+    expect(Object.keys(manifest.sync).sort()).toEqual([...KEYS].sort());
+    expect(manifest.sync).toEqual({ state: "local", record: { fields: { games: "sum", sum: "sum", best: "max" } } });
+    expect(checkSync(manifest)).toEqual([]);
+    expect(checkLeaderboards(manifest)).toEqual([]);
+    for (const [b] of scores({ ...done(), daily: "d" }, "d")) expect(leaderboardOf(manifest as unknown as Manifest, b), b).toBeDefined();
+  });
+  test("a store from before the split keeps its record; a synced record overrules it", () => {
+    const old = at([1, 2, 3, 4, 5], {}, { record: { games: 9, sum: 1800, best: 301 } });
+    expect(restore({ state: old }).record).toEqual({ games: 9, sum: 1800, best: 301 });
+    expect(restore({ state: old, record: { games: 12, sum: 2500, best: 330 } })).toMatchObject({ dice: [1, 2, 3, 4, 5], record: { games: 12, best: 330 } });
+    expect(restore({ record: { games: 12, sum: 2500, best: 330 } })).toMatchObject({ rolls: 0, record: { games: 12 } });
+    expect(changes(restore({ state: old }), { state: old })).toEqual({ state: old, record: old.record });
+  });
+  test("the record is written when it moves; a finished card goes to High score, and to the Daily on its own day", () => {
+    const end = done();
+    expect(Object.keys(changes(end, { record: { games: 2, sum: 400, best: 250 } }))).toEqual(["state", "record"]);
+    expect(Object.keys(changes(end, { record: end.record }))).toEqual(["state"]);
+    expect(scores(end, "2026-10-04")).toEqual([["high", 29]]);
+    expect(scores({ ...end, daily: "2026-10-04" }, "2026-10-04")).toEqual([["high", 29], ["daily", 29]]);
+    expect(scores({ ...end, daily: "2026-10-03" }, "2026-10-04")).toHaveLength(1);
+    expect(scores(newGame(), "2026-10-04")).toEqual([]);
+  });
+});
+
 describe("the moves as the view offers them", () => {
   test("the title line says the round and the roll", () => {
     expect(titleOf(newGame())).toBe("Round 1 of 13");
@@ -219,14 +276,14 @@ describe("the moves as the view offers them", () => {
     expect(titleOf({ ...newGame(), ended: { total: 240, best: true } })).toBe("Final score 240 · New best");
   });
   test("actions: roll while one is left, the options ranked by what they add, new game asking mid-game", () => {
-    expect(viewActions(newGame()).map((a) => a.id)).toEqual(["roll", "new"]);
+    expect(viewActions(newGame()).map((a) => a.id)).toEqual(["roll", "new", "daily"]);
     expect(viewActions(newGame()).find((a) => a.id === "new")!.confirm).toBeUndefined();
     const st = at([2, 2, 2, 2, 2], { yahtzee: 50, twos: 6, chance: 20 }, { rolls: 3 });
     const acts = viewActions(st);
-    expect(acts.map((a) => a.id)).toEqual(["score:large-straight", "score:small-straight", "score:full-house", "score:three-kind", "score:four-kind", "new"]);
+    expect(acts.map((a) => a.id)).toEqual(["score:large-straight", "score:small-straight", "score:full-house", "score:three-kind", "score:four-kind", "new", "daily"]);
     expect(acts[0].title).toBe("Score Large straight: 140");
-    expect(acts.at(-1)).toMatchObject({ id: "new", style: "destructive" });
-    expect(viewActions({ ...newGame(), ended: { total: 1, best: false } }).map((a) => a.id)).toEqual(["new"]);
+    expect(acts.at(-2)).toMatchObject({ id: "new", style: "destructive" });
+    expect(viewActions({ ...newGame(), ended: { total: 1, best: false } }).map((a) => a.id)).toEqual(["new", "daily"]);
   });
   test("an action id is a move", () => {
     expect(moveOf("roll")).toEqual({ type: "roll" });
@@ -260,7 +317,7 @@ describe("over the wire", () => {
     const v = await host.request<View>("view", { extension: "yahtzee", palette: "yahtzee" });
     expect(v.tree).toMatchObject({ type: "surface", src: "surface/index.html" });
     expect(v.title).toBe("Round 1 of 13");
-    expect(v.actions.map((a) => a.id)).toEqual(["roll", "new"]);
+    expect(v.actions.map((a) => a.id)).toEqual(["roll", "new", "daily"]);
     stored.set("yahtzee\0state", { from: "an older version" });
     expect((await host.request<View>("view", { extension: "yahtzee", palette: "yahtzee" })).title).toBe("Round 1 of 13");
   });
