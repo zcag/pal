@@ -2,7 +2,7 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 import { BarStrip, type BarLook, type BarStripItem, type BarStripTarget } from "./BarStrip";
 import { Empty } from "./Empty";
 import { Icon } from "./Icon";
-import { SettingsDisclosure, SettingsField, SettingsHotkey, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
+import { LocalNote, SettingsDisclosure, SettingsField, SettingsHotkey, SettingsSegment, SettingsSelect, SettingsSwitch, quoteKey } from "./SettingsField";
 import { SettingsBarRules, type RuleWrite } from "./SettingsBarRules";
 import { SettingsList, type SettingsListItem } from "./SettingsList";
 import { Tag } from "./Row";
@@ -267,7 +267,7 @@ function Defaults({ config, onChange, sketchybar, items }: { config: BarConfig; 
               <SettingsSelect id="pal-bar-target" value={config.target} options={targetOptions} onChange={(v) => set("target", v as BarTarget)} />
               {probed && <span className="pal-bar__detect" data-alive={sketchybar || undefined}><span className="pal-bar__dot" aria-hidden />sketchybar {sketchybar ? "is running" : "is not running"}</span>}
             </div>
-            <p className="pal-setting__desc">{target.explain(sketchybar)} An item can pick its own target in its pane.</p>
+            <p className="pal-setting__desc">{target.explain(sketchybar)} An item can pick its own target in its pane.<LocalNote configKey="bar.target" /></p>
           </div>
         </div>
         <div className="pal-setting" data-layout="row" data-anchor="bar:hover">
@@ -423,14 +423,14 @@ function ItemPane({ b, config, sketchybar, onItem, onRule, onOpenExtension, onSe
             <label className="pal-setting__label" htmlFor={`${anchor}-target`}>Target</label>
             <div className="pal-setting__body">
               <div className="pal-setting__control"><SettingsSelect id={`${anchor}-target`} value={c.target ?? ""} options={itemTargets} onChange={(v) => put({ target: (v || undefined) as BarTarget | undefined })} /></div>
-              <p className="pal-setting__desc">{c.target ? "This item's own target." : `The default, ${targets.find((t) => t.id === config.target)?.title.toLowerCase()}: ${eff === "both" ? "both bars" : eff === "off" ? "nowhere" : `the ${targetTitle[eff]}`} now.`}</p>
+              <p className="pal-setting__desc">{c.target ? "This item's own target." : `The default, ${targets.find((t) => t.id === config.target)?.title.toLowerCase()}: ${eff === "both" ? "both bars" : eff === "off" ? "nowhere" : `the ${targetTitle[eff]}`} now.`}<LocalNote configKey={`bar.items.${quoteKey(b.key)}.target`} /></p>
             </div>
           </div>
           <div className="pal-setting pal-bar-field" data-layout="stack" data-anchor={`${anchor}:position`}>
             <label className="pal-setting__label" htmlFor={`${anchor}-position`}>sketchybar position<code className="pal-bar-field__key">position</code></label>
             <div className="pal-setting__body">
               <div className="pal-setting__control"><input id={`${anchor}-position`} className="pal-field__input pal-bar__position" type="text" placeholder={config.sketchybarPosition} value={c.position ?? ""} spellCheck={false} onChange={(e) => put({ position: e.target.value || undefined })} onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur(); }} /></div>
-              <p className="pal-setting__desc">{c.position ? "This item's own position." : `From the sketchybar default, ${config.sketchybarPosition}.`}</p>
+              <p className="pal-setting__desc">{c.position ? "This item's own position." : `From the sketchybar default, ${config.sketchybarPosition}.`}<LocalNote configKey={`bar.items.${quoteKey(b.key)}.position`} /></p>
             </div>
           </div>
           <div className="pal-setting pal-bar-field" data-layout="stack" data-anchor={`${anchor}:order`}>
@@ -451,7 +451,7 @@ function ItemPane({ b, config, sketchybar, onItem, onRule, onOpenExtension, onSe
             <span className="pal-setting__label">Hotkey</span>
             <div className="pal-setting__body">
               <div className="pal-setting__control"><SettingsHotkey value={c.hotkey} onChange={(v) => put({ hotkey: v })} label={`${b.title} hotkey`} /></div>
-              <p className="pal-setting__desc">Opens the item's popover engaged from any app (or runs its open action). The root and palette hotkeys win a clash.</p>
+              <p className="pal-setting__desc">Opens the item's popover engaged from any app (or runs its open action). The root and palette hotkeys win a clash.<LocalNote configKey={`bar.items.${quoteKey(b.key)}.hotkey`} /></p>
             </div>
           </div>
           <div className="pal-setting pal-bar-field" data-layout="stack" data-anchor={`${anchor}:open_on_hover`}>

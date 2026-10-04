@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 
 import { Icon } from "./Icon";
 import { BRAND } from "./icons";
 import { Tag } from "./Row";
-import { ArmedButton, SettingsField, SettingsSegment, SettingsSwitch } from "./SettingsField";
+import { ArmedButton, SettingsField, SettingsSegment, SettingsSwitch, quoteKey } from "./SettingsField";
 import { ExtensionPalettes, type SettingsPalettesProps } from "./SettingsPalettes";
 import { availableOf, Browse, buildLine, ExtensionsTabs, ListingPane, listingIcon, needsOf, originLine, screenshotsOf, Shots, statusText, targetOf, updatesLine, type ExtensionsStore, type InstallState, type Need } from "./SettingsStore";
 import { badgedIcon, type BarItem, instanceBadge, ownBrand, instanceTint, instancesOf, needsSetup, slugSuffix, suffixProblem, suffixTitle, type PaletteConfig, type SettingsExtension, type SettingsIndexEntry, type SettingValue, type SettingValues } from "./SettingsTypes";
@@ -446,6 +446,7 @@ function ExtensionPane({ ext, instances, selectedInstance, onSelectInstance, bus
                     value={own ?? inherited ?? s.default}
                     onChange={(v) => set(s.id, v)}
                     base={inst.inherited ? inherited : undefined}
+                    configKey={`extensions.${quoteKey(inst.key)}.${quoteKey(s.id)}`}
                     note={own === undefined && inherited !== undefined ? `From ${inst.inheritedFrom ?? extTitle}` : perInstance && (own === undefined || own === "") ? "Set for this instance; never shared between accounts" : undefined}
                   />
                 </div>

@@ -12,6 +12,7 @@ const icons: Record<SettingsPage, ReactNode> = {
   extensions: <svg viewBox="0 0 18 18"><path d="M9 2.2l5.9 3.4v6.8L9 15.8l-5.9-3.4V5.6z" /><path d="M9 9l5.9-3.4M9 9v6.8M9 9L3.1 5.6" /></svg>,
   bar: <svg viewBox="0 0 18 18"><rect x="2" y="3" width="14" height="4" rx="1.2" /><circle cx="12.5" cy="5" r="0.9" fill="currentColor" stroke="none" /><path d="M5 5h3" /><path d="M9 7v3.5M6.5 13.5h5" /><rect x="5" y="10.5" width="8" height="4.5" rx="1" /></svg>,
   groups: <svg viewBox="0 0 18 18"><rect x="2" y="5" width="8.5" height="6" rx="1.2" /><path d="M4.5 13.5h3.5" /><rect x="12.5" y="3.5" width="3.5" height="10" rx="1.2" /><circle cx="14.25" cy="6" r="0.6" fill="currentColor" stroke="none" /></svg>,
+  account: <svg viewBox="0 0 18 18"><circle cx="9" cy="6.5" r="3" /><path d="M3.5 15.5c.6-3 2.8-4.6 5.5-4.6s4.9 1.6 5.5 4.6" /></svg>,
   about: <svg viewBox="0 0 18 18"><circle cx="9" cy="9" r="6.5" /><path d="M9 8v4.5" /><circle cx="9" cy="5.6" r="0.5" fill="currentColor" /></svg>,
 };
 
@@ -23,6 +24,7 @@ export const settingsPages: { id: SettingsPage; title: string }[] = [
   { id: "extensions", title: "Extensions" },
   { id: "bar", title: "Bar" },
   { id: "groups", title: "Groups" },
+  { id: "account", title: "Account" },
   { id: "about", title: "About" },
 ];
 
@@ -69,7 +71,7 @@ export function flashAnchor(anchor: string): boolean {
  * nothing else. The search field on the toolbar's right finds a setting,
  * a palette, an extension or a bar item on any page; typing puts the hits
  * where the page was, and picking one opens the page and lights the row.
- * Keys: `/` focuses the search, cmd+1..7 (ctrl off macOS) switch pages,
+ * Keys: `/` focuses the search, cmd+1..9 (ctrl off macOS) switch pages,
  * arrows move the tabs and the hits, Escape clears the search.
  */
 export function SettingsWindow({ page, onPage, aside, index = [], onJump, diagnostics = [], file, onOpenDiagnostic, mac, attention = 0, children }: SettingsWindowProps) {

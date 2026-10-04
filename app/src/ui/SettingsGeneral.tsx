@@ -166,10 +166,10 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
       </SettingsGroup>
 
       <SettingsGroup title="Startup">
-        <SettingsRow anchor={text.login.anchor} label={text.login.label} description={text.login.description}>
+        <SettingsRow anchor={text.login.anchor} label={text.login.label} description={text.login.description} configKey="general.launch_at_login">
           <SettingsSwitch checked={value.launchAtLogin} onChange={(v) => set("launchAtLogin", v)} label="Launch at login" />
         </SettingsRow>
-        <SettingsRow anchor={text.menubar.anchor} label={text.menubar.label} description={text.menubar.description}>
+        <SettingsRow anchor={text.menubar.anchor} label={text.menubar.label} description={text.menubar.description} configKey="general.menu_bar_icon">
           <SettingsSwitch checked={value.menuBarIcon} onChange={(v) => set("menuBarIcon", v)} label="Menu bar icon" />
         </SettingsRow>
       </SettingsGroup>
@@ -191,7 +191,7 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
 
       {value.usage !== undefined && (
         <SettingsGroup title="Privacy">
-          <SettingsRow anchor={text.usage.anchor} label={text.usage.label} description={<>{text.usage.description} {onOpenLink ? <button type="button" className="pal-link" onClick={() => onOpenLink(USAGE_DOC)}>What is sent</button> : <span>What is sent: {USAGE_DOC}</span>}</>}>
+          <SettingsRow anchor={text.usage.anchor} configKey="general.usage" label={text.usage.label} description={<>{text.usage.description} {onOpenLink ? <button type="button" className="pal-link" onClick={() => onOpenLink(USAGE_DOC)}>What is sent</button> : <span>What is sent: {USAGE_DOC}</span>}</>}>
             <SettingsSwitch checked={value.usage} onChange={(v) => set("usage", v)} label={text.usage.label} />
           </SettingsRow>
         </SettingsGroup>

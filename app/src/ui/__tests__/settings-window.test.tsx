@@ -19,10 +19,10 @@ const noop = () => {};
 const count = (html: string, re: RegExp) => html.match(re)?.length ?? 0;
 
 describe("SettingsWindow", () => {
-  it("puts the seven pages on the toolbar as tabs, the current one selected", () => {
+  it("puts the nine pages on the toolbar as tabs, the current one selected", () => {
     const html = renderToStaticMarkup(<SettingsWindow page="extensions" onPage={noop}><p>body</p></SettingsWindow>);
-    expect(settingsPages.map((p) => p.id)).toEqual(["overview", "general", "shortcuts", "features", "extensions", "bar", "groups", "about"]);
-    expect(count(html, /role="tab"/g)).toBe(8);
+    expect(settingsPages.map((p) => p.id)).toEqual(["overview", "general", "shortcuts", "features", "extensions", "bar", "groups", "account", "about"]);
+    expect(count(html, /role="tab"/g)).toBe(9);
     expect(count(html, /aria-selected="true"/g)).toBe(1);
     expect(html).toContain('data-nav="extensions" tabindex="0"');
     expect(html).toContain("data-tauri-drag-region");
