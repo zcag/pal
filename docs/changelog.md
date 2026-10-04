@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.1 · 2026-10-04
+
+- **Fixed: a palette opened from the menu bar's popover drew its full-size layout** in the narrow popover. Battery & Power, opened by a click on the battery, showed an empty card with the rest one letter wide; it now stacks the level over the tabs. Displays, the Apple TV, the Samsung TV and Spaces lay out for the popover the same way.
+
 ## 0.12.0 · 2026-10-04
 
 - **Apple TV, from the keyboard** (in the store): the clickpad on the arrows, your apps with their icons on the digits, typing into the TV's search, what is playing with its cover, chapters and a seek bar, links you copy played on the TV, and the remote in the menu bar's popover. Setup finds the Apple TV and takes the code it shows.
