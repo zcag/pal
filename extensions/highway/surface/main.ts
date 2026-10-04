@@ -5,7 +5,7 @@ import * as THREE from "./vendor/three.js";
 import type { SurfaceKit } from "@zcag/pal";
 import { Renderer } from "./render.ts";
 import { World } from "./world.ts";
-import { Run, preloadTraffic } from "./run.ts";
+import { Run, preloadTraffic, warmTraffic } from "./run.ts";
 import { Chase, VIEWS } from "./camera.ts";
 import { Car } from "./car.ts";
 import { Sound } from "./audio.ts";
@@ -27,7 +27,7 @@ const chase = new Chase(r.camera);
 const sound = new Sound();
 let save: Save = fresh();
 let run: Run | null = null;
-let builtFor = "";
+let builtFor = "", warmedFor = ""; // the place the world was built for, and the one its traffic's shaders were made for
 type State = "loading" | "garage" | "run" | "paused" | "over" | "results";
 let state: State = "loading";
 let names = new Map<string, string>(); // model id to its name, for the crash line
@@ -45,7 +45,6 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 // ---------------------------------------------------------------- the road
 
-/** Build the place (once per location and layout) and put a run on it. */
 /** Put a car on the road (building the place first if it changed); `ready` runs once it is placed, before any frame of it is shown. */
 async function road(demo: boolean, ready?: () => void) {
   const loc = LOCATIONS.find((l) => l.id === save.location)!;
@@ -65,6 +64,7 @@ async function road(demo: boolean, ready?: () => void) {
   run = new Run(world, layout, player, car, owned?.upgrades ?? NO_UP, events, loc.density, demo ? "endless" : save.mode);
   if (demo) run.veh.launch((105 / 3.6) * FEEL.pace);
   run.settle();
+  if (warmedFor !== key) { await warmTraffic(world, (sc) => r.warm(sc)); warmedFor = key; }
   chase.reset(run.pose);
   ready?.();
   // lift the sign over a finished picture: the land to the horizon built, every texture on the GPU, a few frames drawn
@@ -684,7 +684,7 @@ async function stage(sc: Scene) {
   veil(true, `Driving to ${loc.name}`);
   await world.build(loc.sky, loc.asphalt, layoutOf(save.mode));
   builtFor = `${loc.id}/${save.mode}`;
-  await preloadTraffic(world, (sc) => r.warm(sc), (f) => (($("loading").querySelector("em") as HTMLElement).style.width = `${Math.round(f * 100)}%`));
+  await preloadTraffic((f) => (($("loading").querySelector("em") as HTMLElement).style.width = `${Math.round(f * 100)}%`));
   chase.view = viewOf(save);
   frame(); // the loop runs behind the sign, so it lifts over a drawn road
   if (scene) await stage(scene);

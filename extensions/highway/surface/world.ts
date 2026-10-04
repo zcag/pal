@@ -36,6 +36,14 @@ export class World {
     this.sun.shadow.bias = -0.0004;
     this.sun.shadow.normalBias = 0.05;
     this.glow = glowTexture();
+    // before each render of the scene, the land's heavy things culled to its view, and to the shadow's box when
+    // it draws the shadow map (Land.cull)
+    this.scene.onBeforeRender = (r, _s, camera) => {
+      if (!this.land) return;
+      const shadow = r.shadowMap.needsUpdate && this.sun.castShadow;
+      if (shadow) this.sun.shadow.updateMatrices(this.sun);
+      this.land.cull(camera, shadow ? this.sun.shadow.getFrustum() : null);
+    };
   }
 
   async build(sky: string, asphaltName: string, layout: Layout) {

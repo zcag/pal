@@ -5,7 +5,8 @@
 // rest of the frame and its sun blooms.
 import * as THREE from "./vendor/three.js";
 import { Finish, ACES } from "./looks.ts";
-import { Reflections, shadowShapes } from "./car.ts";
+import { Reflections } from "./car.ts";
+import { shadowOnly } from "./shadow.ts";
 
 /** hit 0..1 for the flash, dim 0..1 to darken behind a card; speed is not needed (the motion blur sees it). */
 export type Fx = { speed?: number; hit?: number; dim?: number };
@@ -40,11 +41,12 @@ export class Renderer {
     gl.setPixelRatio(Math.min(2, devicePixelRatio));
     gl.shadowMap.enabled = true;
     gl.shadowMap.type = THREE.PCFShadowMap;
-    // the shadow map is drawn once a frame, by the frame's own render (not the reflections'), and the cars
-    // cast their merged shapes (car.ts) into it, which only it sees
+    // the shadow map is drawn once a frame, by the frame's own render (not the reflections'), with what only
+    // it sees (shadow.ts) shown for it
     gl.shadowMap.autoUpdate = false;
     const shadows = gl.shadowMap.render.bind(gl.shadowMap);
-    gl.shadowMap.render = (lights, scene, camera) => { shadowShapes(true); shadows(lights, scene, camera); shadowShapes(false); };
+    const only = (on: boolean) => { for (const o of shadowOnly) o.visible = on; };
+    gl.shadowMap.render = (lights, scene, camera) => { only(true); shadows(lights, scene, camera); only(false); };
     gl.toneMapping = THREE.ACESFilmicToneMapping; // only the exposure is read (looks.ts tone-maps)
     this.finish = new Finish(gl, this.camera);
     addEventListener("resize", () => this.resize());

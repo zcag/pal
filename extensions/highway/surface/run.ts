@@ -25,8 +25,8 @@ async function makeCar(id: string) {
 }
 
 /** Make two of every traffic model before the first run (`progress` 0..1 as they come in), so a
- *  run never stops to load one, and compile their shaders while nobody is driving. */
-export async function preloadTraffic(world: World, warm: (scene: THREE.Scene) => Promise<void>, progress: (f: number) => void) {
+ *  run never stops to load one. */
+export async function preloadTraffic(progress: (f: number) => void) {
   let done = 0;
   await Promise.all(TRAFFIC.map(async (t) => {
     if (sizes.has(t.id)) return;
@@ -35,8 +35,12 @@ export async function preloadTraffic(world: World, warm: (scene: THREE.Scene) =>
     (pool.get(t.id) ?? pool.set(t.id, []).get(t.id)!).push(...cars);
     progress(++done / TRAFFIC.length);
   }));
-  // every car drawn once, lined up in front of the camera: its shaders compile and its
-  // geometry and textures go to the GPU now rather than the first time it drives into view
+}
+
+/** Every traffic car drawn once, lined up in front of the camera, with the run's lights in the scene (a shader
+ *  is made for a set of lights: a night run's headlamps add two): its shaders compile and its geometry and
+ *  textures go to the GPU now, behind the loading sign, rather than the first time it drives into view. */
+export async function warmTraffic(world: World, warm: (scene: THREE.Scene) => Promise<void>) {
   const parked = new THREE.Group();
   let i = 0;
   for (const list of pool.values()) for (const c of list) { lamps(c, true, true); c.root.position.set((i % 8) * 3 - 10.5, 0, -14 - Math.floor(i / 8) * 7); parked.add(c.root); i++; }

@@ -5,6 +5,7 @@
 // the same stretch of road always looks the same and the land, what stands on
 // it and its shading agree without talking to each other.
 import * as THREE from "./vendor/three.js";
+import { shadowOnly } from "./shadow.ts";
 
 export const CHUNK = 120; // m along the road
 const AHEAD = 9, BEHIND = 1;
@@ -97,8 +98,13 @@ export type Part = { geo: THREE.BufferGeometry; mat: THREE.Material };
 type Mode = "near" | "far";
 
 /** A kind of thing on the land: its meshes (and an impostor's for far away), the matrices of every chunk, which
- *  chunks changed, and whether its instances are packed (see flush). */
-type Kind = { meshes: THREE.InstancedMesh[]; far: THREE.InstancedMesh[]; per: number; yOffset: number; mats: Float32Array; counts: Int32Array; dirty: Set<number>; packed: boolean };
+ *  chunks changed, and whether its instances are packed (see flush). A tree's full meshes are culled per render
+ *  (cull): `live` holds the `n` instances they could draw, `casters` are the same parts for the shadow map, and
+ *  `bound` the sphere round one instance. */
+type Kind = {
+  meshes: THREE.InstancedMesh[]; far: THREE.InstancedMesh[]; per: number; yOffset: number; mats: Float32Array; counts: Int32Array; dirty: Set<number>; packed: boolean;
+  live: Float32Array; n: number; casters: THREE.InstancedMesh[]; bound: THREE.Sphere;
+};
 
 export class Land {
   group = new THREE.Group();
@@ -127,17 +133,32 @@ export class Land {
 
   /** Something that can stand on the land: its parts, how many per chunk, and optionally an impostor drawn instead when it's far. */
   addKind(name: string, parts: Part[], per: number, o: { shadow?: boolean; yOffset?: number; far?: Part[]; receive?: boolean } = {}) {
-    const make = (list: Part[]) => list.map(({ geo, mat }) => {
-      const mesh = new THREE.InstancedMesh(geo, mat, per * this.slots.length);
-      mesh.castShadow = o.shadow ?? true; mesh.receiveShadow = o.receive ?? true;
-      mesh.frustumCulled = false;
-      mesh.count = 0;
-      if (mat.userData.depth) mesh.customDepthMaterial = mat.userData.depth;
-      this.group.add(mesh);
-      return mesh;
+    const cap = per * this.slots.length, cast = o.shadow ?? true;
+    const tris = parts.reduce((a, { geo }) => a + (geo.index ?? geo.attributes.position).count / 3, 0), packed = !!o.far || tris > PADDED;
+    // a kind with an impostor (a tree: thousands of triangles, hundreds of them near) is culled; its parts share
+    // one buffer of instances, so a cull sends it once
+    const make = (list: Part[], shared = false) => {
+      const matrices = shared ? new THREE.InstancedBufferAttribute(new Float32Array(cap * 16), 16).setUsage(THREE.DynamicDrawUsage) : null;
+      return list.map(({ geo, mat }) => {
+        const mesh = new THREE.InstancedMesh(geo, mat, cap);
+        if (matrices) mesh.instanceMatrix = matrices;
+        mesh.castShadow = cast; mesh.receiveShadow = o.receive ?? true;
+        mesh.frustumCulled = false;
+        mesh.count = 0;
+        if (mat.userData.depth) mesh.customDepthMaterial = mat.userData.depth;
+        this.group.add(mesh);
+        return mesh;
+      });
+    };
+    const meshes = make(parts, !!o.far), casters = o.far && cast ? make(parts, true) : [];
+    if (casters.length) for (const m of meshes) m.castShadow = false;
+    for (const m of casters) { m.receiveShadow = false; m.visible = false; shadowOnly.add(m); }
+    const box = new THREE.Box3();
+    for (const { geo } of parts) { geo.computeBoundingBox(); box.union(geo.boundingBox!); }
+    this.kinds.set(name, {
+      meshes, far: make(o.far ?? []), per, yOffset: o.yOffset ?? 0, mats: new Float32Array(cap * 16), counts: new Int32Array(this.slots.length), dirty: new Set(), packed,
+      live: new Float32Array(o.far ? cap * 16 : 0), n: 0, casters, bound: box.getBoundingSphere(new THREE.Sphere()),
     });
-    const tris = parts.reduce((a, { geo }) => a + (geo.index ?? geo.attributes.position).count / 3, 0);
-    this.kinds.set(name, { meshes: make(parts), far: make(o.far ?? []), per, yOffset: o.yOffset ?? 0, mats: new Float32Array(per * this.slots.length * 16), counts: new Int32Array(this.slots.length), dirty: new Set(), packed: !!o.far || tris > PADDED });
     for (let i = 0; i < this.slots.length; i++) this.slots[i] = -999; // rebuild with the new kind
   }
 
@@ -212,26 +233,65 @@ export class Land {
       return;
     }
     k.dirty.clear();
-    const fill = (meshes: THREE.InstancedMesh[], want: Mode | null) => {
-      if (!meshes.length) return;
+    const fill = (dst: Float32Array, want: Mode | null) => {
       let n = 0;
-      const dst = meshes[0].instanceMatrix.array as Float32Array;
       for (let s = 0; s < this.slots.length; s++) {
         if (want && (this.near[s] ? "near" : "far") !== want) continue;
         const c = k.counts[s];
         dst.set(k.mats.subarray(s * k.per * 16, (s * k.per + c) * 16), n * 16);
         n += c;
       }
+      return n;
+    };
+    const send = (meshes: THREE.InstancedMesh[], want: Mode | null) => {
+      const n = fill(meshes[0].instanceMatrix.array as Float32Array, want);
       for (const m of meshes) {
-        if (m !== meshes[0]) (m.instanceMatrix.array as Float32Array).set(dst.subarray(0, n * 16));
+        if (m.instanceMatrix !== meshes[0].instanceMatrix) (m.instanceMatrix.array as Float32Array).set((meshes[0].instanceMatrix.array as Float32Array).subarray(0, n * 16));
         m.count = n;
         m.instanceMatrix.clearUpdateRanges();
         m.instanceMatrix.addUpdateRange(0, Math.max(16, n * 16));
         m.instanceMatrix.needsUpdate = true;
       }
     };
-    fill(k.meshes, k.far.length ? "near" : null);
-    fill(k.far, "far");
+    if (!k.far.length) return send(k.meshes, null);
+    k.n = fill(k.live, "near"); // a tree's full meshes take theirs from `live` at each render's cull
+    send(k.far, "far");
+  }
+
+  /** Before each render of the scene (the frame, a reflection's face): a tree's full meshes get the instances
+   *  that `camera` can see, and, when the render draws the shadow map, its casters the ones in the shadow's box. A
+   *  whole tree is ~14,000 triangles, and most of the ~250 near ones are behind, beside or past the view. */
+  cull(camera: THREE.Camera, shadow: THREE.Frustum | null) {
+    this.view.setFromProjectionMatrix(this.vp.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse), camera.coordinateSystem);
+    for (const k of this.kinds.values()) {
+      if (!k.far.length) continue;
+      this.pick(k, k.meshes, this.view);
+      if (shadow && k.casters.length) this.pick(k, k.casters, shadow);
+    }
+  }
+
+  private view = new THREE.Frustum();
+  private vp = new THREE.Matrix4();
+  /** Copy the instances of `k` whose sphere meets `frustum` into the buffer `meshes` share (an instance is turned
+   *  about y and scaled evenly, so its sphere is the kind's, moved and scaled). */
+  private pick(k: Kind, meshes: THREE.InstancedMesh[], frustum: THREE.Frustum) {
+    const src = k.live, dst = meshes[0].instanceMatrix.array as Float32Array, { x: cx, y: cy, z: cz } = k.bound.center, planes = frustum.planes;
+    let n = 0;
+    next: for (let i = 0; i < k.n; i++) {
+      const o = i * 16;
+      const x = src[o] * cx + src[o + 4] * cy + src[o + 8] * cz + src[o + 12];
+      const y = src[o + 1] * cx + src[o + 5] * cy + src[o + 9] * cz + src[o + 13];
+      const z = src[o + 2] * cx + src[o + 6] * cy + src[o + 10] * cz + src[o + 14];
+      const r = -k.bound.radius * Math.hypot(src[o], src[o + 1], src[o + 2]);
+      for (const p of planes) if (p.normal.x * x + p.normal.y * y + p.normal.z * z + p.constant < r) continue next;
+      dst.set(src.subarray(o, o + 16), n * 16);
+      n++;
+    }
+    for (const mesh of meshes) mesh.count = n;
+    const at = meshes[0].instanceMatrix;
+    at.clearUpdateRanges();
+    at.addUpdateRange(0, Math.max(16, n * 16));
+    at.needsUpdate = true;
   }
 
   /** Everything up to the horizon built now (behind the loading sign), not a step a frame. Each update
@@ -239,7 +299,7 @@ export class Land {
    *  it (stale trees and houses on the road for a few frames), so the lot goes up whole at the end. */
   ready(z: number) {
     do this.update(z); while (this.queue.length);
-    for (const k of this.kinds.values()) for (const m of [...k.meshes, ...k.far]) { m.instanceMatrix.clearUpdateRanges(); m.instanceMatrix.needsUpdate = true; }
+    for (const k of this.kinds.values()) for (const m of [...k.meshes, ...k.far]) if (!k.far.length || k.far.includes(m)) { m.instanceMatrix.clearUpdateRanges(); m.instanceMatrix.needsUpdate = true; }
   }
 
   update(z: number) {

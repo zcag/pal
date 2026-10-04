@@ -6,6 +6,7 @@ import * as THREE from "./vendor/three.js";
 import { BufferGeometryUtils } from "./vendor/three.js";
 import { loadGltf } from "./gltf.ts";
 import { floats } from "./env.ts";
+import { shadowOnly } from "./shadow.ts";
 
 export type CarInfo = { id: string; name: string; author: string; license: string; source: string; size: [number, number, number] };
 
@@ -125,7 +126,7 @@ const cars = new Set<Car>();
 /** Real reflections for the car nearest the camera (the hero: in the garage and on the road it is
  *  yours): a 256 px cube of the scene around it, one face every other frame, so its paint and
  *  windows mirror the road, the trees, the other cars and the lamps rather than only the sky photo.
- *  The car itself is hidden while a face is drawn; the shadow map is not redrawn for it. */
+ *  The car itself is hidden while a face is drawn (Car.conceal); the shadow map is not redrawn for it. */
 export class Reflections {
   private target = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType, generateMipmaps: false });
   private cube = new THREE.CubeCamera(0.4, 250, this.target);
@@ -157,10 +158,10 @@ export class Reflections {
     this.cube.updateMatrixWorld();
     if (this.cube.coordinateSystem !== gl.coordinateSystem) { this.cube.coordinateSystem = gl.coordinateSystem; this.cube.updateCoordinateSystem(); }
     const last = gl.getRenderTarget();
-    best.root.visible = false;
+    best.conceal(true);
     gl.setRenderTarget(this.target, this.face);
     gl.render(scene, this.cube.children[this.face] as THREE.Camera);
-    best.root.visible = true;
+    best.conceal(false);
     gl.setRenderTarget(last);
     if (++this.face === 6) { this.face = 0; this.target.texture.needsPMREMUpdate = true; }
   }
@@ -235,14 +236,11 @@ function wheelMaterial(src: THREE.Material, turn: THREE.Matrix4[]) {
 
 /** What a car casts into the sun's shadow map: its parts merged into one shape for the body and one for the
  *  wheels (every car material is double-sided and none is cut out), drawn there in place of ~18 parts and
- *  hidden from every other pass (Renderer.shadows). */
+ *  hidden from every other pass (shadow.ts). */
 const SHAPE = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
 function shape(geos: THREE.BufferGeometry[]) {
   return merge(geos.map((g) => { const p = new THREE.BufferGeometry(); p.setAttribute("position", g.attributes.position); p.setIndex(g.index); return p; }))!;
 }
-
-/** Show the cars' shadow shapes (for the shadow map) or hide them (for everything else). */
-export function shadowShapes(on: boolean) { for (const c of cars) for (const s of c.shapes) s.visible = on; }
 
 /** Car pixels write alpha 0 (opaque parts in the shader, see-through ones by their blending), which
  *  the finishing reads as "a car": no motion blur on it, and none of its colour smeared onto the road. */
@@ -340,7 +338,7 @@ export class Car {
   anchors = { head: [] as THREE.Vector3[], tail: [] as THREE.Vector3[] };
   wheelbase = 2.6;
   track = 1.5;
-  /** What it casts into the shadow map (shadowShapes). */
+  /** What it casts into the shadow map (shadow.ts). */
   shapes: THREE.Mesh[] = [];
   private beams: THREE.Mesh[] = [];
   /** Paint and windows: what mirrors the world (Reflections). */
@@ -464,7 +462,7 @@ export class Car {
 
     // the shadow: the body's shape on the body, the wheels' on the ground
     const body = new THREE.Mesh(cached(info, "shape", () => shape(casts)), SHAPE), wheels = new THREE.Mesh(cached(info, "wheelShape", () => shape(turning.map(([m]) => m.geometry))), SHAPE);
-    for (const s of [body, wheels]) { s.castShadow = shadow; s.visible = false; this.shapes.push(s); }
+    for (const s of [body, wheels]) { s.castShadow = shadow; s.visible = false; this.shapes.push(s); shadowOnly.add(s); }
     model.add(body);
     if (turning.length) this.root.add(wheels);
     this.shadow = shadow;
@@ -515,10 +513,26 @@ export class Car {
     if (lamp === "head") for (const b of this.beams) b.visible = level > 0;
   }
 
+  private hidden: [THREE.Object3D, boolean][] = [];
+  private dimmed: [THREE.Light, number][] = [];
+  /** Out of sight, or back (Reflections draws the world round the car without it). Its lamps' lights stay in the
+   *  scene but dark: the set of lights is part of every shader, so taking them away would make the whole road's
+   *  shaders again for the reflections, one stall per car the first time it is reflected. */
+  conceal(on: boolean) {
+    if (!on) {
+      for (const [o, v] of this.hidden) o.visible = v;
+      for (const [l, i] of this.dimmed) l.intensity = i;
+      this.hidden = []; this.dimmed = [];
+      return;
+    }
+    for (const o of [...this.root.children, ...this.body.children]) if (o !== this.body && !(o as THREE.Light).isLight) { this.hidden.push([o, o.visible]); o.visible = false; }
+    for (const o of this.body.children) if ((o as THREE.Light).isLight) { const l = o as THREE.Light; this.dimmed.push([l, l.intensity]); l.intensity = 0; }
+  }
+
   /** Mirror a cube of the world (Reflections) instead of the sky photo, or the photo again (null). */
   reflect(env: THREE.Texture | null) { for (const m of this.shiny) m.envMap = env; }
 
-  dispose() { this.root.removeFromParent(); cars.delete(this); }
+  dispose() { this.root.removeFromParent(); cars.delete(this); for (const s of this.shapes) shadowOnly.delete(s); }
 }
 
 /** A see-through part seen from both sides is drawn back faces first, then front. Three does that by flipping its
