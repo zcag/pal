@@ -113,6 +113,11 @@ describe("signed in", () => {
     expect(el.querySelector("[aria-label=\"Devices\"]")?.textContent).not.toContain("marko");
   });
 
+  it("names a game whose saves are too big to sync", async () => {
+    await show(props({ ...signedIn, full: ["Typing"] }));
+    expect(el.textContent).toContain("Typing saves more than sync takes (256 KB), so it stays on this Mac until it shrinks.");
+  });
+
   it("a synced extension's keys, an older revision restored", async () => {
     const p = props(signedIn);
     await show(p);

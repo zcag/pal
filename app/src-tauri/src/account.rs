@@ -216,6 +216,8 @@ pub struct AccountView {
     last_synced: Option<u64>,
     /// The loaded extensions that sync their storage: key and title.
     synced: Vec<SyncedExtension>,
+    /// Titles of those whose storage the server refused as too big.
+    full: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -229,7 +231,8 @@ fn view(app: &AppHandle) -> AccountView {
     let profile = a.profile();
     let mut synced: Vec<SyncedExtension> = settings::extensions(app).into_iter().filter(|e| e.manifest["sync"].is_object()).map(|e| SyncedExtension { title: e.manifest["title"].as_str().unwrap_or(&e.key).to_string(), key: e.key }).collect();
     synced.sort_by(|x, y| x.title.cmp(&y.title));
-    AccountView { signed_in: a.signed_in(), email: profile.as_ref().map(|p| p.email.clone()), handle: profile.and_then(|p| p.handle), last_synced: s.last_synced(), synced }
+    let full = s.full().into_iter().map(|k| synced.iter().find(|e| e.key == k).map_or(k, |e| e.title.clone())).collect();
+    AccountView { signed_in: a.signed_in(), email: profile.as_ref().map(|p| p.email.clone()), handle: profile.and_then(|p| p.handle), last_synced: s.last_synced(), synced, full }
 }
 
 #[tauri::command(async)]

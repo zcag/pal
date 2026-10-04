@@ -172,6 +172,10 @@ struct State {
     /// Storage keys written since they last synced, per extension key.
     #[serde(default)]
     dirty: BTreeMap<String, BTreeSet<String>>,
+    /// Spaces the server refused as over their size: kept here, their keys
+    /// still marked, until a write to the extension gives them another try.
+    #[serde(default)]
+    full: BTreeSet<String>,
 }
 
 impl State {
@@ -336,6 +340,12 @@ impl Sync {
         self.local.read().unwrap_or_else(|e| e.into_inner()).clone()
     }
 
+    /// The extensions whose storage the server refused as too big: it stays
+    /// on this machine until it shrinks.
+    pub fn full(&self) -> Vec<String> {
+        lock(&self.state).full.iter().filter_map(|s| s.strip_prefix("ext:").map(String::from)).collect()
+    }
+
     /// Unix seconds of the last exchange that went through.
     pub fn last_synced(&self) -> Option<u64> {
         lock(&self.state).synced
@@ -348,7 +358,8 @@ impl Sync {
             return;
         }
         let mut st = lock(&self.state);
-        if st.dirty.entry(ext.to_string()).or_default().insert(key.to_string()) {
+        let retry = st.full.remove(&space_of(ext));
+        if st.dirty.entry(ext.to_string()).or_default().insert(key.to_string()) || retry {
             self.save(&st);
         }
         lock(&self.timing).changed = Some(now);
@@ -363,7 +374,7 @@ impl Sync {
 
     /// What a tick at `now` should do.
     pub fn due(&self, now: u64) -> Option<Due> {
-        let dirty = !lock(&self.state).dirty.is_empty();
+        let dirty = { let st = lock(&self.state); st.dirty.keys().any(|ext| !st.full.contains(&space_of(ext))) };
         let t = lock(&self.timing);
         if now < t.wait {
             return None;
@@ -444,6 +455,9 @@ impl Sync {
             let mut st = lock(&self.state);
             let mut gone = Vec::new();
             for (ext, keys) in &st.dirty {
+                if st.full.contains(&space_of(ext)) {
+                    continue;
+                }
                 for key in keys {
                     match self.rule(ext, key) {
                         None | Some(Rule::Local) => gone.push((ext.clone(), key.clone())),
@@ -463,31 +477,56 @@ impl Sync {
                     }
                 }
             }
-            let list: Vec<Value> = changes
-                .iter()
-                .map(|(space, key, _, value, rule)| {
-                    let base = st.base(space, key);
-                    let mut c = json!({ "space": space, "key": key, "value": value, "base": base.map_or(0, |b| b.rev), "rule": rule.wire() });
-                    if let (true, Some(b)) = (rule.counts(), base) {
-                        c["base_value"] = b.value.clone();
-                    }
-                    c
+            changes.sort_by(|a, b| a.0.cmp(&b.0));
+            changes
+                .chunk_by(|a, b| a.0 == b.0)
+                .map(|group| {
+                    let list: Vec<Value> = group
+                        .iter()
+                        .map(|(space, key, _, value, rule)| {
+                            let base = st.base(space, key);
+                            let mut c = json!({ "space": space, "key": key, "value": value, "base": base.map_or(0, |b| b.rev), "rule": rule.wire() });
+                            if let (true, Some(b)) = (rule.counts(), base) {
+                                c["base_value"] = b.value.clone();
+                            }
+                            c
+                        })
+                        .collect();
+                    (group[0].0.clone(), json!({ "changes": list }))
                 })
-                .collect();
-            json!({ "changes": list })
+                .collect::<Vec<_>>()
         };
         if changes.is_empty() {
             return Ok(Outcome::default());
         }
-        let answer: Answer = match client.post("/api/sync", &body).and_then(|v| serde_json::from_value(v).map_err(|e| Error::Local(format!("sync: {e}")))) {
-            Ok(a) => a,
-            Err(e) => {
-                // The config is compared again next time; storage keeps its marks.
-                lock(&self.timing).config |= config;
-                return Err(e);
-            }
-        };
-        let flat_after = if flat.is_some() { flatten_file(places.config).ok() } else { None };
+        // One request per space, so a space the server refuses as too big
+        // holds back only itself.
+        let mut out = Outcome::default();
+        for (space, body) in body {
+            let answer: Answer = match client.post("/api/sync", &body).and_then(|v| serde_json::from_value(v).map_err(|e| Error::Local(format!("sync: {e}")))) {
+                Ok(a) => a,
+                Err(Error::Api { status: 413, .. }) if space != CONFIG => {
+                    eprintln!("sync\ttoo big, kept here\t{space}");
+                    let mut st = lock(&self.state);
+                    st.full.insert(space);
+                    self.save(&st);
+                    continue;
+                }
+                Err(e) => {
+                    // The config is compared again next time; storage keeps its marks.
+                    lock(&self.timing).config |= config;
+                    return Err(e);
+                }
+            };
+            let group: Vec<_> = changes.iter().filter(|c| c.0 == space).collect();
+            out.add(self.took(answer, &group, flat.is_some(), places, now));
+        }
+        Ok(out)
+    }
+
+    /// A push's answer for one space: bases moved, merged values stored.
+    fn took(&self, answer: Answer, changes: &[&(String, String, Option<String>, Value, Rule)], config: bool, places: &Places, now: u64) -> Outcome {
+        let flat_after = if config { flatten_file(places.config).ok() } else { None };
         let mut out = Outcome { sent: changes.len(), ..Outcome::default() };
         let mut config_in = Vec::new();
         let mut st = lock(&self.state);
@@ -519,7 +558,7 @@ impl Sync {
         self.save(&st);
         drop(st);
         self.write_config(places.config, config_in, &mut out);
-        Ok(out)
+        out
     }
 
     fn put(&self, storage: &Storage, ext: &str, key: &str, value: &Value, out: &mut Outcome) {
@@ -634,6 +673,8 @@ mod tests {
     struct Fake {
         rev: u64,
         values: BTreeMap<(String, String), (Value, u64)>,
+        /// Spaces answered 413, as the server does over a space's size.
+        full: BTreeSet<String>,
     }
 
     fn merge(rule: &Value, mine: &Value, theirs: &Value, base_value: &Value) -> Value {
@@ -666,6 +707,9 @@ mod tests {
             }
             if r.method == "POST" && r.path == "/api/sync" {
                 let body: Value = serde_json::from_slice(&r.body).unwrap();
+                if body["changes"].as_array().unwrap().iter().any(|c| f.full.contains(c["space"].as_str().unwrap())) {
+                    return Some((413, br#"{"error":"full","message":"too big"}"#.to_vec()));
+                }
                 let mut values = Vec::new();
                 for c in body["changes"].as_array().unwrap() {
                     let k = (c["space"].as_str().unwrap().to_string(), c["key"].as_str().unwrap().to_string());
@@ -733,6 +777,34 @@ mod tests {
         for bad in [json!("max"), json!({ "a": "most" }), json!({ "a": { "fields": { "b": "local" } } }), json!({ "a": { "fields": 1 } }), json!({ "a": 3 })] {
             assert!(Decl::from_manifest(&json!({ "sync": bad })).is_err(), "{bad}");
         }
+    }
+
+    #[test]
+    fn a_space_too_big_stays_here_and_holds_nothing_else_back() {
+        let m = machine("");
+        m.sync.set_on(true);
+        m.sync.declare("big", Decl::from_manifest(&json!({ "sync": { "log": "union" } })).unwrap());
+        let server = Server::start();
+        let fake = serve(&server);
+        fake.lock().unwrap().full.insert("ext:big".into());
+        let client = Client::new(&server.base, Some("t".into()));
+        m.sync.run(Due::Push, &client, &m.places(), 0).unwrap();
+        m.set("best", json!(7), 1_000);
+        m.storage.set("big", "log", json!([1, 2])).unwrap();
+        m.sync.mark("big", "log", 1_000);
+        m.sync.run(Due::Push, &client, &m.places(), 5_000).unwrap();
+        assert_eq!(fake.lock().unwrap().values.get(&("ext:game".into(), "best".into())).map(|v| v.0.clone()), Some(json!(7)), "the other space went through");
+        assert_eq!(m.sync.full(), ["big"]);
+        assert!(lock(&m.sync.state).is_dirty("big", "log"), "kept, still marked");
+        assert_eq!(m.sync.due(60_000), None, "a refused space alone does not keep asking");
+        // It shrank: a write gives it another try.
+        fake.lock().unwrap().full.clear();
+        m.storage.set("big", "log", json!([2])).unwrap();
+        m.sync.mark("big", "log", 70_000);
+        assert!(m.sync.full().is_empty());
+        assert_eq!(m.sync.due(74_000), Some(Due::Push));
+        m.sync.run(Due::Push, &client, &m.places(), 74_000).unwrap();
+        assert!(!lock(&m.sync.state).is_dirty("big", "log"));
     }
 
     #[test]

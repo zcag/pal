@@ -12,6 +12,8 @@ export type AccountState = {
   lastSynced?: number | null;
   /** The loaded extensions that sync their storage. */
   synced: { key: string; title: string }[];
+  /** Titles of those saving more than sync takes: kept on this Mac only. */
+  full?: string[];
 };
 
 /** One device in `GET /api/account` (times unix seconds). */
@@ -194,7 +196,7 @@ function SignedIn(p: SettingsAccountProps) {
           <span className="pal-account__email">{state.email}</span>
         </SettingsRow>
         <Handle value={state.handle} onHandle={p.onHandle} />
-        <SettingsRow anchor="account:sync" label="Sync" description={<>{sync.error ? <span data-error>{sync.error} </span> : null}Settings, installed extensions and the progress of games that sync, merged so nothing is lost. Hotkeys, where the bar draws and folders stay on each Mac.</>}>
+        <SettingsRow anchor="account:sync" label="Sync" description={<>{sync.error ? <span data-error>{sync.error} </span> : null}Settings, installed extensions and the progress of games that sync, merged so nothing is lost. Hotkeys, where the bar draws and folders stay on each Mac.{state.full?.length ? <> <span data-error>{state.full.join(", ")} {state.full.length === 1 ? "saves" : "save"} more than sync takes (256 KB), so {state.full.length === 1 ? "it stays" : "they stay"} on this Mac until {state.full.length === 1 ? "it shrinks" : "they shrink"}.</span></> : null}</>}>
           <span className="pal-about__row">
             <span>{state.lastSynced ? `Last synced ${ago(state.lastSynced, now)}` : "Not synced yet"}</span>
             <button type="button" className="pal-button" data-small disabled={sync.busy !== null} onClick={() => sync.run("sync", p.onSyncNow)}>{sync.busy ? "Syncing…" : "Sync Now"}</button>
