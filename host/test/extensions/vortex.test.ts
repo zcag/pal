@@ -256,7 +256,7 @@ describe("accounts", () => {
     settle(base, "pulse", run(61));
     const synced = JSON.parse(JSON.stringify(base)) as Save;
     const n = daily(new Date(Date.UTC(2026, 9, 4, 9))).n;
-    const a = load(synced), b = load(synced);
+    const a = load(structuredClone(synced)), b = load(structuredClone(synced));
     settle(a, "pulse", { ...run(70), keys: [3, 1] });
     settle(a, "drift", run(30, { grazes: 25 }));
     settle(a, "pulse", run(10), { day: n });
@@ -271,7 +271,7 @@ describe("accounts", () => {
     expect(dailyOf(merged, n)).toEqual({ best: 12, tries: 2 });
     expect(merged.skin).toBe("dart");
     // A later day's daily beats any score of an earlier one.
-    const later = load(synced);
+    const later = load(structuredClone(synced));
     settle(later, "pulse", run(1), { day: n + 1 });
     expect(dailyOf(load(merge(m.sync.save, later, merged, synced)), n + 1)).toEqual({ best: 1, tries: 1 });
   });

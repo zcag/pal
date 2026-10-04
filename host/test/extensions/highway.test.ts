@@ -103,7 +103,7 @@ describe("accounts", () => {
     base.cash = 10000;
     Object.assign(base, gainXp(1, 0, 500));
     const synced = JSON.parse(JSON.stringify(stored(base))) as Save;
-    const a = load(synced), b = load(synced);
+    const a = load(structuredClone(synced)), b = load(structuredClone(synced));
     // a buys a car and upgrades it, earns XP, sets a record
     buyCar(a, CARS[1]); buyUpgrade(a, CARS[1], "speed");
     Object.assign(a, gainXp(a.level, a.xp, 300));

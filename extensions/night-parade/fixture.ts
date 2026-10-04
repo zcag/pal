@@ -21,7 +21,7 @@ function lived(): Save {
     weapons: ["shuriken", "katana", "fire", "thunder", "spirit", "rock", "kunai", "caltrop"], items: ["scroll", "tea", "whetstone", "herbs", "incense", "moon"],
     evolved: ["shuriken"], enemies: { slime: 812, bat: 640, larva: 402, mushroom: 377, snake: 298, tanuki: 210, kappa: 164, mole: 120, lantern: 98, skull: 150, owl: 71, skeleton: 55 }, bosses: { frog: 5, tanuki: 3 },
   };
-  s.best = { kaze: { t: 571, dawn: false, level: 34, kills: 2310 }, tomoe: { t: 318, dawn: false, level: 21, kills: 980 } };
+  s.best = { kaze: { t: 571, dawn: 0, level: 34, kills: 2310 }, tomoe: { t: 318, dawn: 0, level: 21, kills: 980 } };
   s.totals = { nights: 9, dawns: 0, kills: 11240, gold: 3220 };
   return s;
 }
