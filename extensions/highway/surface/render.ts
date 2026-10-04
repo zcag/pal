@@ -55,6 +55,14 @@ export class Renderer {
     this.finish.render(scene, {});
   }
 
+  /** Send every texture in the scene to the GPU now, so nothing draws late the first time it is seen. */
+  upload(scene: THREE.Scene) {
+    scene.traverse((o) => {
+      const m = (o as THREE.Mesh).material;
+      for (const mat of Array.isArray(m) ? m : m ? [m] : []) for (const v of Object.values(mat)) if ((v as THREE.Texture)?.isTexture) this.gl.initTexture(v as THREE.Texture);
+    });
+  }
+
   resize(w = innerWidth, h = innerHeight) {
     this.gl.setSize(w, h, false);
     this.finish.setSize(w, h);

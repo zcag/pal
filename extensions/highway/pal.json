@@ -1,8 +1,8 @@
 {
   "name": "highway",
   "title": "Highway",
-  "description": "Weave through highway traffic at speed: a driving game with real car handling, traffic that drives like traffic, near misses that build combos, and a garage of seventeen cars to buy, paint and upgrade. Five places under photographed skies, from a cloudy countryside to a night run.",
-  "version": "0.1.0",
+  "description": "Weave through highway traffic at speed: pass close for near misses and combos, light the nitro, and earn your way up a garage of seventeen cars with four upgrades each. Driver levels open new modes, places and paints, and three missions always give the next run a goal. Four modes, five places under photographed skies.",
+  "version": "1.0.0",
   "icon": {
     "tile": {
       "svg": "M1.5 15 6.6 1h1.1L4.6 15zM14.5 15 9.4 1H8.3l3.1 14zM7.45 12h1.1v2.6h-1.1zM7.55 7.2h.9v2.2h-.9zM7.65 3.4h.7v1.5h-.7z",
@@ -41,8 +41,13 @@
         "keys": "up, down, left, right"
       },
       {
+        "title": "Light the nitro",
+        "description": "Near misses fill the bar; Space or Shift burns it for speed and double points.",
+        "keys": "space"
+      },
+      {
         "title": "Change the view",
-        "description": "Chase, far, or from the bumper.",
+        "description": "Low behind the car, chase, the classic high angle, bumper, high, tower or long lens.",
         "keys": "c"
       },
       {
@@ -56,16 +61,18 @@
       {
         "title": "In the garage",
         "description": "Up and down pick a line, left and right change it, Enter buys, Space drives.",
-        "keys": "space"
+        "keys": "enter"
       }
     ],
     "features": [
-      "Cars that drive like cars: tyres that grip and slide, weight that shifts under the brakes, an engine with real gears; the body squats, dives and leans",
-      "Traffic with drivers: they keep their distance, brake, signal and change lanes when it's safe, and react when you cut in",
-      "Pass close above 100 km/h for a near miss, graded by the gap you left; near misses within four seconds build a combo",
-      "Endless on four lanes going your way, or Two-Way, where the oncoming side pays three times and touching it ends the run",
-      "Seventeen cars from a city car to a V12, each with engine, handling and brake upgrades and twelve paints",
-      "Five places under photographed skies: Countryside, High Noon, Golden Hour, Grey Day and a Night Run with headlights"
+      "Handling built for feel: the car goes where your thumb says and stops where you let go, leaning and diving on its springs; a better car or a handling upgrade turns quicker and switches direction sooner",
+      "Traffic with drivers: they keep their distance, brake, signal and change lanes when it's safe, placed so a lane is always open",
+      "Pass close above 100 km/h for a near miss, graded by the gap you left; near misses within four seconds build a combo, and threading a gap between two cars pays a bonus",
+      "Nitro: near misses fill it, Space burns it for speed past your top and double points",
+      "Four modes: Endless, Two-Way (the oncoming side pays three times), Time Attack against the clock, and Speed Trap above a rising speed",
+      "Driver levels from 1 to 40 that open modes, places and paint collections, and three missions at a time that grow with you",
+      "Seventeen cars from a city car to a V12, each with engine, handling, brake and nitro upgrades; the end of a run counts its pay up line by line",
+      "Five places under photographed skies, from a cloudy countryside to a night run with headlights; close pal mid-run and it waits where you left it"
     ],
     "screenshots": [
       {
@@ -74,7 +81,7 @@
       },
       {
         "file": "2-garage.png",
-        "caption": "The garage: your car drives the road behind a sign where you choose it, paint it, upgrade it and pick the place"
+        "caption": "The garage: choose, paint and upgrade your car, pick the mode and place; your level, the next unlock and three missions beside it"
       },
       {
         "file": "3-night.png",
@@ -86,7 +93,7 @@
       },
       {
         "file": "5-results.png",
-        "caption": "The end of a run: what you hit and how fast, the score, the near misses and the cash it paid"
+        "caption": "The end of a run: the pay counted up line by line, the XP toward your next level, and how far each mission got"
       }
     ]
   },
@@ -94,11 +101,15 @@
     "highway": {
       "title": "Highway",
       "kind": "view",
-      "description": "A run on the highway. Escape or closing the panel pauses it.",
+      "description": "A run on the highway. Escape or closing the panel pauses it, and it waits there for you.",
       "keys": [
         {
           "keys": "up",
           "title": "Drive (arrows or WASD)"
+        },
+        {
+          "keys": "space",
+          "title": "Light the nitro"
         },
         {
           "keys": "c",
