@@ -44,6 +44,17 @@ export class Renderer {
     this.resize();
   }
 
+  /** Compile every shader the scene needs, as the frame will draw it (into the post chain's buffer,
+   *  where there is no tone map yet: a plain compile builds the on-screen variants instead). */
+  async warm(scene: THREE.Scene) {
+    this.gl.setRenderTarget(this.composer.readBuffer);
+    await this.gl.compileAsync(scene, this.camera);
+    this.camera.position.set(0, 2, 0);
+    this.camera.lookAt(0, 0, -30);
+    this.gl.render(scene, this.camera);
+    this.gl.setRenderTarget(null);
+  }
+
   resize() {
     const w = innerWidth, h = innerHeight;
     this.gl.setSize(w, h, false);

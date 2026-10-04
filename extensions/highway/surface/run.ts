@@ -48,7 +48,7 @@ async function makeCar(id: string) {
 
 /** Make two of every traffic model before the first run (`progress` 0..1 as they come in), so a
  *  run never stops to load one, and compile their shaders while nobody is driving. */
-export async function preloadTraffic(world: World, renderer: THREE.WebGLRenderer, camera: THREE.Camera, progress: (f: number) => void) {
+export async function preloadTraffic(world: World, warm: (scene: THREE.Scene) => Promise<void>, progress: (f: number) => void) {
   glow = world.glow;
   let done = 0;
   await Promise.all(TRAFFIC.map(async (t) => {
@@ -58,10 +58,13 @@ export async function preloadTraffic(world: World, renderer: THREE.WebGLRenderer
     (pool.get(t.id) ?? pool.set(t.id, []).get(t.id)!).push(...cars);
     progress(++done / TRAFFIC.length);
   }));
+  // every car drawn once, lined up in front of the camera: its shaders compile and its
+  // geometry and textures go to the GPU now rather than the first time it drives into view
   const parked = new THREE.Group();
-  for (const list of pool.values()) for (const c of list) { lamps(c, true, true); parked.add(c.root); }
+  let i = 0;
+  for (const list of pool.values()) for (const c of list) { lamps(c, true, true); c.root.position.set((i % 8) * 3 - 10.5, 0, -14 - Math.floor(i / 8) * 7); parked.add(c.root); i++; }
   world.scene.add(parked);
-  await renderer.compileAsync(world.scene, camera);
+  await warm(world.scene);
   world.scene.remove(parked);
   for (const list of pool.values()) for (const c of list) c.root.removeFromParent();
 }

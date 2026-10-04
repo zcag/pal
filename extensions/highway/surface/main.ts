@@ -114,6 +114,14 @@ window.addEventListener("keydown", (e: KeyboardEvent) => {
   if (!e.repeat) onKey(k);
   keys.add(k);
 });
+// the key hints are buttons too, and a garage line is picked by clicking it
+document.addEventListener("click", (e) => {
+  const el = e.target as HTMLElement;
+  const key = el.closest<HTMLElement>("[data-key]")?.dataset.key;
+  if (key) { sound.start(); onKey(key); return; }
+  const at = el.closest<HTMLElement>("[data-row]")?.dataset.row;
+  if (at && state === "garage") { row = +at; drawGarage(); }
+});
 window.addEventListener("keyup", (e: KeyboardEvent) => keys.delete(e.key.toLowerCase()));
 window.addEventListener("blur", () => keys.clear());
 
@@ -173,7 +181,7 @@ function drawGarage() {
   const loc = LOCATIONS.find((l) => l.id === save.location)!;
   const mode = MODES.find((m) => m.id === save.mode)!;
   const best = save.best[save.mode];
-  const sel = (k: string) => (ROWS[row] === k ? " on" : "");
+  const sel = (k: string) => `${ROWS[row] === k ? " on" : ""}" data-row="${ROWS.indexOf(k as (typeof ROWS)[number])}`;
   const upRow = (k: keyof Upgrades, label: string) => {
     const lv = up[k], max = lv >= UPGRADE_MAX;
     const price = !owned ? "" : max ? "<em>Full</em>" : tag(upgradeCost(car, lv));
@@ -204,7 +212,7 @@ function drawGarage() {
       </div>
       <div class="drive">
         <div><div class="go">${owned ? "Drive" : "Buy it to drive"}</div><div class="best">${best ? `Best ${best.score.toLocaleString("en-US")} in ${(best.distance / 1000).toFixed(1)} km` : mode.about}</div></div>
-        <div class="keys"><kbd>space</kbd> drive<br><kbd>enter</kbd> buy</div>
+        <div class="keys"><button data-key=" "><kbd>space</kbd> drive</button><br><button data-key="enter"><kbd>enter</kbd> buy</button></div>
       </div>
     </div>`;
 }
@@ -277,7 +285,7 @@ function pause() {
   state = "paused";
   sound.suspend();
   card(`<h2>Paused</h2><div class="why">${run ? `${Math.round(run.score.points).toLocaleString("en-US")} points so far` : ""}</div>
-    <div class="keys" style="margin-top:12px"><span><kbd>enter</kbd> carry on</span><span><kbd>q</kbd> give up the run</span></div>`);
+    <div class="keys" style="margin-top:12px"><button data-key="enter"><kbd>enter</kbd> carry on</button><button data-key="q"><kbd>q</kbd> give up the run</button></div>`);
 }
 function resume() { state = "run"; $("card").hidden = true; sound.start(); last = performance.now(); }
 function giveUp() { if (run) { crashInfo = null; results(); } }
@@ -304,7 +312,7 @@ function results() {
       <dt>Top speed</dt><dd>${Math.round(kmh(s.topSpeed))} ${unit()}</dd>
       <dt class="total">Earned</dt><dd class="total">${money(cash)}</dd>
     </dl>
-    <div class="keys"><span><kbd>enter</kbd> drive again</span><span><kbd>g</kbd> garage</span></div>`);
+    <div class="keys"><button data-key="enter"><kbd>enter</kbd> drive again</button><button data-key="g"><kbd>g</kbd> garage</button></div>`);
   sound.play("cash", { gain: 0.6 });
 }
 
@@ -382,10 +390,14 @@ function frame() {
   t += dt;
   acc += dt;
   const inp = state === "garage" ? autopilot() : state === "run" || state === "over" ? (scene ? autopilot(scene.speed ?? 170) : input()) : { throttle: 0, brake: 0.2, steer: 0 };
+  const t0 = performance.now();
   while (acc >= STEP) { run.step(STEP, inp); acc -= STEP; }
+  const t1 = performance.now();
   run.draw(dt, acc / STEP);
   const v = run.veh, pose = run.pose;
+  const t2 = performance.now();
   world.follow(pose.x, pose.z);
+  const t3 = performance.now();
   if (state === "garage") {
     // a car-advert orbit around your car as it drives
     const a = t * 0.1 + 2.4, d = 7.6;
@@ -402,6 +414,8 @@ function frame() {
   if (state === "run") hud();
   flash = Math.max(0, flash - dt * 1.6);
   r.render(world.scene, { speed: state === "garage" ? 0 : Math.max(0, (v.u - 30) / 45), hit: flash, dim: state === "results" ? 0.3 : 0 });
+  // ?perf: a frame over 20 ms says where its time went
+  if (q.has("perf")) { const t4 = performance.now(); if (t4 - t0 > 20) console.warn(`slow frame, ${r.gl.info.programs?.length} shaders, ${(t4 - t0).toFixed(1)}ms: step ${(t1 - t0).toFixed(1)} draw ${(t2 - t1).toFixed(1)} world ${(t3 - t2).toFixed(1)} render ${(t4 - t3).toFixed(1)}`); }
 }
 
 // ---------------------------------------------------------------- boot
@@ -458,7 +472,7 @@ async function stage(sc: Scene) {
   veil(true, `Driving to ${loc.name}`);
   await world.build(loc.sky, loc.asphalt, layoutOf(save.mode));
   builtFor = `${loc.id}/${save.mode}`;
-  await preloadTraffic(world, r.gl, r.camera, (f) => (($("loading").querySelector("em") as HTMLElement).style.width = `${Math.round(f * 100)}%`));
+  await preloadTraffic(world, (sc) => r.warm(sc), (f) => (($("loading").querySelector("em") as HTMLElement).style.width = `${Math.round(f * 100)}%`));
   chase.view = save.settings.camera;
   if (scene) await stage(scene);
   else if (q.has("drive")) await drive();

@@ -108,3 +108,8 @@ kbd { display: inline-block; min-width: 18px; padding: 1px 5px 0; border-radius:
 #card .total dt, #card .total dd { color: var(--yellow); font-weight: 800; font-size: 15px; }
 #card .record { margin-top: 2px; }
 #card .keys { display: flex; gap: 14px; margin-top: 4px; }
+
+/* key hints you can also click */
+button[data-key] { font: inherit; color: inherit; background: none; border: 0; padding: 2px 4px; margin: -2px -4px; border-radius: 6px; cursor: pointer; }
+button[data-key]:hover { background: rgba(255, 255, 255, 0.12); }
+.row { cursor: pointer; }
