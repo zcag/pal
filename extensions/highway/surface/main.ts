@@ -34,6 +34,8 @@ let names = new Map<string, string>(); // model id to its name, for the crash li
 
 let scene: Scene | null = null;
 let trial = false; // ?test: everything open, nothing saved
+/** The saved view's place in VIEWS; the first if it is gone. */
+const viewOf = (s: Save) => Math.max(0, VIEWS.findIndex((v) => v.name === s.settings.view));
 const persist = () => { if (!scene && !trial) pal.storage.set("save", save).catch((e: unknown) => console.error("highway: save", e)); };
 const layoutOf = (mode: string) => (MODES.find((m) => m.id === mode)?.twoWay ? TWO_WAY : ONE_WAY);
 const money = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
@@ -153,7 +155,7 @@ function onKey(k: string) {
   if (k === "m") { muted = !muted; sound.setVolume(muted ? 0 : save.settings.sound); return; }
   if (state === "garage") { garageKey(k); return; }
   if (state === "run") {
-    if (k === "c") { chase.view = (chase.view + 1) % VIEWS.length; save.settings.camera = chase.view; persist(); hint(`${VIEWS[chase.view].name} view`); }
+    if (k === "c") { chase.view = (chase.view + 1) % VIEWS.length; save.settings.view = VIEWS[chase.view].name; persist(); hint(`${VIEWS[chase.view].name} view`); }
     if (k === "p" || k === "enter") pause();
     return;
   }
@@ -313,7 +315,7 @@ async function drive() {
   ended = null;
   done.clear();
   await road(false);
-  chase.view = save.settings.camera;
+  chase.view = viewOf(save);
   if (q.has("launch")) { run!.veh.launch((+q.get("launch")! / 3.6) * FEEL.pace); run!.settle(); } // ?launch=<km/h>: start a run at a speed, for trying the feel
   chase.reset(run!.pose);
   sound.setEngine(car.engine);
@@ -644,7 +646,7 @@ async function stage(sc: Scene) {
   await world.build(loc.sky, loc.asphalt, layoutOf(save.mode));
   builtFor = `${loc.id}/${save.mode}`;
   await preloadTraffic(world, (sc) => r.warm(sc), (f) => (($("loading").querySelector("em") as HTMLElement).style.width = `${Math.round(f * 100)}%`));
-  chase.view = save.settings.camera;
+  chase.view = viewOf(save);
   if (scene) await stage(scene);
   else if (kept) await carryOn(kept);
   else if (q.has("drive")) await drive();

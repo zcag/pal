@@ -20,7 +20,7 @@ export type Save = {
   day: string; // the last day a run paid the day's double (YYYY-MM-DD)
   best: Record<string, Best>; // by mode
   totals: { runs: number; distance: number; misses: number; cash: number };
-  settings: { camera: number; music: number; sound: number; units: "kmh" | "mph" };
+  settings: { view: string; music: number; sound: number; units: "kmh" | "mph" };
 };
 
 /** A staged moment for the store's pictures (the fixture stores it as "scene"): nothing is saved while one plays. */
@@ -35,7 +35,7 @@ export function fresh(): Save {
     owned: { [first.id]: { upgrades: { ...NO_UP }, paint: first.paint, paints: [first.paint] } },
     location: LOCATIONS[0].id, mode: "endless", level: 1, xp: 0, missions: [], day: "",
     best: {}, totals: { runs: 0, distance: 0, misses: 0, cash: 0 },
-    settings: { camera: 0, music: 0.6, sound: 1, units: "kmh" },
+    settings: { view: "Low", music: 0.6, sound: 1, units: "kmh" },
   };
 }
 
@@ -55,7 +55,12 @@ export function load(raw: unknown): Save {
   if (r.mode && modes(s).some((m) => m.id === r.mode)) s.mode = r.mode;
   if (r.best) s.best = r.best;
   if (r.totals) s.totals = { ...s.totals, ...r.totals };
-  if (r.settings) s.settings = { ...s.settings, ...r.settings };
+  if (r.settings) {
+    const { camera, ...rest } = r.settings as Save["settings"] & { camera?: number };
+    s.settings = { ...s.settings, ...rest };
+    // the view was once kept by its place in this list
+    if (typeof camera === "number" && !rest.view) s.settings.view = ["Chase", "Classic", "Low", "Bumper", "High", "Tower", "Long lens"][camera] ?? "Low";
+  }
   return s;
 }
 
