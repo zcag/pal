@@ -7,6 +7,8 @@ import { BOARDS, MEDALS_TOTAL, Player, daily, dailyOpen, fresh, ghostOf, ghostSt
 const TAU = Math.PI * 2;
 const wall = (a0: number, a1: number, r: number, len: number) => ({ id: 0, a0, a1, r, len });
 const ticks = (s: State, n: number, dir: -1 | 0 | 1 = 0) => { for (let i = 0; i < n && !s.dead; i++) step(s, { dir }); };
+/** The bot plans 120 times a second: well inside a second here, several on CI's slow macOS runner (its budget is 8 s a test). */
+const HEAVY = 7000;
 const run = (t: number, more: Partial<{ grazes: number; focused: boolean }> = {}) => ({ t, grazes: 0, focused: false, ...more });
 
 test("a wall covers its side's angles across its band, and only there", () => {
@@ -120,7 +122,7 @@ for (const key of BOARDS) {
     const hyper = key.endsWith("+"), stage = key.replace("+", "") as State["stage"]["id"];
     const s = play(create({ stage, hyper, seed: chartSeed(stage, hyper) }), CLEAR + 1);
     expect(s.dead).toBe(false);
-  });
+  }, HEAVY);
 }
 
 test("near misses: skimming a wall's edge as it passes counts once, keeping clear does not", () => {
@@ -171,7 +173,7 @@ test("keys record run-length and play back tick for tick: a ghost runs exactly a
   expect(back.length).toBe(trace.length);
   const p = new Player([2, 2, 1, 4]);
   expect([p.next(), p.next(), p.next()]).toEqual([{ dir: 1, focus: false }, { dir: 1, focus: false }, { dir: 0, focus: true }]);
-});
+}, HEAVY);
 
 test("a stage opens when the one before is cleared, its hyper when it is; endless and the daily with the first clear", () => {
   const s = fresh();
