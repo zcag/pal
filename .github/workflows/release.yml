@@ -4,11 +4,12 @@
 # latest release, only once every bundle is on it; docs/releasing.md has the
 # rest. `make release VERSION=x.y.z` bumps the versions, commits,
 # tags and pushes; the guard below refuses a tag that does not match
-# tauri.conf.json. `extensions` (extensions.yml) then publishes every
-# extension built at the tag to the registry's edge and stable indexes. The
-# `manifest` job checks that latest.json carries all three platforms (the
-# three jobs merge into one file in parallel) and that stable lists every
-# bundled extension's build, and publishes.
+# tauri.conf.json. `extensions` (extensions.yml) first publishes every
+# extension built at the tag to the registry's edge and stable indexes; the
+# bundles then take each bundled extension's stable build
+# (build-extensions.sh). The `manifest` job checks that latest.json carries
+# all three platforms (the three jobs merge into one file in parallel) and
+# that stable lists every bundled extension's build, and publishes.
 #
 # A push to main that changes the dependencies runs the same build without
 # bundling or releasing (`warm`): it saves the Rust cache, and a tag run can
@@ -31,7 +32,41 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # Every extension built at the tag goes to edge and then to stable
+  # (extensions.yml) before anything is bundled, so the bundles take those
+  # builds and the registry never offers one older than the app has. Only
+  # the `registry` environment's secrets reach it: nothing is passed, so the
+  # updater key stays in this workflow. extensions.yml dispatched, not
+  # called: a called workflow does not get the `registry` environment's
+  # secrets (v0.8.0's sign job had no key), a dispatched run does. This job
+  # waits for it.
+  extensions:
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: publish the tag's extensions (extensions.yml)
+        run: |
+          before=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          gh workflow run extensions.yml --ref main -f ref="$GITHUB_SHA" -f promote=all -f release=true
+          for _ in $(seq 36); do
+            id=$(gh run list --workflow extensions.yml --event workflow_dispatch --limit 5 --json databaseId,createdAt -q "[.[] | select(.createdAt >= \"$before\")][-1].databaseId")
+            [ -n "$id" ] && break
+            sleep 5
+          done
+          [ -n "$id" ] || { echo "::error::the dispatched extensions.yml run did not appear"; exit 1; }
+          echo "extensions.yml run: https://github.com/$GH_REPO/actions/runs/$id"
+          gh run watch "$id" --exit-status --interval 20 > /dev/null
+
   bundle:
+    needs: extensions
+    # A push to main skips `extensions` and still warms the cache.
+    if: ${{ !cancelled() && (github.ref_type != 'tag' || needs.extensions.result == 'success') }}
     permissions:
       contents: write
     strategy:
@@ -115,15 +150,15 @@ jobs:
         if: runner.os == 'macOS'
         run: command -v cmake || brew install cmake
 
-      # build-extensions.sh (beforeBuildCommand) bundles each extension with
-      # bun, so their dependencies must be installed.
       - name: Install JS dependencies
         run: |
           (cd app && npm ci)
           bun install --frozen-lockfile
-          for d in extensions/*/; do
-            if [ -f "$d/package.json" ]; then (cd "$d" && bun install --frozen-lockfile); fi
-          done
+      # build-extensions.sh (beforeBuildCommand) takes the bundled extensions'
+      # stable builds from the registry and checks them with minisign.
+      - name: minisign
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then sudo apt-get install -y -qq --no-install-recommends minisign; else brew install minisign; fi
 
       # The updater signature is optional: without the secret the build still
       # ships, only the `.tar.gz`/`.sig` pair and latest.json are left out
@@ -214,38 +249,6 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
 
-  # Every extension built at the tag goes to edge and then to stable
-  # (extensions.yml), so the registry never offers a build older than the
-  # one the app bundles. Only the `registry` environment's secrets reach it:
-  # nothing is passed, so the updater key stays in this workflow.
-  # extensions.yml dispatched, not called: a called workflow does not get
-  # the `registry` environment's secrets (v0.8.0's sign job had no key),
-  # a dispatched run does. It builds the tag into edge and promotes exactly
-  # those builds to stable; this job waits for it.
-  extensions:
-    needs: bundle
-    if: github.ref_type == 'tag'
-    runs-on: ubuntu-24.04
-    permissions:
-      actions: write
-      contents: read
-    env:
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
-    steps:
-      - name: publish the tag's extensions (extensions.yml)
-        run: |
-          before=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          gh workflow run extensions.yml --ref main -f ref="$GITHUB_SHA" -f promote=all -f release=true
-          for _ in $(seq 36); do
-            id=$(gh run list --workflow extensions.yml --event workflow_dispatch --limit 5 --json databaseId,createdAt -q "[.[] | select(.createdAt >= \"$before\")][-1].databaseId")
-            [ -n "$id" ] && break
-            sleep 5
-          done
-          [ -n "$id" ] || { echo "::error::the dispatched extensions.yml run did not appear"; exit 1; }
-          echo "extensions.yml run: https://github.com/$GH_REPO/actions/runs/$id"
-          gh run watch "$id" --exit-status --interval 20 > /dev/null
-
   # The three jobs each download latest.json from the draft, add their
   # platform and upload it again (tauri-action's upload-version-json.ts),
   # so two finishing at once can drop a platform. This reads the merged
@@ -281,8 +284,9 @@ jobs:
           v=$(jq -r .version latest.json)
           [ "v$v" = "$TAG" ] || { echo "::error::latest.json says version $v, tag is $TAG"; fail=1; }
           exit "${fail:-0}"
-      # Every bundled extension's hash is a build stable lists, not yanked:
-      # an app compares its bundled copy with the registry by hash, so a
+      # Every bundled extension's hash is a build stable lists, not yanked
+      # (build-extensions.sh takes them from stable, so this holds by
+      # construction; it stays as the check): an app compares its bundled copy with the registry by hash, so a
       # bundle the registry lacks would offer an "update" to what it already
       # runs, or hide a real one. The hash, not the commit: a tree that did
       # not change since the last promotion keeps the build (and commit) it

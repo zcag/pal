@@ -4,6 +4,7 @@
 import { statSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { buildAll, promote, writeIndex, writeStatements } from "../pack/pack.ts";
+import { treeHash } from "../pack/treehash.ts";
 
 const USAGE = `pal-pack build <dir>... [--out dist] [--cwd <root>] [--seq N] [--commit SHA] [--screenshots-base URL] [--dir-only]
     each extension directory into <out>/<name>/, <out>/<name>.tar.gz and <out>/<name>.entry.json;
@@ -13,7 +14,9 @@ pal-pack statements <dist>
 pal-pack index <dist> --name <registry> --base <url> --out <dir> [--merge index.json] [--yank name@hash]... [--keep a,b] [--key KEY] [--next-key KEY]
     <out>/index.json and <out>/pkg/<name>/<hash>.{tar.gz,json} from the signed entries
 pal-pack promote --from <index.json> --to <index.json> --out <index.json> [--names a,b] [--yank name@hash]...
-    the newest good build of each (or each named) extension in --from added to --to`;
+    the newest good build of each (or each named) extension in --from added to --to
+pal-pack tree-hash <dir>...
+    each package directory's tree hash (pal-tree-v1), one a line`;
 
 const list = (v: string | undefined) => v?.split(",").map((s) => s.trim()).filter(Boolean);
 
@@ -61,6 +64,10 @@ async function main(argv: string[]) {
       console.log(`${v.out}: ${i.extensions.length} extensions, ${i.extensions.reduce((n, e) => n + e.builds.length, 0)} builds`);
       return;
     }
+    case "tree-hash":
+      if (!pos.length) throw new Error(`tree-hash: a package directory\n\n${USAGE}`);
+      for (const p of pos) console.log(await treeHash(p));
+      return;
     default:
       throw new Error(`unknown command ${cmd}\n\n${USAGE}`);
   }

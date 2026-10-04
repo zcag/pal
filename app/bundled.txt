@@ -1,10 +1,12 @@
-# The extensions built into the app (app/scripts/build-extensions.sh), one
+# The extensions built into the app (app/scripts/build-extensions.sh takes
+# each one's stable build from our registry), one
 # name per line, sorted; `#` starts a comment. The rest reach a machine
 # from our registry: installed from a search, the Games shelf, the Store or
 # Settings (docs/design/distribution.md, "What is bundled": the day-one set
 # that needs no account or setup, and what the core's features rely on).
-# Every name here must be a directory under extensions/; every other
-# extension is in registry-only.txt (a test checks both).
+# Every name here is an extension in zcag/pal-extensions; every other
+# extension of pal's is in its repo's registry-only.txt (host/test/pack.test.ts
+# checks both).
 apps
 audio
 bluetooth

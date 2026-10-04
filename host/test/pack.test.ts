@@ -135,6 +135,8 @@ describe("build", () => {
     expect(r.stdout.toString()).toBe(`thing\t${json(join(x, "thing.entry.json")).build.hash}\t7\t${PROTOCOL}\n`);
     expect(json(join(d, "thing", ".pal-build.json"))).toEqual({ hash: json(join(x, "thing.entry.json")).build.hash, seq: 7, protocol: PROTOCOL, commit: "c0" });
     expect(existsSync(join(d, "thing.tar.gz")) || existsSync(join(d, "thing.entry.json"))).toBe(false);
+    // tree-hash: what build-extensions.sh checks an unpacked registry package with.
+    expect(run(dir, "tree-hash", join(d, "thing")).stdout.toString()).toBe(`${json(join(x, "thing.entry.json")).build.hash}\n`);
     source(dir, "broken");
     writeFileSync(join(dir, "broken", "index.ts"), "export default {{{");
     const bad = run(dir, "build", "broken", "--out", join(dir, "bad"), "--cwd", dir, "--seq", "7");
