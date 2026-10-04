@@ -170,6 +170,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Turkish](#turkish-turkish) | `turkish` | input, normal | Paste the converted text (over the selection it came from) |
 | [Typing](#typing-typing) | `typing` | view (surface), normal | A new test (Tab) |
 | [Unicode Characters](#unicode-characters-unicode) | `unicode` | indexed, grid, catalog | Copy character |
+| [Vortex](#vortex-vortex) | `vortex` | view (surface), normal | Play, or play again (in the page, Space) |
 | [Chats](#whatsapp-whatsapp-chats-whatsapp-unread-whatsapp-search-whatsapp-contacts-whatsappunread) | `whatsapp-chats` | live, primary | Open the chat (a group opens WhatsApp at the top) |
 | [Unread](#whatsapp-whatsapp-chats-whatsapp-unread-whatsapp-search-whatsapp-contacts-whatsappunread) | `whatsapp-unread` | live, normal | Open the chat |
 | [Search WhatsApp](#whatsapp-whatsapp-chats-whatsapp-unread-whatsapp-search-whatsapp-contacts-whatsappunread) | `whatsapp-search` | input, normal | Open the chat |
@@ -3384,6 +3385,27 @@ room and tightens as it grows, never past where a card's rank shows.
 draw = "1"                    # or "3"
 clock = true                  # false hides the running time while you play; also T
 ```
+
+## Vortex (`vortex`)
+
+Turn round the centre and slip through the gaps as walls close in on the
+beat, in the manner of Super Hexagon. Enter on the palette's row opens it as
+a view level whose body is the extension's own page (a `surface`), drawn in
+WebGL2 with its own synthesised music. The design, and why each part is
+there, is [`extensions/vortex/DESIGN.md`](../extensions/vortex/DESIGN.md).
+
+- `←` `→` (or `A` `D`) turn; Shift turns slowly. Turning into a wall's side
+  stops you against it; a wall reaching you ends the run.
+- Ranks at 10, 20, 30, 45 and 60 seconds; a minute clears a stage and opens
+  the next and the stage's hyper. Six stages, each with its own song,
+  colours, camera and patterns; the walls land on the song's beat.
+- On the stages, `←` `→` choose, `↑` picks a cleared stage's hyper, `space`
+  plays; the last card is the daily (the same walls for everyone all day,
+  open once Pulse is cleared). After a death, `space` is the next run and
+  Backspace the stages; `M` turns the sound off.
+- Escape (or closing pal) pauses a run; `space` carries on. Each board's
+  best, tries and time persist in the extension's storage. One setting,
+  `volume`.
 
 ## Yahtzee (`yahtzee`)
 

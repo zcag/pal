@@ -1,0 +1,132 @@
+{
+  "name": "vortex",
+  "title": "Vortex",
+  "description": "Turn around the centre and slip through the gaps as walls close in on the beat. Six stages, each with its own song, colours and tricks, and a hyper version of each; ranks every few seconds up to the minute that clears a stage, a daily run with the same walls for everyone, and a retry one key away.",
+  "version": "1.0.0",
+  "icon": {
+    "tile": {
+      "svg": "M15 8l-3.5 6.06h-7L1 8l3.5-6.06h7zM12.4 8l-2.2-3.8H5.8L3.6 8l2.2 3.8h4.4zM8 5.6l2.2 3.9H5.8z",
+      "bg": "blue"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "keywords": [
+    "hexagon",
+    "rhythm",
+    "arcade",
+    "reflex"
+  ],
+  "settings": [
+    {
+      "id": "volume",
+      "label": "Volume",
+      "kind": "number",
+      "description": "How loud the music and the sounds are; M in the game turns them off.",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "slider": true,
+      "default": 80
+    }
+  ],
+  "store": {
+    "tagline": "Slip through the closing walls, on the beat",
+    "category": "fun",
+    "play": true,
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "actions": [
+      {
+        "title": "Turn",
+        "description": "Round the centre, either way; A and D too. Hold Shift to turn slowly for a fine line.",
+        "keys": "left, right"
+      },
+      {
+        "title": "Play, or play again",
+        "description": "After a death the next run is one key away.",
+        "keys": "space"
+      },
+      {
+        "title": "Choose a stage",
+        "description": "Left and right on the stages; up for a stage's hyper once you've cleared it.",
+        "keys": "left, right, up"
+      },
+      {
+        "title": "Back to the stages",
+        "keys": "backspace"
+      },
+      {
+        "title": "Sound on or off",
+        "keys": "m"
+      }
+    ],
+    "features": [
+      "Walls close in on the centre with one way through; turn to the gap before they reach you, while the world spins, reverses and changes shape",
+      "Six stages, Pulse to Singularity, each with its own song, colours, camera and patterns: spirals, tunnels you have to go all the way round, rails, mirrors and whirlwinds",
+      "Music made as you play, and the walls land on its beat; the song builds a layer at every rank",
+      "Ranks every few seconds, Point to Hexagon: a minute clears a stage, opens the next one and the stage's hyper, faster and in other colours",
+      "Every pattern is spaced for the turn it asks of you, so a death is always yours to fix; the next run is one key away",
+      "A daily run: the same walls for everyone all day, your best kept for the day"
+    ],
+    "screenshots": [
+      {
+        "file": "1-pulse.png",
+        "caption": "Pulse, 27 seconds in: past Triangle, a run of gaps to read while the world turns"
+      },
+      {
+        "file": "2-prism.png",
+        "caption": "Prism at Square: the centre changes shape between patterns and the colours never sit still"
+      },
+      {
+        "file": "3-undertow.png",
+        "caption": "Undertow's steep camera and half-time song, the moment a record falls: the time turns gold"
+      },
+      {
+        "file": "4-singularity.png",
+        "caption": "Singularity in hyper: the last stage, faster, in its other colours"
+      },
+      {
+        "file": "5-over.png",
+        "caption": "A death: the walls roll back, and the card says how close the record and the next rank were; Space is the next run"
+      },
+      {
+        "file": "6-title.png",
+        "caption": "The stages, each playing itself behind its card: your best, its rank and your tries"
+      }
+    ]
+  },
+  "palettes": {
+    "vortex": {
+      "title": "Vortex",
+      "kind": "view",
+      "description": "Turn round the centre through the closing walls. Escape or closing the panel pauses a run.",
+      "keys": [
+        {
+          "keys": "left",
+          "title": "Turn (arrows or A and D; Shift turns slowly)"
+        },
+        {
+          "keys": "space",
+          "title": "Play, or play again"
+        },
+        {
+          "keys": "up",
+          "title": "Hyper, on the stages"
+        },
+        {
+          "keys": "backspace",
+          "title": "Back to the stages"
+        },
+        {
+          "keys": "m",
+          "title": "Sound on or off"
+        }
+      ]
+    }
+  }
+}

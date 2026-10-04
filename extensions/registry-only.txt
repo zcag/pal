@@ -50,6 +50,7 @@ theater
 translate
 turkish
 typing
+vortex
 weather
 whatsapp
 wordle
