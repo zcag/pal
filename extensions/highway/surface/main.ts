@@ -9,7 +9,7 @@ import { Run, preloadTraffic } from "./run.ts";
 import { Chase, VIEWS } from "./camera.ts";
 import { Car } from "./car.ts";
 import { Sound } from "./audio.ts";
-import { ONE_WAY, TWO_WAY, laneX } from "./road.ts";
+import { ONE_WAY, TWO_WAY, laneX } from "../game/layout.ts";
 import { CARS, LOCATIONS, MODES, PAINTS, PAINT_PRICE, UPGRADE_MAX, FEEL, upgradeCost, stats, type Upgrades } from "../game/content.ts";
 import { load, fresh, carOf, buyCar, buyUpgrade, paint, buyLocation, finish, type Save, type Scene } from "../game/meta.ts";
 import type { Miss } from "../game/score.ts";

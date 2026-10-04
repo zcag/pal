@@ -3,7 +3,8 @@
 // follows the player along the road (everything streams or snaps ahead).
 import * as THREE from "./vendor/three.js";
 import { applySky, surface, worldUV, prop, type Sky, type Part } from "./env.ts";
-import { Road, edges, type Layout } from "./road.ts";
+import { Road } from "./road.ts";
+import { edges, type Layout } from "../game/layout.ts";
 import { Land, CHUNK, SEG, zoneAt, forestEdge, bridgeNear, hash, fbm, type Put } from "./terrain.ts";
 import { bake, fuller, grassClump } from "./foliage.ts";
 import { overpass, barrierPanel, lampPool, halo, signFace } from "./structures.ts";
