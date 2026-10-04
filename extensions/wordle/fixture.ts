@@ -13,7 +13,9 @@ pinClock();
 /** The strip's day: puzzle #259. */
 const TODAY = dayOf(new Date(NOW));
 const stats = { played: 41, won: 38, streak: 12, best: 19, dist: [1, 6, 14, 11, 5, 1], lastDay: TODAY - 1 };
-const mid: State = { game: { answer: "crane", guesses: ["slate", "trace", "brace"], day: TODAY, hard: false, input: "cr", status: "play" }, stats };
+/** The twelve dailies before today, won: the streak the stats show. */
+const days = { won: Array.from({ length: 12 }, (_, i) => TODAY - 12 + i), lost: [] };
+const mid: State = { game: { answer: "crane", guesses: ["slate", "trace", "brace"], day: TODAY, hard: false, input: "cr", status: "play" }, stats, days };
 const typed: State = { ...mid, game: { ...mid.game, input: "crane" } };
 const bad = apply({ ...mid, game: { ...mid.game, input: "crxne" } }, "submit", DEFAULTS, TODAY);
 const solved = apply(typed, "submit", DEFAULTS, TODAY);

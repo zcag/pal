@@ -28,7 +28,7 @@ const PRAISE = ["Genius", "Magnificent", "Impressive", "Splendid", "Great", "Phe
 /** The puzzle's name: `Daily #260` or `Practice`. */
 export const nameOf = (st: State): string => (st.game.day !== null ? `Daily #${st.game.day + 1}` : "Practice");
 
-function moves(st: State, s: Settings, today: number): Action[] {
+function moves(st: State, s: Settings, today: number, signIn: boolean): Action[] {
   const newTitle = nextIsDaily(st, s, today) ? "Today's puzzle" : "Practice game";
   const playing = st.game.status === "play";
   const of: Record<Move, Action> = {
@@ -39,7 +39,7 @@ function moves(st: State, s: Settings, today: number): Action[] {
     new: { id: "new", title: newTitle, shortcut: playing ? "cmd+n" : "n" },
     ...(Object.fromEntries(LETTERS.map((l) => [l, { id: l, title: `Type ${l.toUpperCase()}`, shortcut: l, hidden: true }])) as Record<Letter, Action>),
   };
-  return legal(st, s).map((m) => of[m]);
+  return [...legal(st, s).map((m) => of[m]), ...(signIn ? [{ id: "signin", title: "Sign in to keep your scores", shortcut: "s" }] : [])];
 }
 
 /** One board tile: keyed by its place and content, entering per what changed; a gone one leaves at once. */
@@ -83,7 +83,8 @@ function statsBlock(st: State): ViewNode {
   );
 }
 
-export function render(st: State, s: Settings, today = dayOf()): View {
+/** `signIn`: the player is signed out and the daily is over, so the result offers to sign in and keep the scores. */
+export function render(st: State, s: Settings, today = dayOf(), signIn = false): View {
   const g = st.game;
   const nextWord = nextIsDaily(st, s, today) ? "today's puzzle" : "practice";
   const board = column(
@@ -123,7 +124,7 @@ export function render(st: State, s: Settings, today = dayOf()): View {
   }
   const keysLine = g.status === "play"
     ? row([...hint(["enter"], "submit"), ...hint(["backspace"], "delete"), ...(canNew(st, s) ? hint(["cmd+n"], nextWord) : [])], { key: "play-keys", gap: 1 })
-    : row([...hint(["c"], "copy result"), ...(canNew(st, s) ? hint(["n"], nextWord) : [])], { key: "done-keys", gap: 1, transition: { enter: "fade" } });
+    : row([...hint(["c"], "copy result"), ...(canNew(st, s) ? hint(["n"], nextWord) : []), ...(signIn ? hint(["s"], "sign in") : [])], { key: "done-keys", gap: 1, transition: { enter: "fade" } });
 
   const side = column(
     [
@@ -138,5 +139,5 @@ export function render(st: State, s: Settings, today = dayOf()): View {
   );
 
   const tree = row([board, side], { key: "table", padding: 4, gap: 5, grow: true, align: "stretch" });
-  return { tree, actions: moves(st, s, today), title, keys: "actions" };
+  return { tree, actions: moves(st, s, today, signIn && g.status !== "play"), title, keys: "actions" };
 }
