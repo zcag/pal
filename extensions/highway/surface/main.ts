@@ -65,8 +65,14 @@ async function road(demo: boolean) {
   if (demo) run.veh.launch((105 / 3.6) * FEEL.pace);
   run.settle();
   chase.reset(run.pose);
+  // lift the sign over a finished picture: the land to the horizon built, every texture on the GPU, a few frames drawn
+  world.land.ready(run.veh.z);
+  r.upload(world.scene);
+  await frames(3);
   veil(false);
 }
+/** `n` frames drawn, or 700 ms, whichever comes first (a page drawn in software, or not shown, draws slowly or not at all). */
+const frames = (n: number) => new Promise<void>((done) => { const tick = () => (--n <= 0 ? done() : requestAnimationFrame(tick)); requestAnimationFrame(tick); setTimeout(done, 700); });
 
 // what the run tells us
 let flash = 0, slowmo = 0;
@@ -499,7 +505,8 @@ let acc = 0, last = performance.now(), t = 0, lastGear = 1;
 
 /** The garage's car drives itself: the lane with the most room, steered smoothly into. */
 let autoLane = 1;
-function autopilot(target = 108): Input {
+/** The garage's driver, and a staged scene's (`bold`: it holds its speed, changes lanes sooner and never brakes; nothing touches in a scene). */
+function autopilot(target = 108, bold = false): Input {
   const rn = run!, v = rn.veh, L = rn.layout;
   // seconds until it would reach the car ahead in a lane (Infinity when the lane is clear), or -1 when
   // a car is alongside in it, which rules that lane out
@@ -515,13 +522,13 @@ function autopilot(target = 108): Input {
     return t;
   };
   const here = ttc(autoLane);
-  if (here < 3) for (const l of [autoLane - 1, autoLane + 1]) if (l >= 0 && l < L.lanes && ttc(l) > Math.max(here, ttc(autoLane)) + 0.5) autoLane = l;
+  if (here < (bold ? 4.5 : 3)) for (const l of [autoLane - 1, autoLane + 1]) if (l >= 0 && l < L.lanes && ttc(l) > Math.max(here, ttc(autoLane)) + 0.5) autoLane = l;
   // the key sets how fast the car crosses: a sideways speed that shrinks as the lane's centre comes
   // near, so it moves over decisively and settles instead of weaving
   const dx = laneX(L, autoLane) - v.x;
   const across = 5.5 * FEEL.pace + 0.07 * v.u; // what full steering gives at this speed (game/vehicle.ts)
   const steer = THREE.MathUtils.clamp(THREE.MathUtils.clamp(dx * 2.2, -9, 9) / across, -1, 1);
-  const boxed = ttc(autoLane) < 1.3;
+  const boxed = !bold && ttc(autoLane) < 1.3;
   return { throttle: !boxed && v.kmh / FEEL.pace < target ? 1 : 0, brake: boxed ? 1 : 0, steer };
 }
 
@@ -535,7 +542,7 @@ function frame() {
   if (slowmo > 0) { slowmo -= dt; dt *= 0.25; if (slowmo <= 0 && state === "over") results(); }
   t += dt;
   acc += dt;
-  const inp = state === "garage" ? autopilot() : state === "run" || state === "over" ? (scene ? autopilot(scene.speed ?? 170) : input()) : { throttle: 0, brake: 0.2, steer: 0 };
+  const inp = state === "garage" ? autopilot() : state === "run" || state === "over" ? (scene ? autopilot(scene.speed ?? 170, true) : input()) : { throttle: 0, brake: 0.2, steer: 0 };
   const t0 = performance.now();
   while (acc >= STEP) { run.step(STEP, inp); acc -= STEP; }
   const t1 = performance.now();
@@ -570,10 +577,23 @@ pal.onAction((id: string) => {
   if (id === "pause") { if (state === "run") pause(); else if (state === "paused") resume(); }
   if (id === "mute") onKey("m");
   if (id === "give-up" && (state === "run" || state === "paused")) giveUp();
+  if (id === "start-over" && state !== "loading") startOver();
 });
 pal.onHidden(() => { if (state === "run") pause(); sound.suspend(); keepRun(); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) keepRun(); });
 addEventListener("pagehide", keepRun);
+
+/** A fresh save, keeping the settings, and back to the garage. */
+async function startOver() {
+  if (trial || scene) return;
+  const settings = save.settings;
+  save = fresh();
+  save.settings = settings;
+  ended = null; crashInfo = null; done.clear();
+  pal.storage.set("run", null).catch(() => undefined);
+  await garage(); // it deals the missions and saves
+  hint("Started over");
+}
 
 /** A run being driven is kept in storage while the page is hidden, so closing pal (which may drop the page) loses nothing. */
 type Kept = Packed & { location: string; done: number[] };
@@ -596,6 +616,9 @@ async function carryOn(k: Kept) {
 pal.onShown(() => { if (state !== "paused") sound.start(); last = performance.now(); });
 pal.onSettings((s: Record<string, unknown>) => { if (typeof s.volume === "number") { save.settings.sound = s.volume / 100; sound.setVolume(muted ? 0 : save.settings.sound); } });
 
+// `?dev`: the page's state on window.hw, so a headless check can look inside
+if (q.has("dev")) Object.assign(window, { hw: { get run() { return run; }, get save() { return save; }, get state() { return state; } } });
+
 /** Play a staged scene: set the place and car, then the garage, a run already going, or its end. */
 async function stage(sc: Scene) {
   if (sc.location) save.location = sc.location;
@@ -611,8 +634,9 @@ async function stage(sc: Scene) {
   await drive();
   // the run, played forward by the driver, then shown live
   run!.veh.launch(((sc.speed ?? 170) / 3.6) * 0.9 * FEEL.pace);
-  run!.director.time = 160; // a few minutes in: the traffic is up to strength
-  for (let i = 0; i < (sc.warm ?? 6) * 120; i++) { run!.step(1 / 120, autopilot(sc.speed ?? 170)); if (i % 60 === 0) run!.draw(1 / 2); }
+  run!.director.time = 50; // a minute in: busy, with the gaps a driver at speed threads
+  run!.drive.ghost = true; // played forward and on while the picture is taken: no crash may end it
+  for (let i = 0; i < (sc.warm ?? 6) * 120; i++) { run!.step(1 / 120, autopilot(sc.speed ?? 170, true)); if (i % 60 === 0) run!.draw(1 / 2); }
   run!.settle();
   chase.reset(run!.pose);
   if (sc.show === "results") { crashInfo = sc.crash ?? null; results(); }
@@ -647,9 +671,9 @@ async function stage(sc: Scene) {
   builtFor = `${loc.id}/${save.mode}`;
   await preloadTraffic(world, (sc) => r.warm(sc), (f) => (($("loading").querySelector("em") as HTMLElement).style.width = `${Math.round(f * 100)}%`));
   chase.view = viewOf(save);
+  frame(); // the loop runs behind the sign, so it lifts over a drawn road
   if (scene) await stage(scene);
   else if (kept) await carryOn(kept);
   else if (q.has("drive")) await drive();
   else await garage();
-  frame();
 })();

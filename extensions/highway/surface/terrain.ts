@@ -230,6 +230,11 @@ export class Land {
     fill(k.far, "far");
   }
 
+  /** Everything up to the horizon built now (behind the loading sign), not a step a frame. */
+  ready(z: number) {
+    do this.update(z); while (this.queue.length);
+  }
+
   update(z: number) {
     const first = Math.floor(z / CHUNK) - BEHIND;
     for (let c = first; c < first + this.slots.length; c++) {

@@ -57,7 +57,9 @@ async function press(page, step) {
 /** 256 colours unless the shot or SHOTS_RAW keeps true colour (shot-quant.py, pngquant; a quarter of the size). */
 const quant = (path, raw) => (process.env.SHOTS_RAW || raw ? true : spawnSync("python3", [join(here, "shot-quant.py"), path]).status === 0);
 
-const browser = await chromium.launch({ headless: true, args: ["--force-color-profile=srgb", "--hide-scrollbars"] });
+// The GPU, where there is one (Metal on a Mac; ignored elsewhere): in software a WebGL page
+// like highway's takes over a minute to load and seconds a frame, and its shots time out.
+const browser = await chromium.launch({ headless: true, args: ["--force-color-profile=srgb", "--hide-scrollbars", "--use-angle=metal", "--enable-gpu", "--ignore-gpu-blocklist"] });
 let failed = 0;
 
 async function shoot({ url, viewport, scale, theme, keys, settle, path, raw, box }) {

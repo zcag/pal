@@ -45,6 +45,7 @@ export class Drive {
   over = false;
   scraping = 0;
   ended: End | null = null;
+  ghost = false; // nothing touches: a staged scene for the store's pictures
   // nitro: a bar near misses fill, burnt while it lasts
   nitro = 0; boosting = false; private wanted = false;
   // Time Attack: the clock and the next checkpoint (m on the dial); Speed Trap: the floor and time under it
@@ -183,8 +184,8 @@ export class Drive {
       }
     }
 
-    // contact
-    for (const n of this.traffic.cars) {
+    // contact (none for a staged run, which plays on while a picture is taken)
+    if (!this.ghost) for (const n of this.traffic.cars) {
       const nyaw = n.hit ? n.hit.yaw : n.oncoming ? Math.PI : 0;
       const c = collide({ x: v.x, z: v.z, yaw: v.yaw, w: this.size.x * 0.96, l: this.size.z * 0.98 }, { x: n.x, z: n.z, yaw: nyaw, w: n.width * 0.96, l: n.length * 0.98 });
       if (!c) continue;
