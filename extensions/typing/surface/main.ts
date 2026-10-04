@@ -3,7 +3,9 @@
 // into those calls, draws the words and the caret, keeps the clock, and
 // saves the options and the records in the extension's storage (the options
 // under "config", which the extension reads for the view's actions and
-// title; it is told with `{ moved: true }`).
+// title; it is told with `{ moved: true }`). Both sync to the player's
+// account, and what sync brings in is taken while no test runs; a plain time
+// or words test's speed goes to its leaderboard.
 //
 // Drawing is incremental: every word is an element made once, and a key
 // redraws only the word it touched. The caret is one element moved by a
@@ -15,7 +17,7 @@
 // drops it too (the clock cannot be fair to a test nobody sees).
 import type { SurfaceKit } from "@zcag/pal";
 import {
-  COUNTS, MODES, TIMES, backspace, configOf, endZen, optionsOf, paceAt, paceWpm, settingOf, configure, file, input, label, missed, modeKey, newRun, recent, recordsOf, refill, result, titleOf, typeChar, typeSpace,
+  COUNTS, MODES, TIMES, backspace, boardOf, configOf, endZen, optionsOf, paceAt, paceWpm, settingOf, configure, file, input, label, missed, modeKey, newRun, recent, recordsOf, refill, result, storedRecords, titleOf, typeChar, typeSpace,
   type Config, type Options, type Records, type Result, type Run,
 } from "../typing.ts";
 import { Chart } from "./chart.ts";
@@ -48,6 +50,10 @@ let viewing = false;
 /** When the result showed: keys still in flight from the test are dropped for a moment, so a stray R or Tab does not skip it. */
 let shownAt = 0;
 const GRACE_MS = 700;
+/** The test on screen is the last one's words again (R): it goes to no leaderboard. */
+let repeated = false;
+/** Whether the player is signed in, asked when a result shows; until known, no offer to sign in. */
+let signedIn = true;
 
 // ---- the words ---------------------------------------------------------------------------------------------
 
@@ -104,6 +110,7 @@ function place() {
 /** A fresh test: new words, or `words` again (the result's R). */
 function fresh(words?: string[]) {
   clearTimeout(timer);
+  repeated = !!words;
   run = newRun(cfg, Math.random, words, opts.stop);
   pace = paceWpm(records, modeKey(cfg), opts.pace);
   phase = "idle";
@@ -175,11 +182,25 @@ function finish(ms: number) {
   const res = result(run, ms);
   const filed = file(records, res);
   records = filed.records;
-  if (!res.invalid) void pal.storage.set("records", records).catch((e) => console.error("typing: save", e));
+  if (!res.invalid) void pal.storage.set("records", storedRecords(records)).catch((e) => console.error("typing: save", e));
   last = res;
   shownAt = performance.now();
   showResult(res, filed.best, filed.prev);
+  post(res, filed.best);
 }
+
+/** A counted plain test to its board; once it answers, where it stands joins the note under the speed. */
+function post(res: Result, best: boolean) {
+  const board = boardOf(cfg);
+  if (res.invalid || repeated || !board) return;
+  void pal.account().then((a) => { signedIn = a.signedIn; }, () => {});
+  pal.score(board, res.wpm).then((r) => {
+    if (last !== res || !r.rank || !r.total) return;
+    const keep = !signedIn && best ? `<br><a class="signin">sign in to keep your scores</a>` : "";
+    $("#r-note").insertAdjacentHTML("beforeend", `${$("#r-note").textContent ? " · " : ""}#${r.rank} of ${r.total}${keep}`);
+  }).catch((e) => console.error("typing: score", e));
+}
+document.addEventListener("click", (e) => { if ((e.target as HTMLElement).closest(".signin")) void pal.signIn().catch(() => {}); });
 
 // ---- keys --------------------------------------------------------------------------------------------------
 
@@ -415,6 +436,21 @@ function applyOptions(s: unknown) {
   showOptions();
 }
 pal.onSettings((s) => { applyOptions(s); void pal.send({ moved: true }).catch(() => {}); });
+
+// What sync brought from another machine: the records merged with this one's (kept, so the next test files onto
+// them), and the options chosen there (taken only between tests, never under one).
+pal.storage.onChange((k, v) => {
+  if (k === "records") {
+    records = recordsOf(v);
+    if (phase === "idle") pace = paceWpm(records, modeKey(cfg), opts.pace);
+    if (viewing) stats.show(records, cfg);
+  } else if (k === "config" && phase === "idle" && !viewing) {
+    cfg = configOf(v);
+    pal.title(titleOf(cfg));
+    fresh();
+    void pal.send({ moved: true }).catch(() => {});
+  }
+});
 
 [cfg, records, opts] = await Promise.all([pal.storage.get("config").then(configOf), pal.storage.get("records").then(recordsOf), pal.settings().then(optionsOf)]);
 fresh();
