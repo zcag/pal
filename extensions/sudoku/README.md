@@ -55,6 +55,25 @@ loses nothing.
 - **Browse** (⌘O): every half-done game and a calendar of dailies per
   difficulty. **Stats** (⌘S): best and average time, the streak, a
   chart, the history, per difficulty.
+- **Leaderboards**: a solve without a hint, the first time that puzzle
+  is solved, goes on the difficulty's board of fastest times and, for a
+  daily, on that day's puzzle's own board (`Daily medium, 2026-10-04`).
+  The Games shelf shows them.
+
+## What is kept where
+
+`progress.json` in pal's data directory (`store.ts`) holds this
+machine's games as they stand, the puzzles, and the log of every solve:
+the history and the chart read it. It never leaves the machine.
+
+Signed in to a pal account, the record follows you to every machine:
+per difficulty the number solved (clean and flawless too), the clean
+solves' total time (for the average), the fastest, and the dailies solved
+on their day (the streak). They are kept in the extension's storage in
+shapes that merge, so two machines that both played add up rather than
+one replacing the other (`sync` in `pal.json`: sums, the smaller best,
+the days of both). The first time this version runs, the machine's own
+log is added to what the account already has, once.
 
 Files: `sudoku.ts` (solver, generator, grader), `game.ts` (moves, marks,
 the saved form, the hint), `stats.ts`, `store.ts`, `index.ts` (the
