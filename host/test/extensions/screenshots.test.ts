@@ -156,6 +156,8 @@ describe("screenshots", () => {
     await host.advance(HIDE_SETTLE_MS);
     await host.until(() => captures().length === 2, 3000, "the delayed capture");
     expect(captures()[1]).toMatch(/^-i -W -T 3 -x /);
+    // Its HUD before the next capture: on a busy runner it otherwise landed after the clipboard's.
+    await host.until(() => huds.length === 2, 3000, "the delayed capture's HUD");
     expect(await pick("capture:screen", "capture-other")).toEqual({ hide: true });
     await host.advance(HIDE_SETTLE_MS);
     await host.until(() => huds.length === 3, 3000, "the clipboard HUD");
