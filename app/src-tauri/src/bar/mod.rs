@@ -1048,10 +1048,12 @@ pub fn sync_all(app: &AppHandle) {
 /// (Re)arm the poll for `key` from its manifest and its last `refresh`.
 fn schedule(app: &AppHandle, key: &str) {
     let config = settings::config(app);
+    // Asked before the table is locked: `renders` reads the entry itself (`on_strip`), and the lock is not reentrant (a deadlock at startup once glance-only items came).
+    let live = renders(app, &config, key);
     let next = Bar::with(app, |e| {
         let entry = e.get_mut(key)?;
         entry.timer_gen += 1;
-        if entry.fixture || !renders(app, &config, key) {
+        if entry.fixture || !live {
             return None;
         }
         let every = entry.manifest.refresh.as_ref().and_then(|r| r.every);
