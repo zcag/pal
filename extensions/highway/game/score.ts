@@ -75,7 +75,7 @@ export class Score {
     if (double) { base += 2500; this.doubles++; }
     if (this.boosting) base *= 2;
     this.lastMiss = this.time;
-    this.missCash += grade.cash * (oncoming ? 2 : 1);
+    this.missCash += grade.cash; // the oncoming side pays in points (×3), not cash: it would out-earn everything else
     const points = Math.round(base);
     this.points += points;
     return { points, grade, combo: n, oncoming, double };
@@ -88,7 +88,7 @@ export class Score {
     const lines: PayLine[] = [
       { label: "Distance", amount: Math.round((this.distance / 1000) * 120) },
       { label: "Near misses", amount: Math.round(this.missCash) },
-      { label: `Best combo ×${this.bestCombo}`, amount: this.bestCombo >= 3 ? 12 * this.bestCombo * this.bestCombo : 0 },
+      { label: `Best combo ×${this.bestCombo}`, amount: this.bestCombo >= 3 ? 30 * this.bestCombo : 0 },
       { label: "Gaps threaded", amount: this.doubles * 150 },
       { label: "Above 150 km/h", amount: Math.round(this.fastTime * 2) },
       { label: "Oncoming lane", amount: Math.round(this.oncomingTime * 6) },

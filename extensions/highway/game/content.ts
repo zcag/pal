@@ -29,38 +29,38 @@ export type PlayerCar = {
 /** The ladder: each about a third dearer than the last, each a bit quicker or sharper. */
 export const CARS: PlayerCar[] = [
   { id: "compact-07", name: "Compact '07", price: 0, top: 158, mass: 880, grip: 1.25, agility: 0.96, brake: 0.9, engine: "sedan", paint: "#e8e6e0" },
-  { id: "kiri-10", name: "Kiri '10", price: 6000, top: 176, mass: 1150, grip: 1.28, agility: 0.99, brake: 0.92, engine: "sedan", paint: "#2a5caa" },
-  { id: "milano-95", name: "Milano '95", price: 12000, top: 192, mass: 980, grip: 1.30, agility: 1.08, brake: 0.95, engine: "sport", paint: "#c81d25" },
-  { id: "tozzo-98", name: "Tozzo '98", price: 20000, top: 204, mass: 1260, grip: 1.30, agility: 1.05, brake: 0.95, engine: "sport", paint: "#d8d8d8" },
-  { id: "sigil-07", name: "Sigil '07", price: 30000, top: 214, mass: 1300, grip: 1.32, agility: 1.08, brake: 0.98, engine: "sport", paint: "#13161c" },
-  { id: "tiara-gt-83", name: "Tiara GT '83", price: 42000, top: 212, mass: 1050, grip: 1.33, agility: 1.18, brake: 0.98, engine: "sport", paint: "#f2f0ea" },
-  { id: "asti-stradale-89", name: "Asti Stradale '89", price: 58000, top: 224, mass: 1200, grip: 1.38, agility: 1.24, brake: 1.0, engine: "sport", paint: "#b3121b" },
-  { id: "thunderbolt-96", name: "Thunderbolt '96", price: 78000, top: 238, mass: 1320, grip: 1.40, agility: 1.27, brake: 1.02, engine: "sport", paint: "#1b3f8f" },
-  { id: "jdm-sport-99", name: "JDM Sport '99", price: 105000, top: 252, mass: 1480, grip: 1.40, agility: 1.24, brake: 1.03, engine: "sport", paint: "#3c4652" },
-  { id: "exterminator-00", name: "Exterminator '00", price: 140000, top: 256, mass: 1550, grip: 1.35, agility: 1.15, brake: 1.0, engine: "sport", paint: "#e2b310" },
-  { id: "phoenix-455-71", name: "Phoenix 455 '71", price: 180000, top: 250, mass: 1620, grip: 1.30, agility: 1.08, brake: 0.96, engine: "sport", paint: "#0f0f12", extraLife: true },
-  { id: "stinger-96", name: "Stinger '96", price: 230000, top: 266, mass: 1400, grip: 1.42, agility: 1.30, brake: 1.05, engine: "sport", paint: "#d6421a" },
-  { id: "hazer-turbo-81", name: "Hazer Turbo '81", price: 290000, top: 262, mass: 1230, grip: 1.38, agility: 1.27, brake: 1.02, engine: "sport", paint: "#b9bcc0" },
-  { id: "libeccio-v6-91", name: "Libeccio V6 '91", price: 360000, top: 272, mass: 1250, grip: 1.44, agility: 1.33, brake: 1.06, engine: "sport", paint: "#1d6b43" },
-  { id: "roadster-00", name: "Roadster '00", price: 440000, top: 276, mass: 980, grip: 1.46, agility: 1.43, brake: 1.08, engine: "sport", paint: "#f0c419" },
-  { id: "cheetah-84", name: "Cheetah '84", price: 540000, top: 292, mass: 1500, grip: 1.45, agility: 1.33, brake: 1.08, engine: "sport", paint: "#c0111d" },
-  { id: "saba-v12-95", name: "Saba V12 '95", price: 680000, top: 322, mass: 1450, grip: 1.50, agility: 1.40, brake: 1.12, engine: "sport", paint: "#e85d04" },
+  { id: "kiri-10", name: "Kiri '10", price: 2500, top: 176, mass: 1150, grip: 1.28, agility: 0.99, brake: 0.92, engine: "sedan", paint: "#2a5caa" },
+  { id: "milano-95", name: "Milano '95", price: 5000, top: 192, mass: 980, grip: 1.30, agility: 1.08, brake: 0.95, engine: "sport", paint: "#c81d25" },
+  { id: "tozzo-98", name: "Tozzo '98", price: 7500, top: 204, mass: 1260, grip: 1.30, agility: 1.05, brake: 0.95, engine: "sport", paint: "#d8d8d8" },
+  { id: "sigil-07", name: "Sigil '07", price: 10000, top: 214, mass: 1300, grip: 1.32, agility: 1.08, brake: 0.98, engine: "sport", paint: "#13161c" },
+  { id: "tiara-gt-83", name: "Tiara GT '83", price: 12500, top: 212, mass: 1050, grip: 1.33, agility: 1.18, brake: 0.98, engine: "sport", paint: "#f2f0ea" },
+  { id: "asti-stradale-89", name: "Asti Stradale '89", price: 15000, top: 224, mass: 1200, grip: 1.38, agility: 1.24, brake: 1.0, engine: "sport", paint: "#b3121b" },
+  { id: "thunderbolt-96", name: "Thunderbolt '96", price: 18000, top: 238, mass: 1320, grip: 1.40, agility: 1.27, brake: 1.02, engine: "sport", paint: "#1b3f8f" },
+  { id: "jdm-sport-99", name: "JDM Sport '99", price: 21500, top: 252, mass: 1480, grip: 1.40, agility: 1.24, brake: 1.03, engine: "sport", paint: "#3c4652" },
+  { id: "exterminator-00", name: "Exterminator '00", price: 25500, top: 256, mass: 1550, grip: 1.35, agility: 1.15, brake: 1.0, engine: "sport", paint: "#e2b310" },
+  { id: "phoenix-455-71", name: "Phoenix 455 '71", price: 30000, top: 250, mass: 1620, grip: 1.30, agility: 1.08, brake: 0.96, engine: "sport", paint: "#0f0f12", extraLife: true },
+  { id: "stinger-96", name: "Stinger '96", price: 35000, top: 266, mass: 1400, grip: 1.42, agility: 1.30, brake: 1.05, engine: "sport", paint: "#d6421a" },
+  { id: "hazer-turbo-81", name: "Hazer Turbo '81", price: 41000, top: 262, mass: 1230, grip: 1.38, agility: 1.27, brake: 1.02, engine: "sport", paint: "#b9bcc0" },
+  { id: "libeccio-v6-91", name: "Libeccio V6 '91", price: 48000, top: 272, mass: 1250, grip: 1.44, agility: 1.33, brake: 1.06, engine: "sport", paint: "#1d6b43" },
+  { id: "roadster-00", name: "Roadster '00", price: 56000, top: 276, mass: 980, grip: 1.46, agility: 1.43, brake: 1.08, engine: "sport", paint: "#f0c419" },
+  { id: "cheetah-84", name: "Cheetah '84", price: 65000, top: 292, mass: 1500, grip: 1.45, agility: 1.33, brake: 1.08, engine: "sport", paint: "#c0111d" },
+  { id: "saba-v12-95", name: "Saba V12 '95", price: 76000, top: 322, mass: 1450, grip: 1.50, agility: 1.40, brake: 1.12, engine: "sport", paint: "#e85d04" },
 ];
 
 /** Paints in collections: the first is open from the start, the others open with driver levels (game/progress.ts). */
 export const PAINT_SETS: { id: string; name: string; colors: string[]; price: number }[] = [
-  { id: "basic", name: "Solid", colors: ["#e8e6e0", "#13161c", "#9aa0a6", "#c81d25", "#d6421a", "#e2b310", "#1d6b43", "#2a5caa", "#1b3f8f", "#5a2a82", "#b9bcc0", "#7a1424"], price: 1500 },
-  { id: "metallic", name: "Metallic", colors: ["#b8bcc4", "#3d4a5c", "#8c1c13", "#0d5c63", "#c5a15a", "#4a2c6b"], price: 4000 },
-  { id: "matte", name: "Matte", colors: ["#2b2d2f", "#5c6b4a", "#6e6a62", "#3b4f6b"], price: 6000 },
-  { id: "deep", name: "Deep", colors: ["#0b1d3a", "#1a3b2a", "#3a0d12", "#ff6a00"], price: 9000 },
+  { id: "basic", name: "Solid", colors: ["#e8e6e0", "#13161c", "#9aa0a6", "#c81d25", "#d6421a", "#e2b310", "#1d6b43", "#2a5caa", "#1b3f8f", "#5a2a82", "#b9bcc0", "#7a1424"], price: 800 },
+  { id: "metallic", name: "Metallic", colors: ["#b8bcc4", "#3d4a5c", "#8c1c13", "#0d5c63", "#c5a15a", "#4a2c6b"], price: 2000 },
+  { id: "matte", name: "Matte", colors: ["#2b2d2f", "#5c6b4a", "#6e6a62", "#3b4f6b"], price: 3500 },
+  { id: "deep", name: "Deep", colors: ["#0b1d3a", "#1a3b2a", "#3a0d12", "#ff6a00"], price: 5000 },
 ];
 export const PAINTS = PAINT_SETS.flatMap((p) => p.colors);
 export const paintSet = (color: string) => PAINT_SETS.find((p) => p.colors.includes(color)) ?? PAINT_SETS[0];
 
 export type Upgrades = { speed: number; handling: number; brakes: number; nitro: number }; // 0..5 each
 export const UPGRADE_MAX = 5;
-/** What a level of an upgrade costs: doubling, from a twentieth of the car's price (as the original). */
-export const upgradeCost = (car: PlayerCar, level: number) => Math.round(Math.max(800, car.price / 20) * 2 ** level / 50) * 50;
+/** What a level of an upgrade costs: 6% of the car's price (at least 200), half again each level; tuned by scripts/economy.ts. */
+export const upgradeCost = (car: PlayerCar, level: number) => Math.round((Math.max(200, car.price * 0.06) * 1.5 ** level) / 50) * 50;
 
 const G = 9.81, RHO = 1.2, CDA = 0.62, CRR = 0.012, EFF = 0.88;
 

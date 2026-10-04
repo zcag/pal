@@ -12,8 +12,8 @@ import { laneX, oncomingX, LANE_W } from "./layout.ts";
 export type Skill = {
   name: string;
   react: number; // s: the traffic it acts on is this old (then guessed forward at constant speed)
-  look: number; // s to reach a car before it starts looking for a way round
-  brakeAt: number; // s to reach a car, with nowhere to go, at which it brakes
+  look: number; // s of slack (time before it must brake for a car) under which it looks for a way round
+  brakeAt: number; // s of slack, with no lane offering more, at which it brakes
   speed: number; // target, as a share of the car's top speed
   gap: number; // m it aims to leave passing a car alongside (Infinity: keeps to the lane's middle)
   aim: number; // m: spread of where that pass actually lands
@@ -27,14 +27,14 @@ export type Skill = {
 
 /** Four players. "new" keeps to the lanes' middles, slowly, and crashes in a few minutes; "ace" lives on the paint. */
 export const SKILLS: Record<string, Skill> = {
-  new: { name: "new", react: 0.5, look: 2.4, brakeAt: 1.0, speed: 0.75, gap: Infinity, aim: 0.4, wander: 0.35, lapse: 2.0, lapseFor: 1.1, oncoming: 0, signals: false, nitro: 2 },
-  regular: { name: "regular", react: 0.36, look: 1.9, brakeAt: 0.75, speed: 0.88, gap: 0.75, aim: 0.3, wander: 0.22, lapse: 1.0, lapseFor: 0.9, oncoming: 0.15, signals: false, nitro: 0.9 },
-  good: { name: "good", react: 0.24, look: 1.6, brakeAt: 0.55, speed: 0.96, gap: 0.45, aim: 0.18, wander: 0.12, lapse: 0.45, lapseFor: 0.75, oncoming: 0.5, signals: true, nitro: 0.6 },
-  ace: { name: "ace", react: 0.16, look: 1.4, brakeAt: 0.45, speed: 1, gap: 0.25, aim: 0.1, wander: 0.06, lapse: 0.15, lapseFor: 0.6, oncoming: 0.8, signals: true, nitro: 0.4 },
+  new: { name: "new", react: 0.5, look: 1.8, brakeAt: 0.6, speed: 0.8, gap: Infinity, aim: 0.4, wander: 0.35, lapse: 5, lapseFor: 1.4, oncoming: 0, signals: false, nitro: 2 },
+  regular: { name: "regular", react: 0.36, look: 1.4, brakeAt: 0.45, speed: 0.9, gap: 0.75, aim: 0.3, wander: 0.22, lapse: 3, lapseFor: 1.2, oncoming: 0.15, signals: false, nitro: 0.9 },
+  good: { name: "good", react: 0.24, look: 1.1, brakeAt: 0.35, speed: 0.97, gap: 0.45, aim: 0.18, wander: 0.12, lapse: 1.6, lapseFor: 1.0, oncoming: 0.5, signals: true, nitro: 0.6 },
+  ace: { name: "ace", react: 0.16, look: 0.9, brakeAt: 0.25, speed: 1, gap: 0.25, aim: 0.1, wander: 0.06, lapse: 0.6, lapseFor: 0.9, oncoming: 0.8, signals: true, nitro: 0.4 },
 };
 
 type Seen = { id: number; x: number; z: number; v: number; w: number; l: number; oncoming: boolean; signal: number };
-type Slot = { x: number; oncoming: boolean; slack: number; side: boolean };
+type Slot = { x: number; oncoming: boolean; plan: number; now: number; clear: number };
 
 const PLAN = 1 / 30; // it looks and decides 30 times a second
 
@@ -57,8 +57,8 @@ export class Bot {
     const L = d.layout;
     // every lane across the road, right to left: ours, then (Two-Way) theirs
     this.slots = [
-      ...Array.from({ length: L.lanes }, (_, i) => ({ x: laneX(L, i), oncoming: false, slack: Infinity, side: false })),
-      ...Array.from({ length: L.oncoming }, (_, i) => ({ x: oncomingX(L, i), oncoming: true, slack: Infinity, side: false })),
+      ...Array.from({ length: L.lanes }, (_, i) => ({ x: laneX(L, i), oncoming: false, plan: Infinity, now: Infinity, clear: 0 })),
+      ...Array.from({ length: L.oncoming }, (_, i) => ({ x: oncomingX(L, i), oncoming: true, plan: Infinity, now: Infinity, clear: 0 })),
     ].sort((a, b) => a.x - b.x);
     this.slot = this.nearest(d.veh.x);
   }
@@ -84,50 +84,66 @@ export class Bot {
     if ((this.plan -= dt) > 0) { this.steerTo(dt); return this.out; }
     this.plan = PLAN;
 
-    // the traffic as it was `react` ago, guessed forward to now; per lane, the slack: seconds it can
-    // hold its speed before it has to brake for the first car in it (or, coming the other way, get out)
+    // the traffic as it was `react` ago, guessed forward to now; per lane, the slack: seconds it could
+    // hold a speed before it has to brake for the first car in it (or, coming the other way, get out of
+    // its way). `plan` is at the speed it wants (a lane that will hold it up), `now` at the speed it has.
     const snap = this.seen[0], age = this.t - snap.t;
     const me = { x: v.x, z: v.z, u: v.u, w: d.size.x, l: d.size.z };
+    const dd = d as { floor?: number; mode?: string; nitro?: number; boosting?: boolean };
+    const target = Math.max(this.top() * k.speed, dd.mode === "trap" && dd.floor ? dd.floor + 6 : 0);
     const decel = v.spec.brake * 9.81 * FEEL.brake * FEEL.pace; // what full brakes do (game/vehicle.ts)
-    for (const s of this.slots) { s.slack = Infinity; s.side = false; }
+    const want = Math.max(me.u, (target / 3.6) * FEEL.pace * 0.9);
+    // a car ahead closer than a following distance counts as no slack at all
+    const slackAt = (u: number, dz: number, c: Seen) => {
+      const closing = u - (c.oncoming ? -c.v : c.v);
+      if (!c.oncoming && dz < 2 + 0.2 * u) return Math.min(0, closing);
+      return closing > 0.1 ? Math.max(0, dz) / closing - (c.oncoming ? 0.6 : closing / (2 * decel)) : Infinity;
+    };
+    for (const s of this.slots) { s.plan = s.now = Infinity; s.clear = 0; }
     const cars = snap.cars.map((c) => ({ ...c, z: c.z + (c.oncoming ? -1 : 1) * c.v * age }));
     for (const c of cars) {
       const xs = [c.x];
       if (k.signals && c.signal) xs.push(c.x + (c.oncoming ? -1 : 1) * c.signal * LANE_W);
       const dz = c.z - me.z, long = (c.l + me.l) / 2;
-      const closing = me.u - (c.oncoming ? -c.v : c.v);
-      const slack = closing > 0.1 ? Math.max(0, dz - long) / closing - (c.oncoming ? 0.6 : closing / (2 * decel)) : Infinity;
       for (const s of this.slots) {
         if (!xs.some((x) => Math.abs(x - s.x) < (c.w + me.w) / 2 + 0.35)) continue;
-        if (Math.abs(dz) < long + 2.5) s.side = true;
-        if (dz > -long * 0.5) s.slack = Math.min(s.slack, slack);
+        // alongside: how long until it has dropped behind (the time it blocks moving over)
+        const closing = me.u - (c.oncoming ? -c.v : c.v);
+        if (Math.abs(dz) < long + 1.5) s.clear = Math.max(s.clear, closing > 0.5 ? (dz + long + 1.5) / closing : Infinity);
+        if (dz <= -long * 0.5) continue;
+        s.plan = Math.min(s.plan, slackAt(want, dz - long, c));
+        s.now = Math.min(s.now, slackAt(me.u, dz - long, c));
       }
     }
 
-    // which lane: the most slack, reached through lanes it can cross before their own cars arrive;
-    // it stays put unless another is clearly better
-    const cap = k.look, across = this.across();
+    // which lane: the most slack, reached through lanes it can cross before their own cars arrive and
+    // after the ones beside them have dropped back (it overlaps a lane once within a car's width of it);
+    // it only looks round when its own lane is getting short, and then only moves for a clearly better one
+    const across = this.across(), CAP = 4;
     const value = (i: number) => {
       const s = this.slots[i];
       if (s.oncoming && k.oncoming <= 0) return -Infinity;
-      let val = Math.min(cap, s.slack);
+      let val = Math.min(CAP, s.plan);
       const step = i > this.slot ? 1 : -1;
       for (let j = this.slot + step; i !== this.slot && j !== i + step; j += step) {
         const p = this.slots[j];
-        if (p.side || (p.oncoming && k.oncoming <= 0)) return -Infinity;
-        if (p.slack < Math.abs(p.x - me.x) / across + 0.2) return -Infinity;
-        val = Math.min(val, p.slack + 0.3);
+        const reach = Math.abs(p.x - me.x) / across;
+        if ((p.oncoming && k.oncoming <= 0) || p.clear > Math.max(0, Math.abs(p.x - me.x) - me.w - 0.3) / across) return -Infinity;
+        if (p.now < reach + 0.2) return -Infinity;
+        val = Math.min(val, p.plan + 0.5);
       }
-      if (s.oncoming) val += (k.oncoming - 0.5) * 0.5 * k.look; // the oncoming side pays three times, if it dares
-      return val - 0.08 * Math.abs(i - this.slot);
+      if (s.oncoming) val += (k.oncoming - 0.5) * 2; // the oncoming side pays three times, if it dares
+      return val - 0.1 * Math.abs(i - this.slot);
     };
     const values = this.slots.map((_, i) => value(i));
-    // someone moved into the lane it is crossing to: that lane is out until it is clear again
-    if (this.slots[this.slot].side && Math.abs(this.slots[this.slot].x - me.x) > 1.2) values[this.slot] = -Infinity;
-    let best = this.nearest(me.x);
-    values.forEach((x, i) => { if (x + (i === this.slot ? 0.25 : 0) > values[best] + (best === this.slot ? 0.25 : 0)) best = i; });
-    this.slot = best;
-    const room = Math.max(...values);
+    // someone moved in beside the lane it is crossing to: that lane is out until it is clear again
+    if (this.slots[this.slot].clear > 0 && Math.abs(this.slots[this.slot].x - me.x) > me.w + 0.3) values[this.slot] = -Infinity;
+    const stay = values[this.slot] >= k.look && values.every((x, i) => i === this.slot || x < values[this.slot] + 1);
+    if (!stay) {
+      let best = this.nearest(me.x);
+      values.forEach((x, i) => { if (x + (i === this.slot ? 0.3 : 0) > values[best] + (best === this.slot ? 0.3 : 0)) best = i; });
+      this.slot = best;
+    }
 
     // passing close: line up beside the next car it passes in a lane next door, `gap` off its side
     this.hugX = 0;
@@ -148,11 +164,11 @@ export class Bot {
       }
     }
 
-    // speed: its share of the top (and over a Speed Trap's floor); off the gas when its lane closes, brakes when nothing is open
-    const dd = d as { floor?: number; mode?: string; nitro?: number; boosting?: boolean };
-    const target = Math.max(this.top() * k.speed, dd.mode === "trap" && dd.floor ? dd.floor + 6 : 0);
-    const boxed = room < k.brakeAt, lift = here.slack < k.brakeAt + 0.3;
-    const nitro = typeof dd.nitro === "number" && !dd.boosting && dd.nitro >= k.nitro && room >= k.look && here.slack >= k.look && kmh > 100;
+    // speed: its share of the top (over a Speed Trap's floor); off the gas when the lane it is in or
+    // going to is closing, brakes when that is about to be too late; nitro on an open road
+    const danger = Math.min(this.slots[this.nearest(me.x)].now, here.now);
+    const boxed = danger < k.brakeAt, lift = danger < k.brakeAt + 0.4;
+    const nitro = typeof dd.nitro === "number" && !dd.boosting && dd.nitro >= k.nitro && here.plan >= CAP && kmh > 100;
     this.out = { throttle: !boxed && !lift && kmh < target ? 1 : 0, brake: boxed ? 1 : 0, steer: this.out.steer, nitro };
     this.drift += (-this.drift * PLAN) / 0.8 + k.wander * Math.sqrt((2 * PLAN) / 0.8) * this.gauss();
     this.steerTo(dt);
