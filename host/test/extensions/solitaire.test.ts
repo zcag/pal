@@ -4,7 +4,11 @@
 // view palette whose view is the page.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
-import { DEFAULTS, F, RANKS, STOCK, T, UNDO, WASTE, actions, apply, canFinish, clock, finishStep, headline, isState, newGame, play as drag, quickTarget, type Action, type Card, type Pile, type State } from "../../../extensions/solitaire/game.ts";
+import { DEFAULTS, F, RANKS, STOCK, T, UNDO, WASTE, actions, apply, canFinish, clock, dailyDeal, easyWin, finishStep, headline, isState, newGame, play as drag, quickTarget, seeded, utcDay, type Action, type Card, type Pile, type State } from "../../../extensions/solitaire/game.ts";
+import { KEYS, changes, restore, scores } from "../../../extensions/solitaire/progress.ts";
+import manifest from "../../../extensions/solitaire/pal.json" with { type: "json" };
+import { checkLeaderboards, checkSync, leaderboardOf } from "../../../sdk/src/manifest.ts";
+import type { Manifest } from "../../../sdk/src/protocol.ts";
 import { RATIO, geometry, layout } from "../../../extensions/solitaire/surface/layout.ts";
 import type { View } from "../../../sdk/src/protocol.ts";
 import { Host } from "../harness.ts";
@@ -190,6 +194,53 @@ describe("winning", () => {
   });
 });
 
+describe("the daily deal", () => {
+  test("the same cards for everyone on a UTC day, another the next; draw one, and won by plain play", () => {
+    const prev = { stats: { played: 9, won: 4 }, game: 12 };
+    const a = dailyDeal(prev, "2026-10-04"), b = dailyDeal({ stats: { played: 0, won: 0 }, game: 1 }, "2026-10-04");
+    expect(a.tableau).toEqual(b.tableau);
+    expect(a.stock).toEqual(b.stock);
+    expect(dailyDeal(prev, "2026-10-05").stock).not.toEqual(a.stock);
+    expect(a).toMatchObject({ daily: "2026-10-04", draw: 1, stats: { played: 9, won: 4 }, game: 13 });
+    expect(easyWin(a)).toBe(true);
+    expect(utcDay(Date.UTC(2026, 9, 4, 23, 59))).toBe("2026-10-04");
+  });
+  test("plain play wins some deals and not others; a new game after the daily is an ordinary one", () => {
+    const deals = Array.from({ length: 40 }, (_, i) => easyWin(newGame({ draw: "1" }, seeded(`t ${i}`))));
+    expect(deals.some(Boolean)).toBe(true);
+    expect(deals.every(Boolean)).toBe(false);
+    expect(apply(dailyDeal({ stats: { played: 0, won: 0 }, game: 1 }, "2026-10-04"), "new").daily).toBeUndefined();
+  });
+});
+
+describe("what syncs, and the boards", () => {
+  test("every key the game writes has a rule; the boards a win posts to are declared", () => {
+    expect(Object.keys(manifest.sync).sort()).toEqual([...KEYS].sort());
+    expect(manifest.sync).toMatchObject({ state: "local", "fastest-1": "min", "fewest-3": "min" });
+    expect(checkSync(manifest)).toEqual([]);
+    expect(checkLeaderboards(manifest)).toEqual([]);
+    const won = { ...play(lastCard(), "select", "select"), elapsed: 184_321, daily: "2026-10-04" };
+    for (const [board] of scores(won, "2026-10-04")) expect(leaderboardOf(manifest as unknown as Manifest, board), board).toBeDefined();
+  });
+  test("a store from before the split keeps its record; a synced record overrules it", () => {
+    const old = { ...lastCard(), stats: { played: 40, won: 12 } };
+    expect(restore({ state: old }).stats).toEqual({ played: 40, won: 12 });
+    expect(restore({ state: old, stats: { played: 70, won: 30 } }).stats).toEqual({ played: 70, won: 30 });
+    expect(restore({ stats: { played: 70, won: 30 } })).toMatchObject({ moves: 0, stats: { played: 70, won: 30 } });
+    expect(changes(restore({ state: old }), { state: old })).toMatchObject({ stats: { played: 40, won: 12 } });
+  });
+  test("a win writes the bests it beat at its draw, and goes to its boards; the Daily only on its own day", () => {
+    const won = { ...play(lastCard(), "select", "select"), elapsed: 184_321 };
+    expect(changes(won, { stats: won.stats })).toEqual({ state: won, "fastest-1": 184_321, "fewest-1": won.moves });
+    expect(Object.keys(changes(won, { stats: won.stats, "fastest-1": 90_000, "fewest-1": 500 }))).toEqual(["state", "fewest-1"]);
+    expect(Object.keys(changes(lastCard(), { stats: lastCard().stats }))).toEqual(["state"]);
+    expect(scores(won, "2026-10-04")).toEqual([["fastest/1", 184.32], ["fewest/1", won.moves]]);
+    expect(scores({ ...won, daily: "2026-10-04" }, "2026-10-04").at(-1)).toEqual(["daily", 184.32]);
+    expect(scores({ ...won, daily: "2026-10-03" }, "2026-10-04")).toHaveLength(2);
+    expect(scores(lastCard(), "2026-10-04")).toEqual([]);
+  });
+});
+
 describe("the pointer", () => {
   test("play: a run dropped on a pile that takes it, a refusal with its note, where it goes when the pile is its own", () => {
     const st = table({ tableau: tab(pile(["2C"], ["9H", "8S"]), pile([], ["10C"]), pile([], ["10H"])), held: { from: T(2), count: 1 } });
@@ -285,7 +336,7 @@ describe("over the wire", () => {
     const v = await host.request<View>("view", { extension: "solitaire", palette: "solitaire" });
     expect(v.tree).toEqual({ type: "surface", src: "surface/index.html" } as unknown as View["tree"]);
     expect(v.title).toBe("Solitaire");
-    expect(v.actions.map((a) => a.id)).toEqual(["draw", "undo", "finish", "new", "clock"]);
+    expect(v.actions.map((a) => a.id)).toEqual(["draw", "undo", "finish", "new", "daily", "clock"]);
     expect(v.actions.at(-1)).toMatchObject({ title: "Hide the clock", shortcut: "t" });
   });
   test("the page hides the clock (T): the setting written, the ⌘K title following", async () => {

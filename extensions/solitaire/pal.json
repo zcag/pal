@@ -39,6 +39,46 @@
       "default": true
     }
   ],
+  "sync": {
+    "state": "local",
+    "stats": {
+      "fields": {
+        "played": "sum",
+        "won": "sum"
+      }
+    },
+    "fastest-1": "min",
+    "fastest-3": "min",
+    "fewest-1": "min",
+    "fewest-3": "min"
+  },
+  "leaderboards": [
+    {
+      "id": "daily",
+      "title": "Daily deal",
+      "order": "asc",
+      "format": "time",
+      "period": "day",
+      "min": 10,
+      "max": 86400
+    },
+    {
+      "id": "fastest/*",
+      "title": "Fastest win, draw {1}",
+      "order": "asc",
+      "format": "time",
+      "min": 10,
+      "max": 86400
+    },
+    {
+      "id": "fewest/*",
+      "title": "Fewest moves, draw {1}",
+      "order": "asc",
+      "format": "moves",
+      "min": 52,
+      "max": 100000
+    }
+  ],
   "store": {
     "tagline": "Klondike solitaire with the mouse or the keyboard",
     "category": "fun",
@@ -48,7 +88,8 @@
       "Cards glide and flip, and a win bounces them off the foundations",
       "Draw one or three, unlimited passes, and undo with `U` or `backspace`",
       "Finishes by itself once every card is face up",
-      "Your moves, time and games won are kept, and the game waits where you left it"
+      "Your moves, time and games won are kept, and the game waits where you left it",
+      "A daily deal, the same cards for everyone that day (`Y`); signed in to pal, your record follows you, and wins go on leaderboards: the day's fastest, and the fastest and fewest-move wins at each draw"
     ],
     "permissions": [],
     "platforms": [
@@ -110,6 +151,11 @@
         "keys": "n"
       },
       {
+        "title": "Daily deal",
+        "description": "Today's deal, draw one, the same cards for everyone until midnight UTC; a win goes on the day's board. Asks first mid-game.",
+        "keys": "y"
+      },
+      {
         "title": "Hide the clock",
         "description": "No running time beside the table; again to bring it back.",
         "keys": "t"
@@ -146,6 +192,10 @@
         {
           "keys": "n",
           "title": "New game, after a confirm mid-game"
+        },
+        {
+          "keys": "y",
+          "title": "The daily deal, after a confirm mid-game"
         }
       ]
     }

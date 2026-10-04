@@ -1,12 +1,13 @@
 // Solitaire: a view palette whose body is the extension's own page
 // (`surface/index.html`, the `surface` view node). The page runs the game:
 // it draws the table from the pure state in game.ts, takes the mouse and
-// the keys, persists the state in the extension's storage under `state`
-// after every move (so Escape mid-game loses nothing and the record
-// survives restarts), counts the clock only while it is shown and sets
-// the title line. The extension answers the view (the node and the
-// actions ⌘K lists, which the panel hands to the page, `pal.onAction`) and
-// writes the `clock` setting when the page hides or shows the clock (T).
+// the keys, persists the state in the extension's storage after every
+// move (progress.ts: the deal stays here, the record and the bests sync;
+// Escape mid-game loses nothing), posts a win to the boards, counts the
+// clock only while it is shown and sets the title line. The extension
+// answers the view (the node and the actions ⌘K lists, which the panel
+// hands to the page, `pal.onAction`) and writes the `clock` setting when
+// the page hides or shows the clock (T).
 import { settings, view, type Action, type Extension, type View } from "@zcag/pal";
 
 const EXTENSION = "solitaire";
@@ -16,6 +17,7 @@ const actions = (clock = settings.get<{ clock?: boolean }>(EXTENSION).clock !== 
   { id: "undo", title: "Undo", shortcut: ["u", "backspace"] },
   { id: "finish", title: "Finish now" },
   { id: "new", title: "New game", shortcut: "n" },
+  { id: "daily", title: "Daily deal", shortcut: "y" },
   { id: "clock", title: clock ? "Hide the clock" : "Show the clock", shortcut: "t" },
 ];
 

@@ -136,3 +136,5 @@ kbd {
 .buttons button[hidden] { display: none; }
 .buttons kbd { height: 15px; min-width: 15px; font-size: 10px; background: rgba(255,255,255,.18); color: inherit; border-color: rgba(255,255,255,.3); }
 .buttons button:not(.primary) kbd { background: var(--pal-bg-elevated, #fff); border-color: var(--pal-line-strong, rgba(0,0,0,.14)); }
+.signin { display: block; margin: 10px auto 0; padding: 0; border: 0; background: none; font: inherit; font-size: 11.5px; color: var(--pal-fg-muted, #5c5d66); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.signin[hidden] { display: none; }
