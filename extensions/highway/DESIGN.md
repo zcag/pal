@@ -118,9 +118,25 @@ the fourth upgrade something to grow.
 
 Seventeen cars, each a step up in top speed and handling; four upgrades per
 car (engine, handling, brakes, nitro), five levels each, each level a change
-you can feel and that pays back in faster, higher-scoring runs. Prices are set
-so that early on something is affordable every run or two, and through the
-middle of the ladder a new car arrives every 20 to 40 minutes of play.
+you can feel: +7 km/h a level of engine (five of them are about a car's step),
+handling makes the car cross faster and turn back sooner, brakes stop harder.
+
+Prices come from `scripts/economy.ts`, which plays thousands of real runs with
+a bot of four skills (`game/bot.ts`) and pays careers through `meta.finish`.
+Cars run $2,500 to $76,000, about 20% more each, and upgrades cost 6% of the
+car's price, half again each level. Simulated at 40 minutes a day:
+
+| | regular | good |
+| --- | --- | --- |
+| First purchase | after run 1 | after run 1 |
+| A new car, middle of the ladder | every 20 to 40 min | every 10 to 20 min |
+| The top car | about 17 h | about 7 h |
+
+What it found and changed: a combo paid its square (12·c²), so short, wild
+Two-Way runs out-earned everything; it now pays 30 per step. Near misses on
+oncoming cars paid double cash on top of triple points; they pay triple
+points only. A better car does not raise cash a minute in Endless (traffic
+keeps pace with your top speed); it raises points, so XP, so levels.
 
 ### Modes
 
