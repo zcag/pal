@@ -106,7 +106,12 @@ replays:
   the queue on, that second key waits and turns on the next step. Keys the
   firmware keeps behave as on the phone (down then up still turns up).
 - **Top score in the title line**, so it reads without the Top score
-  screen.
+  screen; after a game, where it stands on the leaderboard ("#12 of 340").
+- **Leaderboards**: every game's score goes to the top score, this week's
+  and its level's board. Signed in to a pal account, the top score (`best`,
+  by `max`) and the level and maze (`options`) follow you to other machines;
+  the phone's memory (`phone`: rand()'s state, a paused game) stays on this
+  one, as it would in one phone.
 - **Leaving the panel pauses** the game as C does; Continue waits in the
   menu.
 - **Leaving Snake II closes the view**: C on its menu, or a digit (the

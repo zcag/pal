@@ -2,9 +2,10 @@
 // the night itself (keys in, the sim stepped at 60 a second, drawn every
 // frame, its events turned into sound, banners and particles), and the cards
 // over it (level-up, chest, pause, results). The save goes through the kit's
-// storage (localStorage in a browser, the extension's storage in pal);
-// hiding pal's panel pauses the night and stores it, so closing pal and
-// opening it again finds the night where it was, paused.
+// storage (localStorage in a browser, the extension's storage in pal; synced,
+// and taken back when sync brings a merged one); a finished night goes to its
+// leaderboards; hiding pal's panel pauses the night and stores it, so closing
+// pal and opening it again finds the night where it was, paused.
 import { BOSSES, type BossKind } from "../game/content/bosses.ts";
 import { ENEMIES, type EnemyKind } from "../game/content/enemies.ts";
 import { HEROES, type HeroKind } from "../game/content/heroes.ts";
@@ -15,7 +16,7 @@ import { STAT_NAMES, statText, type StatKey } from "../game/content/stats.ts";
 import { WEAPONS, WEAPON_MAX, levelText, type WeaponKind } from "../game/content/weapons.ts";
 import { needed } from "../game/content/xp.ts";
 import { drive, loadout as botLoadout, pickChoice } from "../game/bot.ts";
-import { buy, earnedUnlocks, fresh, heroOpen, load, loadout, packRun, priceOf, refund, settle, unpackRun, weaponOpen, type Earned, type Save, type Scene } from "../game/meta.ts";
+import { boardsOf, buy, earnedUnlocks, fresh, heroOpen, load, loadout, packRun, priceOf, refund, settle, unpackRun, weaponOpen, type Earned, type Save, type Scene } from "../game/meta.ts";
 import { DT, banish, blessing, choose, clock, create, pairs, reroll, restat, resume, skip, step, type Choice, type State } from "../game/sim/index.ts";
 import { levelUp, openChest } from "../game/sim/progress.ts";
 import { spawnAt } from "../game/sim/core.ts";
@@ -43,6 +44,9 @@ let earned: Earned | undefined;
 let codexTab = 0;
 let refundArmed = false;
 let endAt = 0;
+/** Where the last night landed on its boards, as the answers come; whether the player is signed in (asked again on every show). */
+let standing: { board: string; rank: number; total: number }[] = [];
+let signedIn = true;
 
 // ---- helpers --------------------------------------------------------------------------------------------------------
 
@@ -536,9 +540,31 @@ function pauseCard() {
 function finish() {
   earned = settle(save, run!);
   persist();
+  post(run!, earned.record);
   keep();
   endAt = performance.now();
   if (earned.unlocks.length) setTimeout(() => audio.sfx("unlock"), 1600);
+}
+
+/** The night to its boards; each answer joins the line under the results ("#12 of 340 for Kaze's longest night"). */
+function post(s: State, record: boolean) {
+  standing = [];
+  if (scene) return;
+  for (const [board, value] of boardsOf(s)) {
+    pal.score(board, value).then((r) => {
+      if (run !== s || !r?.rank || !r.total) return;
+      standing.push({ board, rank: r.rank, total: r.total });
+      const el = ui.querySelector(".standing");
+      if (el) el.outerHTML = standingLine(record);
+    }).catch((e) => console.error("night-parade: score", e));
+  }
+}
+const boardName = (b: string, s: State) => (b === "kills" ? "most defeated" : b === "dawn" ? "fastest dawns" : `${HEROES[s.load.hero].name}'s longest nights`);
+function standingLine(record: boolean) {
+  const order = ["dawn", "night", "kills"];
+  const rows = [...standing].sort((a, b) => order.indexOf(a.board.split("/")[0]) - order.indexOf(b.board.split("/")[0]));
+  const keep = rows.length && !signedIn && record ? ` <a class="signin">Sign in to keep your scores</a>` : "";
+  return `<p class="standing">${rows.map((x) => `#${x.rank.toLocaleString()} of ${x.total.toLocaleString()} ${boardName(x.board, run!)}`).join(" · ")}${keep}</p>`;
 }
 
 function results() {
@@ -554,6 +580,7 @@ function results() {
     <p>${won ? "The sky pales, and the parade melts into the morning mist. You saw the dawn." : `You lasted ${clock(s.t)} of the night. ${byText}`}${earned?.record ? ` <b style="color:var(--gold)">A new best for ${HEROES[s.load.hero].name}.</b>` : ""}</p>
     <div class="facts"><div><b>${clock(s.t)}</b><span>survived</span></div><div><b>${p.level}</b><span>level</span></div><div><b>${p.kills.toLocaleString()}</b><span>defeated</span></div><div><b>+${earned?.gold ?? 0}</b><span>gold</span></div></div>
     <div class="build">${[...s.weapons].sort((a, b) => b.dmg - a.dmg).map((w) => `<div class="brow">${img(wIcon(w.kind))}<span>${w.evolved ? `<b style="color:var(--gold)">${WEAPONS[w.kind].evolved}</b>` : `${WEAPONS[w.kind].name} ${pips(w.level, WEAPON_MAX)}`}</span><span class="v">${Math.round(w.dmg).toLocaleString()} · ${w.kills} kills · ${Math.round(w.dmg / Math.max(1, s.t - w.since))}/s</span><div class="bar"><i style="width:${(w.dmg / total) * 100}%"></i></div></div>`).join("")}</div>
+    ${standingLine(!!earned?.record)}
     ${earned ? `<p class="gold-note">${earned.found} picked up, ${earned.bonus} for the night.${affordable() ? ` <b>${Math.floor(save.gold)} gold to spend at the shrine.</b>` : ""}</p>` : ""}
     ${earned?.unlocks.length ? `<div class="unlocks"><b>Unlocked</b>${earned.unlocks.map((u) => `<div>${UNLOCKS[u].name}</div>`).join("")}</div>` : ""}
     ${keys([kbd("↵"), "another night"], [kbd("⌫"), "to the title"])}
@@ -720,7 +747,19 @@ pal.onHidden(() => {
   audio.suspend();
   keep();
 });
-pal.onShown(() => { if (!paused || tuning) audio.unsuspend(); });
+pal.onShown(() => { if (!paused || tuning) audio.unsuspend(); account(); });
+const account = () => pal.account().then((a) => { signedIn = a?.signedIn !== false; }, () => {});
+ui.addEventListener("click", (e) => { if ((e.target as HTMLElement).closest(".signin")) void pal.signIn().catch(() => {}); });
+// A save sync merged with another machine's: take it, so the next night settles onto it rather than over it.
+pal.storage.onChange((k, v) => {
+  if (k !== "save" || scene) return;
+  save = load(v);
+  view.numbers = save.settings.numbers;
+  if (screen === "title") title();
+  else if (screen === "heroes") heroes();
+  else if (screen === "shrine") shrine();
+  else if (screen === "codex") codex();
+});
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) return;
   if (screen === "run" && run?.phase === "play" && !paused) setPaused(true);
@@ -776,6 +815,7 @@ const loudness = (s: Record<string, unknown>) => audio.master(typeof s.volume ==
 
 async function boot() {
   save = load(await pal.storage.get("save").catch(() => null));
+  account();
   scene = (await pal.storage.get("scene").catch(() => null)) as Scene | undefined ?? undefined;
   const kept = scene ? undefined : unpackRun(await pal.storage.get("run").catch(() => null));
   view.numbers = save.settings.numbers;

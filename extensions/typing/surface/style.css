@@ -169,6 +169,7 @@ body.blurred #caret { animation: none; opacity: 0; }
 #big .num { font: 500 clamp(40px, 7.4vw, 58px) / 1 var(--mono); color: var(--main); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 #r-note { color: var(--sub); font-size: 11.5px; line-height: 1.5; min-height: 1.5em; }
 #r-note .bad { color: var(--err); }
+#r-note a { color: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 #newbest {
   display: none;
   align-items: center;

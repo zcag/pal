@@ -316,11 +316,29 @@ export const HISTORY = 1000;
 
 export const noRecords = (): Records => ({ best: {}, history: [], tests: 0, secs: 0 });
 
+/**
+ * The records as stored, made to sync (pal.json `sync`): the bests as a
+ * list, `{ key, ...best }`, so two machines' lists merge by `union` and
+ * `recordsOf` keeps each kind's fastest; the history merges by `union`, the
+ * counts by `sum`.
+ */
+export const storedRecords = (rec: Records) => ({ ...rec, best: Object.entries(rec.best).map(([key, b]) => ({ key, ...b })) });
+
+/** Stored records (the bests as a list, or as an object by kind as they once were), the history in time order. */
 export function recordsOf(x: unknown): Records {
-  const o = x as Partial<Records> | null;
+  const o = x as (Omit<Records, "best"> & { best: Records["best"] | (Best & { key: string })[] }) | null;
   if (!o || typeof o !== "object" || !o.best || typeof o.best !== "object" || !Array.isArray(o.history)) return noRecords();
-  return { best: o.best, history: o.history, tests: Number(o.tests) || 0, secs: Number(o.secs) || 0 };
+  let best = o.best as Records["best"];
+  if (Array.isArray(o.best)) {
+    best = {};
+    for (const { key, ...b } of o.best) if (typeof key === "string" && (best[key]?.wpm ?? -1) < b.wpm) best[key] = b;
+  }
+  const history = [...o.history].sort((a, b) => a.at - b.at).slice(-HISTORY);
+  return { best, history, tests: Number(o.tests) || 0, secs: Number(o.secs) || 0 };
 }
+
+/** The leaderboard a test goes to: a plain time or words test (no punctuation, no numbers, not zen), `time/30` or `words/25`. */
+export const boardOf = (c: Config): string | undefined => (c.mode === "zen" || c.punctuation || c.numbers ? undefined : `${c.mode}/${c.mode === "time" ? c.time : c.words}`);
 
 /** The records with a finished test in: the history, the totals, the best when it beats it. An invalid test changes nothing. */
 export function file(rec: Records, res: Result): { records: Records; best: boolean; prev?: Best } {

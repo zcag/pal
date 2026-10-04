@@ -71,7 +71,7 @@ The whole design, and why each part is there: [DESIGN.md](DESIGN.md).
 ## Setup
 
 None. The save (gold, shrine ranks, unlocks, the codex, records) is the
-extension's storage; music and sound volume, damage numbers and screen
+extension's storage, synced when signed in to a pal account; music and sound volume, damage numbers and screen
 shake are the page's own Settings.
 
 ## Working on it

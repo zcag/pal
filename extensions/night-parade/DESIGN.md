@@ -322,6 +322,12 @@ Ambient: fireflies, drifting leaves and petals, a slow ground fog, the moon.
   parade tougher and faster and pays more gold.
 - **Codex**: every weapon and evolution seen, every enemy with its count, the
   achievements.
+- **Leaderboards**: each hero's longest night (a dawn is the whole fifteen
+  minutes), the fastest dawn, the most defeated in a night; the results
+  screen says where the night stands. Signed in to a pal account the save
+  syncs field by field: gold, spent, counts and totals `sum`, shrine ranks
+  and bests `max`, unlocks and the codex's lists `union`, the rest
+  `latest`; a night left open stays on its machine.
 
 ## Tuning targets
 

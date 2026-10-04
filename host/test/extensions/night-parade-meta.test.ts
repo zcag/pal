@@ -1,7 +1,11 @@
-import { expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { night, play } from "../../../extensions/night-parade/game/bot.ts";
+import { declared, manifestOf, merge, problems, storedKeys } from "./game-accounts.ts";
 import { SHRINE } from "../../../extensions/night-parade/game/content/meta.ts";
-import { buy, earnedUnlocks, fresh, load, loadout, nightBonus, packRun, priceOf, refund, settle, shrineStats, unpackRun } from "../../../extensions/night-parade/game/meta.ts";
+import { ENEMIES } from "../../../extensions/night-parade/game/content/enemies.ts";
+import { BOSSES } from "../../../extensions/night-parade/game/content/bosses.ts";
+import { HEROES } from "../../../extensions/night-parade/game/content/heroes.ts";
+import { NIGHT, boardsOf, buy, earnedUnlocks, fresh, load, type Save, loadout, nightBonus, packRun, priceOf, refund, settle, shrineStats, unpackRun } from "../../../extensions/night-parade/game/meta.ts";
 
 test("a stored save loads with anything newer filled in", () => {
   const s = fresh();
@@ -15,6 +19,8 @@ test("a stored save loads with anything newer filled in", () => {
   expect(old.seen.weapons).toEqual([]);
   expect(load(null)).toEqual(fresh());
   expect(load({ v: 99, gold: 9 })).toEqual(fresh());
+  // A best night's dawn was once a boolean.
+  expect(load({ v: 1, best: { kaze: { t: 950, dawn: true, level: 40, kills: 3000 }, tomoe: { t: 300, dawn: false, level: 9, kills: 200 } } }).best).toEqual({ kaze: { t: 950, dawn: 1, level: 40, kills: 3000 }, tomoe: { t: 300, dawn: 0, level: 9, kills: 200 } });
 });
 
 test("the shrine's ranks add up to stats", () => {
@@ -78,7 +84,7 @@ test("settle adds gold, keeps the best, fills the codex and unlocks", () => {
   expect([e.found, e.bonus, e.gold]).toEqual([43, 115, 158]);
   expect(save.gold).toBe(158);
   expect(e.record).toBe(true);
-  expect(save.best.kaze).toEqual({ t: 320, dawn: false, level: 21, kills: 77 });
+  expect(save.best.kaze).toEqual({ t: 320, dawn: 0, level: 21, kills: 77 });
   expect(save.seen.weapons).toContain("shuriken");
   expect(save.seen.items).toContain("tea");
   expect(save.seen.evolved).toContain("shuriken");
@@ -148,4 +154,66 @@ test("a night stored before blessings loads with none", () => {
   delete packed.run.blessed;
   const s = unpackRun(JSON.parse(JSON.stringify(packed)))!;
   expect([s.boons, s.blessed]).toEqual([0, []]);
+});
+
+describe("accounts", () => {
+  const m = manifestOf("night-parade");
+  const rule = m.sync.save as { fields: Record<string, { fields: Record<string, { fields: Record<string, unknown> }> }> };
+
+  test("every stored key has a rule (a night left open and a staged scene stay on this machine); every hero, rank, enemy and boss is listed", () => {
+    expect(problems(m)).toEqual([]);
+    expect(Object.keys(m.sync).sort()).toEqual(storedKeys("night-parade"));
+    expect([m.sync.run, m.sync.scene]).toEqual(["local", "local"]);
+    expect(Object.keys(rule.fields).sort()).toEqual(Object.keys(fresh()).sort());
+    expect(Object.keys(rule.fields.shrine.fields).sort()).toEqual(Object.keys(SHRINE).sort());
+    expect(Object.keys(rule.fields.best.fields).sort()).toEqual(Object.keys(HEROES).sort());
+    expect(Object.keys(rule.fields.seen.fields.enemies.fields).sort()).toEqual(Object.keys(ENEMIES).sort());
+    expect(Object.keys(rule.fields.seen.fields.bosses.fields).sort()).toEqual(Object.keys(BOSSES).sort());
+  });
+
+  test("a night goes to its hero's longest night (a dawn is the whole night), the most defeated, and a dawn to the fastest", () => {
+    const dead = night(1);
+    Object.assign(dead, { t: 412.3456, phase: "dead" });
+    dead.p.kills = 640;
+    expect(boardsOf(dead)).toEqual([["night/kaze", 412.35], ["kills", 640]]);
+    const won = night(2);
+    Object.assign(won, { t: 1011.5, phase: "won" });
+    expect(boardsOf(won)).toEqual([["night/kaze", NIGHT], ["kills", won.p.kills], ["dawn", 1011.5]]);
+    for (const [b, v] of [...boardsOf(dead), ...boardsOf(won)]) {
+      const d = declared(m, b as string);
+      expect(d, b as string).toBeDefined();
+      expect(v).toBeGreaterThanOrEqual(d!.min!);
+      expect(v).toBeLessThanOrEqual(d!.max!);
+    }
+    for (const h of Object.keys(HEROES)) expect(declared(m, `night/${h}`)?.title).toBe(`${HEROES[h as keyof typeof HEROES].name}: longest night`);
+    expect(declared(m, "dawn")?.order).toBe("asc");
+  });
+
+  test("two machines that both played since they synced keep the gold, ranks, unlocks, codex and records of both", () => {
+    const base = fresh();
+    base.gold = 1000;
+    const synced = JSON.parse(JSON.stringify(base)) as Save;
+    const a = load(structuredClone(synced)), b = load(structuredClone(synced));
+    buy(a, "might");
+    a.unlocked.push("ennen");
+    a.seen.enemies.slime = 30;
+    a.best.kaze = { t: 400, dawn: 0, level: 20, kills: 900 };
+    a.totals.nights += 2;
+    b.gold += 300;
+    buy(b, "armor");
+    b.unlocked.push("omens");
+    b.seen.enemies.slime = 12;
+    b.seen.weapons.push("katana");
+    b.best.kaze = { t: 960, dawn: 1, level: 33, kills: 2500 };
+    b.totals.nights += 1;
+    const merged = load(merge(m.sync.save, b, merge(m.sync.save, a, synced, synced), synced));
+    expect(merged.gold).toBe(1000 + (a.gold - 1000) + (b.gold - 1000));
+    expect(merged.spent).toBe(a.spent + b.spent);
+    expect(merged.shrine).toEqual({ might: 1, armor: 1 });
+    expect(merged.unlocked.sort()).toEqual(["ennen", "omens"]);
+    expect(merged.seen.enemies.slime).toBe(42);
+    expect(merged.seen.weapons).toEqual(["katana"]);
+    expect(merged.best.kaze).toEqual({ t: 960, dawn: 1, level: 33, kills: 2500 });
+    expect(merged.totals.nights).toBe(3);
+  });
 });

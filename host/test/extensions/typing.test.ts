@@ -6,12 +6,13 @@
 // is one `surface`. The page (surface/) is browser code and is not run here.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import {
-  DEFAULTS, MAX_EXTRA, backspace, configOf, configure, endZen, file, optionsOf, paceAt, paceWpm, settingOf, good, keyLabel, kinds, label, missed, modeKey, newRun, noRecords, recent, recordsOf, refill, result, rolling, summary, titleOf,
+  DEFAULTS, MAX_EXTRA, backspace, boardOf, configOf, configure, endZen, file, optionsOf, paceAt, paceWpm, settingOf, good, keyLabel, kinds, label, missed, modeKey, newRun, noRecords, recent, recordsOf, refill, result, rolling, storedRecords, summary, titleOf,
   typeChar, typeSpace, viewActions, type Config, type Run,
 } from "../../../extensions/typing/typing.ts";
 import { WORDS, generate } from "../../../extensions/typing/words.ts";
 import type { View } from "../../../sdk/src/protocol.ts";
 import { Host, stored } from "../harness.ts";
+import { declared, manifestOf, merge, problems, storedKeys } from "./game-accounts.ts";
 
 /** A seeded rng (mulberry32), so a draw is the same every run. */
 function seeded(seed: number) {
@@ -356,5 +357,47 @@ describe("over the wire", () => {
     await hide;
     expect(host.written.get("typing")).toEqual({ pace_caret: "pb", clock: false });
     expect((v.spec as View).actions.find((a) => a.id === "clock:on")?.title).toBe("Show the clock");
+  });
+});
+
+describe("accounts", () => {
+  const m = manifestOf("typing");
+  const res = (wpm: number, at: number, key = "time 30") => ({ ...result(newRun(cfg(), undefined, ["a"]), 1000, at), wpm, key, invalid: undefined });
+
+  test("every stored key has a rule: the options by field, the records' lists by union and counts by sum", () => {
+    expect(problems(m)).toEqual([]);
+    expect(Object.keys(m.sync).sort()).toEqual(storedKeys("typing"));
+    expect(m.sync.records).toEqual({ fields: { best: "union", history: "union", tests: "sum", secs: "sum" } });
+  });
+
+  test("records are stored with the bests as a list, and read back the same; the old object of bests still reads", () => {
+    const r = file(file(noRecords(), res(80, 1)).records, res(50, 2, "words 25")).records;
+    const s = storedRecords(r);
+    expect(s.best).toEqual([{ key: "time 30", ...r.best["time 30"] }, { key: "words 25", ...r.best["words 25"] }]);
+    expect(recordsOf(JSON.parse(JSON.stringify(s)))).toEqual(r);
+    expect(recordsOf(JSON.parse(JSON.stringify(r)))).toEqual(r);
+  });
+
+  test("two machines that both typed since they synced keep every test and each kind's fastest", () => {
+    const synced = storedRecords(file(noRecords(), res(60, 1)).records);
+    let a = recordsOf(structuredClone(synced)), b = recordsOf(structuredClone(synced));
+    a = file(file(a, res(72, 10)).records, res(40, 11, "words 25")).records;
+    b = file(b, res(90, 5)).records;
+    b = file(b, res(85, 12)).records;
+    const merged = recordsOf(merge(m.sync.records, storedRecords(b), merge(m.sync.records, storedRecords(a), synced, synced), synced));
+    expect(merged.best["time 30"].wpm).toBe(90);
+    expect(merged.best["words 25"].wpm).toBe(40);
+    expect(merged.history.map((p) => p.at)).toEqual([1, 5, 10, 11, 12]);
+    expect(merged.tests).toBe(5);
+    expect(storedRecords(merged).best).toHaveLength(2);
+  });
+
+  test("a plain time or words test goes to its board; zen, punctuation and numbers to none", () => {
+    expect(boardOf(cfg({ mode: "time", time: 60 }))).toBe("time/60");
+    expect(boardOf(cfg({ mode: "words", words: 100 }))).toBe("words/100");
+    for (const c of [cfg({ mode: "zen" }), cfg({ punctuation: true }), cfg({ mode: "words", numbers: true })]) expect(boardOf(c)).toBeUndefined();
+    for (const t of [15, 30, 60, 120]) expect(declared(m, `time/${t}`), String(t)).toMatchObject({ order: "desc", format: "points" });
+    for (const n of [10, 25, 50, 100]) expect(declared(m, `words/${n}`), String(n)).toBeDefined();
+    expect(declared(m, "time/60")?.title).toBe("60 seconds");
   });
 });

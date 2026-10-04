@@ -26,6 +26,222 @@
       "default": 100
     }
   ],
+  "sync": {
+    "save": {
+      "fields": {
+        "v": "max",
+        "gold": "sum",
+        "shrine": {
+          "fields": {
+            "might": "max",
+            "armor": "max",
+            "maxHp": "max",
+            "recovery": "max",
+            "cooldown": "max",
+            "area": "max",
+            "speed": "max",
+            "duration": "max",
+            "amount": "max",
+            "move": "max",
+            "magnet": "max",
+            "luck": "max",
+            "growth": "max",
+            "greed": "max",
+            "revival": "max",
+            "reroll": "max",
+            "skip": "max",
+            "banish": "max"
+          }
+        },
+        "spent": "sum",
+        "unlocked": "union",
+        "hero": "latest",
+        "omen": "latest",
+        "seen": {
+          "fields": {
+            "weapons": "union",
+            "items": "union",
+            "evolved": "union",
+            "enemies": {
+              "fields": {
+                "slime": "sum",
+                "slimelet": "sum",
+                "bat": "sum",
+                "larva": "sum",
+                "mushroom": "sum",
+                "snake": "sum",
+                "mole": "sum",
+                "tanuki": "sum",
+                "kappa": "sum",
+                "lantern": "sum",
+                "skull": "sum",
+                "owl": "sum",
+                "spirit": "sum",
+                "skeleton": "sum",
+                "eye": "sum",
+                "octopus": "sum",
+                "bamboo": "sum",
+                "cyclops": "sum",
+                "imp": "sum",
+                "onibi": "sum",
+                "beast": "sum",
+                "dragon": "sum",
+                "panda": "sum",
+                "crow": "sum",
+                "goldtanuki": "sum"
+              }
+            },
+            "bosses": {
+              "fields": {
+                "frog": "sum",
+                "tanuki": "sum",
+                "yurei": "sum",
+                "tengu": "sum",
+                "samurai": "sum",
+                "oni": "sum"
+              }
+            }
+          }
+        },
+        "best": {
+          "fields": {
+            "kaze": {
+              "fields": {
+                "t": "max",
+                "dawn": "max",
+                "level": "max",
+                "kills": "max"
+              }
+            },
+            "tomoe": {
+              "fields": {
+                "t": "max",
+                "dawn": "max",
+                "level": "max",
+                "kills": "max"
+              }
+            },
+            "seimei": {
+              "fields": {
+                "t": "max",
+                "dawn": "max",
+                "level": "max",
+                "kills": "max"
+              }
+            },
+            "ennen": {
+              "fields": {
+                "t": "max",
+                "dawn": "max",
+                "level": "max",
+                "kills": "max"
+              }
+            },
+            "raiden": {
+              "fields": {
+                "t": "max",
+                "dawn": "max",
+                "level": "max",
+                "kills": "max"
+              }
+            },
+            "hayate": {
+              "fields": {
+                "t": "max",
+                "dawn": "max",
+                "level": "max",
+                "kills": "max"
+              }
+            }
+          }
+        },
+        "totals": {
+          "fields": {
+            "nights": "sum",
+            "dawns": "sum",
+            "kills": "sum",
+            "gold": "sum"
+          }
+        },
+        "settings": {
+          "fields": {
+            "music": "latest",
+            "sfx": "latest",
+            "numbers": "latest",
+            "shake": "latest"
+          }
+        }
+      }
+    },
+    "run": "local",
+    "scene": "local"
+  },
+  "leaderboards": [
+    {
+      "id": "night/kaze",
+      "title": "Kaze: longest night",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 900
+    },
+    {
+      "id": "night/tomoe",
+      "title": "Tomoe: longest night",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 900
+    },
+    {
+      "id": "night/seimei",
+      "title": "Seimei: longest night",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 900
+    },
+    {
+      "id": "night/ennen",
+      "title": "Ennen: longest night",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 900
+    },
+    {
+      "id": "night/raiden",
+      "title": "Raiden: longest night",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 900
+    },
+    {
+      "id": "night/hayate",
+      "title": "Hayate: longest night",
+      "order": "desc",
+      "format": "time",
+      "min": 0,
+      "max": 900
+    },
+    {
+      "id": "dawn",
+      "title": "Fastest dawn",
+      "order": "asc",
+      "format": "time",
+      "min": 900,
+      "max": 3600
+    },
+    {
+      "id": "kills",
+      "title": "Most defeated in a night",
+      "order": "desc",
+      "format": "points",
+      "min": 0,
+      "max": 1000000
+    }
+  ],
   "store": {
     "tagline": "Last the night against the parade of a hundred demons",
     "category": "fun",
@@ -66,7 +282,8 @@
       "Six heroes with a starting weapon and a trait, four of them unlocked by playing",
       "Telegraphed danger: rings and lines on the ground before a slam or a charge, a smoke dash to get out",
       "A blessing to choose as Midnight and the Hour of the Ox begin: more damage, more projectiles, more area, armor, healing or speed for the rest of the night",
-      "A shrine for lasting upgrades between nights, a codex of everything found and defeated, and omens for harder nights once you've seen the dawn"
+      "A shrine for lasting upgrades between nights, a codex of everything found and defeated, and omens for harder nights once you've seen the dawn",
+      "Leaderboards for each hero's longest night, the fastest dawn and the most demons defeated; signed in, your gold, shrine, unlocks and codex follow you to your other machines and play.cagdas.io"
     ],
     "screenshots": [
       {

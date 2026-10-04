@@ -12,6 +12,91 @@
   "author": "pal",
   "repo": "bundled",
   "license": "MIT",
+  "sync": {
+    "config": {
+      "fields": {
+        "mode": "latest",
+        "time": "latest",
+        "words": "latest",
+        "punctuation": "latest",
+        "numbers": "latest"
+      }
+    },
+    "records": {
+      "fields": {
+        "best": "union",
+        "history": "union",
+        "tests": "sum",
+        "secs": "sum"
+      }
+    }
+  },
+  "leaderboards": [
+    {
+      "id": "time/15",
+      "title": "15 seconds",
+      "order": "desc",
+      "format": "points",
+      "min": 0,
+      "max": 350
+    },
+    {
+      "id": "time/30",
+      "title": "30 seconds",
+      "order": "desc",
+      "format": "points",
+      "min": 0,
+      "max": 350
+    },
+    {
+      "id": "time/60",
+      "title": "60 seconds",
+      "order": "desc",
+      "format": "points",
+      "min": 0,
+      "max": 350
+    },
+    {
+      "id": "time/120",
+      "title": "120 seconds",
+      "order": "desc",
+      "format": "points",
+      "min": 0,
+      "max": 350
+    },
+    {
+      "id": "words/10",
+      "title": "10 words",
+      "order": "desc",
+      "format": "points",
+      "min": 0,
+      "max": 350
+    },
+    {
+      "id": "words/25",
+      "title": "25 words",
+      "order": "desc",
+      "format": "points",
+      "min": 0,
+      "max": 350
+    },
+    {
+      "id": "words/50",
+      "title": "50 words",
+      "order": "desc",
+      "format": "points",
+      "min": 0,
+      "max": 350
+    },
+    {
+      "id": "words/100",
+      "title": "100 words",
+      "order": "desc",
+      "format": "points",
+      "min": 0,
+      "max": 350
+    }
+  ],
   "store": {
     "tagline": "A monkeytype-style typing test with wpm, accuracy and personal bests",
     "category": "fun",
@@ -21,7 +106,8 @@
       "A pace caret to race your best, average or last test; stop on error by letter or by word",
       "Results: wpm, accuracy, raw speed, consistency, and a second-by-second chart with the mistakes",
       "Personal bests per kind of test, the average of your last ten, and a stats page with a progress chart",
-      "`tab` starts a new test any time; `r` on the result repeats the same words"
+      "`tab` starts a new test any time; `r` on the result repeats the same words",
+      "A leaderboard of words per minute for each plain time and word count; signed in, your bests and history follow you to your other machines and play.cagdas.io"
     ],
     "permissions": [],
     "platforms": [

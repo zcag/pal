@@ -178,6 +178,9 @@ kbd { display: inline-block; min-width: 17px; padding: 0 4px; border-radius: 4px
 .facts div { padding: 7px 4px; border-radius: 8px; background: var(--panel2); text-align: center; }
 .facts b { display: block; font: 16px "NP", monospace; font-weight: normal; }
 .facts span { font-size: 10.5px; color: var(--dim); }
+.standing { margin: 0 0 6px; font-size: 11px; color: var(--dim); }
+.standing:empty { display: none; }
+.standing a { color: var(--gold); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .gold-note { margin: 0 0 8px; font-size: 11px; color: var(--dim); }
 .gold-note b { color: var(--gold); font-weight: normal; }
 .menu .afford { color: var(--gold); }

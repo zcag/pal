@@ -1,13 +1,16 @@
 // Between nights: the save (gold, shrine ranks, unlocks, the codex,
 // records, settings), the loadout a night starts from, and what a finished
-// night earns. Pure: the page stores the save with the kit's storage.
+// night earns. Pure: the page stores the save with the kit's storage, which
+// syncs it to the player's account field by field (pal.json `sync`): gold
+// and counts `sum`, shrine ranks and records `max`, unlocks and the codex
+// `union`.
 import { HEROES, type HeroKind } from "./content/heroes.ts";
 import { ITEMS, type ItemKind } from "./content/items.ts";
 import { OMEN_MAX, SHRINE, UNLOCKS, rankCost, type ShrineKind, type UnlockKind } from "./content/meta.ts";
 import { add, BASE, type Stats } from "./content/stats.ts";
 import { WEAPONS, type WeaponKind } from "./content/weapons.ts";
 import type { EnemyKind } from "./content/enemies.ts";
-import type { BossKind } from "./content/bosses.ts";
+import { BOSSES, type BossKind } from "./content/bosses.ts";
 import type { Loadout, State } from "./sim/index.ts";
 
 export type Settings = { music: number; sfx: number; numbers: boolean; shake: boolean };
@@ -23,8 +26,8 @@ export type Save = {
   omen: number;
   /** The codex: weapons and items picked, evolutions seen, enemies and bosses defeated (counts). */
   seen: { weapons: WeaponKind[]; items: ItemKind[]; evolved: WeaponKind[]; enemies: Partial<Record<EnemyKind, number>>; bosses: Partial<Record<BossKind, number>> };
-  /** Best night per hero: the time, and whether it saw the dawn. */
-  best: Partial<Record<HeroKind, { t: number; dawn: boolean; level: number; kills: number }>>;
+  /** Best night per hero: the time, whether it saw the dawn (1: a number, so a `max` merge keeps it), its level and kills. */
+  best: Partial<Record<HeroKind, { t: number; dawn: number; level: number; kills: number }>>;
   totals: { nights: number; dawns: number; kills: number; gold: number };
   settings: Settings;
 };
@@ -41,7 +44,9 @@ export function load(raw: unknown): Save {
   const f = fresh();
   if (!raw || typeof raw !== "object" || (raw as Save).v !== 1) return f;
   const r = raw as Save;
-  return { ...f, ...r, seen: { ...f.seen, ...r.seen }, totals: { ...f.totals, ...r.totals }, settings: { ...f.settings, ...r.settings } };
+  // `dawn` was once a boolean.
+  const best = Object.fromEntries(Object.entries(r.best ?? {}).map(([h, b]) => [h, { ...b, dawn: b.dawn ? 1 : 0 }]));
+  return { ...f, ...r, best, seen: { ...f.seen, ...r.seen }, totals: { ...f.totals, ...r.totals }, settings: { ...f.settings, ...r.settings } };
 }
 
 export const heroOpen = (s: Save, h: HeroKind) => !HEROES[h].unlock || s.unlocked.includes(HEROES[h].unlock as UnlockKind);
@@ -108,8 +113,8 @@ export function settle(save: Save, run: State): Earned {
   save.totals.gold += gold;
   if (won) save.totals.dawns++;
   const b = save.best[hero];
-  const record = !b || (won && !b.dawn) || (won === b.dawn && run.t > b.t);
-  if (record) save.best[hero] = { t: run.t, dawn: won, level: p.level, kills: p.kills };
+  const record = !b || (won && !b.dawn) || (won === !!b.dawn && run.t > b.t);
+  if (record) save.best[hero] = { t: run.t, dawn: won ? 1 : 0, level: p.level, kills: p.kills };
   const seen = save.seen;
   for (const w of run.weapons) if (!seen.weapons.includes(w.kind)) seen.weapons.push(w.kind);
   for (const i of run.items) if (!seen.items.includes(i.kind)) seen.items.push(i.kind);
@@ -119,6 +124,19 @@ export function settle(save: Save, run: State): Earned {
   const unlocks = earnedUnlocks(run).filter((u) => !save.unlocked.includes(u));
   save.unlocked.push(...unlocks);
   return { gold, found, bonus, unlocks, record };
+}
+
+/** The night's length: the Oni comes at its end, and a dawn is the whole night. */
+export const NIGHT = BOSSES.oni.at;
+
+/**
+ * The leaderboards a finished night goes to (pal.json `leaderboards`), with
+ * their values: the hero's longest night (a dawn is all of it), the most
+ * demons defeated, and, for a dawn, how fast the Oni fell.
+ */
+export function boardsOf(run: State): [string, number][] {
+  const won = run.phase === "won", t = Math.round(run.t * 100) / 100;
+  return [[`night/${run.load.hero}`, won ? NIGHT : Math.min(NIGHT, t)], ["kills", run.p.kills], ...(won ? [["dawn", t] as [string, number]] : [])];
 }
 
 /** What this night earned, whether or not it was already unlocked. */

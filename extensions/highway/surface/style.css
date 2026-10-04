@@ -154,6 +154,8 @@ button[data-key]:hover { background: rgba(255, 255, 255, 0.12); }
 .result { display: grid; grid-template-columns: 1fr 210px; gap: 16px; min-height: 0; }
 .result .left { display: flex; flex-direction: column; min-height: 0; }
 .result .headline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.result .standing { font-size: 12px; font-weight: 600; color: var(--dim); }
+.result .standing a { color: var(--white); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .result dl { margin: 8px 0 6px; gap: 1px 16px; overflow-y: auto; min-height: 0; scrollbar-width: none; }
 .result .right { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
 .result .driver, .result .missions { background: rgba(0, 0, 0, 0.18); }

@@ -122,7 +122,15 @@ the test):
 The options and the
 records (the best of every kind of test, the last 1000 tests, the count
 and the time typed) live in the extension's storage
-(`<data dir>/pal/storage/typing.json`).
+(`<data dir>/pal/storage/typing.json`). Signed in to a pal account they
+sync: the bests are stored as a list and the history merge by `union`
+(reading keeps each kind's fastest), the counts by `sum`, the options by
+field.
+
+A counted plain test (time or words, no punctuation or numbers, not a
+repeat) goes to its leaderboard, words per minute: `time/15` to
+`time/120`, `words/10` to `words/100`. The result's note says where it
+stands.
 
 ## What it does not do
 

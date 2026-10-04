@@ -30,6 +30,43 @@
       "default": true
     }
   ],
+  "sync": {
+    "phone": "local",
+    "best": "max",
+    "options": {
+      "fields": {
+        "level": "latest",
+        "maze": "latest"
+      }
+    }
+  },
+  "leaderboards": [
+    {
+      "id": "top",
+      "title": "Top score",
+      "order": "desc",
+      "format": "points",
+      "min": 1,
+      "max": 100000
+    },
+    {
+      "id": "week",
+      "title": "This week",
+      "order": "desc",
+      "format": "points",
+      "period": "week",
+      "min": 1,
+      "max": 100000
+    },
+    {
+      "id": "level/*",
+      "title": "Level {1}",
+      "order": "desc",
+      "format": "points",
+      "min": 1,
+      "max": 100000
+    }
+  ],
   "store": {
     "tagline": "The Nokia 3310's Snake II, pixel for pixel and step for step",
     "category": "fun",
@@ -39,7 +76,8 @@
       "The phone's menus: New game, Level, Mazes, Top score, Instructions and Continue",
       "Nine levels, no maze or mazes 1 to 5, and a bonus creature after every five foods",
       "The split second before a crash, so a late turn still saves the snake",
-      "The keypad as the phone had it: arrows as 2 4 6 8, `enter` for Menu, `backspace` for C; Escape pauses"
+      "The keypad as the phone had it: arrows as 2 4 6 8, `enter` for Menu, `backspace` for C; Escape pauses",
+      "Leaderboards for the top score, this week's and each level's; signed in, your top score, level and maze follow you to your other machines and play.cagdas.io"
     ],
     "permissions": [],
     "platforms": [
