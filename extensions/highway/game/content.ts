@@ -117,9 +117,9 @@ export const TRAFFIC: TrafficKind[] = [
 export type Location = { id: string; name: string; sky: string; price: number; cash: number; density: number; asphalt: string };
 export const LOCATIONS: Location[] = [
   { id: "countryside", name: "Countryside", sky: "partly_cloudy", price: 0, cash: 1, density: 1, asphalt: "asphalt_new" },
-  { id: "midday", name: "High Noon", sky: "clear_midday", price: 15000, cash: 1.1, density: 1.05, asphalt: "asphalt_worn" },
+  { id: "midday", name: "High Noon", sky: "clear_midday", price: 15000, cash: 1.1, density: 1.05, asphalt: "asphalt_new" },
   { id: "dusk", name: "Golden Hour", sky: "golden_hour", price: 40000, cash: 1.2, density: 1, asphalt: "asphalt_new" },
-  { id: "overcast", name: "Grey Day", sky: "overcast", price: 80000, cash: 1.25, density: 1.15, asphalt: "asphalt_worn" },
+  { id: "overcast", name: "Grey Day", sky: "overcast", price: 80000, cash: 1.25, density: 1.15, asphalt: "asphalt_new" },
   { id: "night", name: "Night Run", sky: "night", price: 150000, cash: 1.4, density: 0.8, asphalt: "asphalt_new" },
 ];
 

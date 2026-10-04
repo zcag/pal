@@ -1,452 +1,289 @@
-// Looks: other ways to finish the frame, to see which suits the game best.
-// `?look=<id>` picks one, L cycles them. The plain look is render.ts's own
-// chain; every other one draws the scene into a target that keeps its depth
-// (for occlusion, outlines, focus and haze), then runs its passes:
-//   scene -> [hdr passes] -> bloom -> finish (speed blur, hit, dim) -> tone map -> [display passes]
-// A look may also change how the scene's materials shade (toon bands).
+// The finishing: everything between the scene and the screen. One look, the realistic one:
+//   scene (4x MSAA, HDR, depth kept) -> occlusion from depth (half res) -> its blur (half res)
+//   -> combine: occlusion, haze toward the sky's own horizon, camera motion blur (full res, HDR)
+//   -> bloom -> finish: exposure, ACES, the place's grade, vignette, hit flash, dim, dither -> screen
+// The sky is drawn un-tone-mapped (render.ts), so the photo's sun is bright enough to bloom.
+// Cars write alpha 0 (car.ts): the motion blur leaves them sharp and never smears them onto the road.
+// `?fx=-ao,-blur,-haze,-bloom,-grade,-sharpen` turns parts off, for comparing and measuring (and
+// `-shadows`, three's own shadow filter, render.ts).
 import * as THREE from "./vendor/three.js";
-import { EffectComposer, UnrealBloomPass, ShaderPass, OutputPass } from "./vendor/three.js";
-import { FINISH, type Fx } from "./render.ts";
+import { UnrealBloomPass } from "./vendor/three.js";
+import { lookOf, SKY_LOOKS, type Grade } from "./skylooks.ts";
+import type { Fx } from "./render.ts";
 
-const VS = "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }";
-const COMMON = `#include <packing>
-  uniform sampler2D tDiffuse, tDepth; uniform float cNear, cFar, time, dpr; uniform vec2 res; varying vec2 vUv;
-  float lz(vec2 uv){ return -perspectiveDepthToViewZ(texture2D(tDepth, uv).x, cNear, cFar); }
-  float luma(vec3 c){ return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
-  float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
-  float vnoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
-    return mix(mix(hash(i), hash(i+vec2(1,0)), f.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y); }
-  vec3 sat(vec3 c, float s){ return max(mix(vec3(luma(c)), c, s), 0.0); }
-`;
-const U = () => ({ tDiffuse: { value: null }, tDepth: { value: null }, cNear: { value: 0.1 }, cFar: { value: 4000 }, time: { value: 0 }, dpr: { value: 1 }, res: { value: new THREE.Vector2(1, 1) } });
-type Uniforms = Record<string, { value: unknown }>;
-const pass = (fragment: string, extra: Uniforms = {}) => ({ uniforms: { ...U(), ...extra }, vertexShader: VS, fragmentShader: COMMON + fragment });
+const VS = "varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }";
 
-// ------------------------------------------------------------ cinematic
+/** Three's ACES and its inverse (the sky photos were tone-mapped with it at exposure 1). */
+export const ACES = `
+  const mat3 ACES_IN = mat3(vec3(0.59719, 0.07600, 0.02840), vec3(0.35458, 0.90834, 0.13383), vec3(0.04823, 0.01566, 0.83777));
+  const mat3 ACES_OUT = mat3(vec3(1.60475, -0.10208, -0.00327), vec3(-0.53108, 1.10813, -0.07276), vec3(-0.07367, -0.00605, 1.07602));
+  vec3 aces(vec3 c){ c = ACES_IN * (c / 0.6); vec3 a = c * (c + 0.0245786) - 0.000090537, b = c * (0.983729 * c + 0.4329510) + 0.238081; return clamp(ACES_OUT * (a / b), 0.0, 1.0); }
+  vec3 unaces(vec3 y){
+    y = clamp(inverse(ACES_OUT) * min(y, vec3(0.985)), 0.0, 0.985); // a white sun comes back about 8 times brighter than white paper
+    vec3 A = 1.0 - 0.983729 * y, B = 0.0245786 - 0.432951 * y, C = -(0.000090537 + 0.238081 * y);
+    return max(inverse(ACES_IN) * ((-B + sqrt(B * B - 4.0 * A * C)) / (2.0 * A)), 0.0) * 0.6;
+  }`;
 
-/** Occlusion where surfaces meet, from depth alone: on a plane 1/z is linear across the screen, so a pair
- *  of neighbours whose mean 1/z is above ours stands in front of the plane. Only near occluders count
- *  (within the probe's own radius), so a car darkens the road it sits on, not the road behind it. */
-const CINE_AO = pass(`uniform float aoAmt;
+const DEPTH = `uniform sampler2D tDepth; uniform mat4 projInv;
+  vec3 viewPos(vec2 uv, float d){ vec4 p = projInv * vec4(uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0); return p.xyz / p.w; }
+  vec3 viewAt(vec2 uv){ return viewPos(uv, texture2D(tDepth, uv).x); }
+  float ign(vec2 p){ return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))); }`;
+
+/** Ambient occlusion (scalable SAO): 6 directions x 3 steps within `radius` metres of the point, on
+ *  normals rebuilt from depth; fades out past 140 m, where a fold of the land is not contact. */
+const AO = DEPTH + `uniform vec2 texel; uniform float radius, intensity, scale; varying vec2 vUv;
   void main(){
-    vec3 c = texture2D(tDiffuse, vUv).rgb;
-    float z = lz(vUv), w = 1.0 / z;
-    float ppm = res.y * 1.3 / z; // screen pixels per metre at this depth
-    float occ = 0.0, rot = hash(gl_FragCoord.xy) * 0.39;
-    for (int i = 0; i < 8; i++) {
-      float a = float(i) * 0.3927 + rot;
-      vec2 dir = vec2(cos(a), sin(a));
-      for (int k = 0; k < 2; k++) {
-        float m = k == 0 ? 0.2 : 0.5;
-        vec2 o = dir * clamp(ppm * m, 1.5 * dpr, 40.0 * dpr) / res;
-        float z1 = lz(vUv + o), z2 = lz(vUv - o);
-        float ex = (0.5 / z1 + 0.5 / z2 - w) * z * z; // metres in front of the plane
-        occ += smoothstep(0.01, m * 0.4, ex) * (1.0 - smoothstep(m, m * 2.5, ex));
+    vec2 uv0 = (floor(vUv / texel) + 0.5) * texel; // on a full-res texel: its neighbours are other texels
+    float d = texture2D(tDepth, uv0).x;
+    if (d >= 1.0) { gl_FragColor = vec4(1.0); return; }
+    vec3 p = viewPos(uv0, d);
+    vec3 pl = viewAt(uv0 - vec2(texel.x, 0.0)), pr = viewAt(uv0 + vec2(texel.x, 0.0));
+    vec3 pd = viewAt(uv0 - vec2(0.0, texel.y)), pu = viewAt(uv0 + vec2(0.0, texel.y));
+    vec3 n = normalize(cross(abs(pr.z - p.z) < abs(p.z - pl.z) ? pr - p : p - pl, abs(pu.z - p.z) < abs(p.z - pd.z) ? pu - p : p - pd));
+    float z = -p.z, r2 = radius * radius;
+    float rpx = clamp(radius * scale / z, 3.0, 90.0);
+    float a0 = ign(gl_FragCoord.xy) * 6.2832, j0 = ign(gl_FragCoord.yx + 31.0), occ = 0.0;
+    for (int i = 0; i < 6; i++) {
+      vec2 dir = vec2(cos(a0 + float(i) * 1.0472), sin(a0 + float(i) * 1.0472));
+      for (int k = 0; k < 3; k++) {
+        float s = (float(k) + fract(j0 + float(i) * 0.618)) / 3.0;
+        vec3 v = viewAt(uv0 + dir * max(rpx * s * s, 1.5) * texel) - p;
+        float vv = dot(v, v), f = max(r2 - vv, 0.0);
+        occ += f * f * f * max((dot(v, n) - 0.004 * z) / (vv + 0.01), 0.0);
       }
     }
-    float ao = 1.0 - aoAmt * min(occ / 10.0, 1.0) * (1.0 - smoothstep(30.0, 70.0, z)); // near only: far terrain folds are not contact
-    gl_FragColor = vec4(c * ao, 1.0);
-  }`, { aoAmt: { value: 0.7 } });
+    float ao = max(0.0, 1.0 - occ * intensity / (r2 * r2 * r2) * (5.0 / 18.0));
+    gl_FragColor = vec4(mix(1.0, ao, 1.0 - smoothstep(70.0, 140.0, z)), 0.0, 0.0, 1.0);
+  }`;
 
-/** Anamorphic streaks: the bloom's own bright, blurred quarter-size image smeared sideways, in blue. */
-const CINE_STREAK = pass(`uniform sampler2D tBloom; uniform float streak;
+/** The occlusion's noise smoothed over 4x4 half-res texels, only across similar depths. */
+const AO_BLUR = DEPTH + `uniform sampler2D tAO; uniform vec2 aoTexel; varying vec2 vUv;
   void main(){
-    vec3 st = vec3(0.0);
-    for (int i = -24; i <= 24; i++) {
-      vec3 a = texture2D(tBloom, vUv + vec2(float(i) * 6.0 * dpr / res.x, 0.0)).rgb;
-      st += max(a - 0.6, 0.0) * exp(-abs(float(i)) * 0.09);
+    float z0 = -viewAt(vUv).z, s = 0.0, w = 0.0;
+    for (int y = -2; y < 2; y++) for (int x = -2; x < 2; x++) {
+      vec2 uv = vUv + (vec2(float(x), float(y)) + 0.5) * aoTexel;
+      float ww = exp(-abs(-viewAt(uv).z - z0) / (0.03 * z0 + 0.05));
+      s += texture2D(tAO, uv).r * ww; w += ww;
     }
-    gl_FragColor = vec4(texture2D(tDiffuse, vUv).rgb + st * vec3(0.35, 0.55, 1.0) * streak, 1.0);
-  }`, { tBloom: { value: null }, streak: { value: 0.06 } });
+    gl_FragColor = vec4(s / max(w, 1e-4), 0.0, 0.0, 1.0);
+  }`;
 
-/** A film grade on the tone-mapped frame: a filmic S-curve, cool shadows with a lifted blue floor, warm
- *  highlights, greens pulled toward olive, lateral fringing at the edges, a vignette and moving grain. */
-const CINE_GRADE = pass(`
-  void main(){
-    vec2 d = vUv - 0.5;
-    vec2 ca = d * dot(d, d) * 0.014;
-    vec3 c = vec3(texture2D(tDiffuse, vUv + ca).r, texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv - ca).b);
-    c = clamp(c, 0.0, 1.0);
-    c.g -= 0.25 * max(c.g - max(c.r, c.b), 0.0);                       // greens toward olive
-    c = mix(c, c * c * (3.0 - 2.0 * c), 0.55);                          // contrast
-    float l = luma(c);
-    c *= mix(vec3(0.86, 0.98, 1.08), vec3(1.0), smoothstep(0.0, 0.5, l)); // teal shadows
-    c *= mix(vec3(1.0), vec3(1.08, 1.0, 0.86), smoothstep(0.45, 1.0, l)); // warm highlights
-    c += vec3(0.006, 0.02, 0.045) * (1.0 - l) * (1.0 - l);              // a blue floor: night stays legible
-    c = sat(c, 0.94);
-    c *= mix(1.0, smoothstep(1.05, 0.2, length(d * vec2(1.25, 1.0))), 0.5);
-    float g = hash(floor(gl_FragCoord.xy / max(dpr, 1.0)) + fract(time * 7.13) * vec2(91.7, 37.3)) - 0.5;
-    c += g * 0.045 * (1.0 - 0.6 * l);
-    gl_FragColor = vec4(c, 1.0);
-  }`);
-
-// ------------------------------------------------------------ painterly
-
-/** Generalized Kuwahara (Kyprianidis's polynomial sectors): each pixel takes the mean of the
- *  least varied of eight sectors around it, so flat areas become strokes and edges stay. */
-const KUWAHARA = pass(`uniform float radius, stride, hard;
-  void main(){
-    vec4 m[8]; vec3 s[8];
-    for (int k = 0; k < 8; k++) { m[k] = vec4(0.0); s[k] = vec3(0.0); }
-    float zeta = 2.0 / radius, zc = 0.58, sz = sin(zc), eta = (zeta + cos(zc)) / (sz * sz);
-    int R = int(radius);
-    for (int y = -R; y <= R; y++) for (int x = -R; x <= R; x++) {
-      vec2 v = vec2(float(x), float(y)) / radius;
-      if (dot(v, v) > 1.0) continue;
-      vec3 c = clamp(texture2D(tDiffuse, vUv + vec2(float(x), float(y)) * stride / res).rgb, 0.0, 1.0);
-      float w[8], z, vxx, vyy, sum = 0.0;
-      vxx = zeta - eta * v.x * v.x; vyy = zeta - eta * v.y * v.y;
-      z = max(0.0, v.y + vxx); w[0] = z * z; z = max(0.0, -v.x + vyy); w[2] = z * z;
-      z = max(0.0, -v.y + vxx); w[4] = z * z; z = max(0.0, v.x + vyy); w[6] = z * z;
-      vec2 r = 0.70710678 * vec2(v.x - v.y, v.x + v.y);
-      vxx = zeta - eta * r.x * r.x; vyy = zeta - eta * r.y * r.y;
-      z = max(0.0, r.y + vxx); w[1] = z * z; z = max(0.0, -r.x + vyy); w[3] = z * z;
-      z = max(0.0, -r.y + vxx); w[5] = z * z; z = max(0.0, r.x + vyy); w[7] = z * z;
-      for (int k = 0; k < 8; k++) sum += w[k];
-      float g = exp(-3.125 * dot(v, v)) / max(sum, 1e-5);
-      for (int k = 0; k < 8; k++) { float wk = w[k] * g; m[k] += vec4(c * wk, wk); s[k] += c * c * wk; }
-    }
-    vec4 o = vec4(0.0);
-    for (int k = 0; k < 8; k++) {
-      vec3 mu = m[k].rgb / max(m[k].w, 1e-5);
-      vec3 va = abs(s[k] / max(m[k].w, 1e-5) - mu * mu);
-      float wk = 1.0 / pow(hard * (va.r + va.g + va.b) + 0.002, 4.0); // never 0: the least varied sector wins
-      o += vec4(mu * wk, wk);
-    }
-    gl_FragColor = vec4(o.rgb / max(o.w, 1e-5), 1.0);
-  }`, { radius: { value: 6 }, stride: { value: 2 }, hard: { value: 8 } });
-
-/** Canvas under the paint: a woven, embossed ground, darker pigment where colours meet, richer colour. */
-const CANVAS = pass(`
-  float weave(vec2 p){ return 0.5 + 0.25 * sin(p.x * 2.2) * sin(p.y * 0.35 + sin(p.x * 0.11) * 2.0) + 0.25 * sin(p.y * 2.2) * sin(p.x * 0.35); }
-  float ground(vec2 p){ return weave(p) * 0.35 + vnoise(p * 0.18) * 0.4 + vnoise(p * 0.7) * 0.25; }
-  void main(){
-    vec3 c = texture2D(tDiffuse, vUv).rgb;
-    vec2 t = 1.5 * dpr / res;
-    float lx = luma(texture2D(tDiffuse, vUv + vec2(t.x, 0.0)).rgb) - luma(texture2D(tDiffuse, vUv - vec2(t.x, 0.0)).rgb);
-    float ly = luma(texture2D(tDiffuse, vUv + vec2(0.0, t.y)).rgb) - luma(texture2D(tDiffuse, vUv - vec2(0.0, t.y)).rgb);
-    float edge = smoothstep(0.04, 0.25, length(vec2(lx, ly)));
-    c *= 1.0 - 0.18 * edge;                                  // pigment pools where colours meet
-    vec2 p = gl_FragCoord.xy / dpr;
-    float h = ground(p), hx = ground(p + vec2(1.0, 0.0)), hy = ground(p + vec2(0.0, 1.0));
-    c *= 0.96 + 0.07 * h + 0.3 * ((hx - h) - (hy - h));     // the canvas, lit from the top left
-    c = pow(c, vec3(0.92)) + vec3(0.005, 0.012, 0.03) * (1.0 - luma(c));
-    c = sat(c, 1.18);
-    c = mix(c, c * c * (3.0 - 2.0 * c), 0.25);
-    c = mix(c, c * vec3(1.03, 1.0, 0.94) + vec3(0.015, 0.01, 0.0), 0.6); // warm, slightly aged varnish
-    gl_FragColor = vec4(c, 1.0);
-  }`);
-
-// ------------------------------------------------------------ toon
-
-/** Light in whole stops with soft steps, a crisp sun highlight, reflections in half stops. Goes in
- *  after <aomap_fragment> of MeshStandard/MeshPhysical, before the light is summed. */
-const TOON_LIGHT = `{
-  vec3 dl = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse;
-  float alb = max(dot(diffuseColor.rgb, vec3(0.3333)), 0.03);
-  float li = max(dot(dl, vec3(0.3333)) / alb, 1e-5);
-  float f = log2(li) * 0.8;
-  float s = exp2((floor(f) + smoothstep(0.35, 0.65, fract(f))) / 0.8) / li;
-  reflectedLight.directDiffuse *= s; reflectedLight.indirectDiffuse *= s * vec3(0.86, 0.92, 1.18); // shade leans blue
-  float sl = dot(reflectedLight.directSpecular, vec3(0.3333));
-  reflectedLight.directSpecular *= smoothstep(0.18, 0.24, sl) * 1.6;
-  float il = max(dot(reflectedLight.indirectSpecular, vec3(0.3333)), 1e-5);
-  float fi = log2(il) * 2.0;
-  reflectedLight.indirectSpecular *= exp2((floor(fi) + smoothstep(0.4, 0.6, fract(fi))) / 2.0) / il;
-}`;
-
-/** Ink lines from depth (the second difference of 1/z: zero across a plane, large at a silhouette or a
- *  crease), fading with distance; the sky simplified into soft bands; cleaner, fuller colour. */
-const TOON_POST = pass(`uniform float width;
-  float iw(vec2 uv){ return -1.0 / perspectiveDepthToViewZ(texture2D(tDepth, uv).x, cNear, cFar); }
-  void main(){
-    vec3 c = texture2D(tDiffuse, vUv).rgb;
-    vec2 o = vec2(width * dpr) / res;
-    float w = iw(vUv), z = 1.0 / w;
-    float wl = iw(vUv - vec2(o.x, 0.0)), wr = iw(vUv + vec2(o.x, 0.0)), wd = iw(vUv - vec2(0.0, o.y)), wu = iw(vUv + vec2(0.0, o.y));
-    float e = max(abs(wl + wr - 2.0 * w), abs(wu + wd - 2.0 * w)) / w;
-    float line = smoothstep(0.012, 0.04, e) * (1.0 - smoothstep(25.0, 80.0, z));
-    if (z > 2000.0) {
-      float l = luma(c), b = l * 6.0;
-      float q = (floor(b) + smoothstep(0.3, 0.7, fract(b))) / 6.0;
-      c = sat(c * q / max(l, 1e-3), 1.15);
-      line = 0.0;
-    }
-    c = sat(c, 1.18);
-    c = mix(c, c * vec3(0.16, 0.15, 0.2), line * 0.9);
-    gl_FragColor = vec4(c, 1.0);
-  }`, { width: { value: 1.0 } });
-
-// ------------------------------------------------------------ retro
-
-/** An arcade board's frame: ~360 lines wide, sharp pixels, a short draw distance into haze, 15-bit-ish
- *  colour with ordered dither, a little fringing and the scanlines of a CRT. */
-const RETRO = pass(`uniform float lines; uniform vec3 haze;
-  float b2(vec2 a){ a = floor(a); return fract(dot(a, vec2(0.5, a.y * 0.75))); }
-  float bayer(vec2 a){ return b2(0.5 * a) * 0.25 + b2(a); }
-  void main(){
-    float B = floor(res.y / lines);
-    vec2 vres = floor(res / B), cell = floor(vUv * vres), uvb = (cell + 0.5) / vres;
-    float ca = 0.45 / vres.x;
-    vec3 c = vec3(texture2D(tDiffuse, uvb + vec2(ca, 0.0)).r, texture2D(tDiffuse, uvb).g, texture2D(tDiffuse, uvb - vec2(ca, 0.0)).b);
-    float z = lz(uvb);
-    c = mix(c, haze, z > 2000.0 ? 0.2 : smoothstep(90.0, 500.0, z) * 0.6);
-    c = pow(c, vec3(0.85)) + vec3(0.0, 0.01, 0.03) * (1.0 - luma(c)); // arcade nights are blue, not black
-    c = sat(c, 1.35);
-    c = mix(c, c * c * (3.0 - 2.0 * c), 0.4);
-    float L = 9.0;
-    c = floor(c * L + bayer(cell) * 0.999) / L;
-    vec2 in_ = fract(vUv * vres);
-    c *= 1.0 - 0.32 * smoothstep(0.45, 1.0, abs(in_.y - 0.5) * 2.0);  // scanline gaps
-    float m = mod(floor(gl_FragCoord.x / max(dpr, 1.0)), 3.0);
-    c *= mix(vec3(1.0), m < 1.0 ? vec3(1.08, 0.95, 0.95) : m < 2.0 ? vec3(0.95, 1.08, 0.95) : vec3(0.95, 0.95, 1.08), 0.6);
-    gl_FragColor = vec4(c * 1.08, 1.0);
-  }`, { lines: { value: 180 }, haze: { value: new THREE.Color() } });
-
-/** Vertices snapped to a 320x180 grid, as the era's fixed-point hardware did: edges wobble a little. */
-const SNAP = "gl_Position.xy = floor(gl_Position.xy / gl_Position.w * vec2(160.0, 90.0) + 0.5) / vec2(160.0, 90.0) * gl_Position.w;";
-
-// ------------------------------------------------------------ miniature
-
-/** A very shallow focus on the player's car (found by sampling the depth where it sits): the thin-lens
- *  blur grows with |z - focus| / z, gathered on a golden-angle disc; a sharp thing never bleeds into a
- *  blurrier one behind it. That shallow focus is what makes a real scene read as a model. */
-const MINI_DOF = pass(`uniform float maxR, focusY;
-  float coc(float z, float zf){ return min(maxR * 1.15 * abs(z - zf) / z, maxR); }
-  void main(){
-    float zf = min(min(lz(vec2(0.5, focusY)), lz(vec2(0.46, focusY))), lz(vec2(0.54, focusY)));
-    zf = clamp(zf, 4.0, 40.0);
-    vec3 c0 = texture2D(tDiffuse, vUv).rgb;
-    float z0 = lz(vUv), r0 = coc(z0, zf) * dpr;
-    vec3 sum = c0; float ws = 1.0;
-    float R = maxR * dpr;
-    for (int i = 0; i < 64; i++) {
-      float a = float(i) * 2.39996, rr = sqrt((float(i) + 0.5) / 64.0) * R;
-      vec2 uv = vUv + vec2(cos(a), sin(a)) * rr / res;
-      float zs = lz(uv), rs = coc(zs, zf) * dpr;
-      float reach = zs < z0 ? rs : min(rs, r0);
-      float w = clamp(reach - rr + 1.0, 0.0, 1.0);
-      sum += texture2D(tDiffuse, uv).rgb * w; ws += w;
-    }
-    gl_FragColor = vec4(sum / ws, 1.0);
-  }`, { maxR: { value: 9 }, focusY: { value: 0.33 } });
-
-/** Toy colour: saturated and bright, shadows lifted and cool (so they read as tinted, not black),
- *  warm highlights, a gentle vignette. */
-const MINI_GRADE = pass(`
-  void main(){
-    vec3 c = texture2D(tDiffuse, vUv).rgb;
-    float l = luma(c);
-    float sh = 1.0 - smoothstep(0.04, 0.42, l);
-    c = mix(c, c * vec3(0.8, 0.92, 1.2) + vec3(0.012, 0.02, 0.04), sh * 0.85);
-    c *= mix(vec3(1.0), vec3(1.07, 1.01, 0.9), smoothstep(0.45, 1.0, l));
-    c = sat(c, 1.4);
-    c = c * 1.06 + 0.01;
-    c = mix(c, c * c * (3.0 - 2.0 * c), 0.2);
-    vec2 d = vUv - 0.5;
-    c *= mix(1.0, smoothstep(1.1, 0.3, length(d * vec2(1.2, 1.0))), 0.3);
-    gl_FragColor = vec4(c, 1.0);
-  }`);
-
-// ------------------------------------------------------------ the looks
-
-type Shader = ReturnType<typeof pass>;
-type Def = {
-  name: string;
-  about: string;
-  bloom: [strength: number, radius: number, threshold: number];
-  tint?: [number, number, number][]; // bloom tint per mip, small to wide
-  tone?: THREE.ToneMapping;
-  exposure?: number; // times the place's own
-  vignette?: number; // the finish pass's corners
-  hdr?: Shader[]; // before the bloom
-  post?: Shader[]; // after it (tBloom: its bright, blurred quarter-size image)
-  display?: Shader[];
-  shade?: Shade; // how MeshStandard/MeshPhysical materials shade
-};
-/** frag: GLSL after <aomap_fragment> (the light, before it is summed); vert: after <project_vertex>;
- *  blur: a texture lod bias on the colour map (less texture detail). */
-type Shade = { frag?: string; vert?: string; blur?: number };
-
-export const LOOKS: Record<string, Def> = {
-  real: { name: "Real", about: "The current look: physically based, bloom, ACES.", bloom: [0.1, 0.35, 2.5] },
-  cinematic: {
-    name: "Cinematic",
-    about: "Contact occlusion from depth, warm halation, anamorphic lamp streaks, a teal and orange film grade, vignette, grain.",
-    bloom: [0.32, 0.75, 1.1],
-    tint: [[1, 1, 1], [1, 0.95, 0.9], [1.1, 0.75, 0.55], [1.25, 0.6, 0.4], [1.3, 0.5, 0.35]],
-    exposure: 1.05, vignette: 0,
-    hdr: [CINE_AO], post: [CINE_STREAK], display: [CINE_GRADE],
-  },
-  painterly: {
-    name: "Painterly",
-    about: "A generalized Kuwahara filter turns the frame into brush strokes, laid on an embossed canvas.",
-    bloom: [0.2, 0.5, 1.6], vignette: 0.2,
-    display: [KUWAHARA, CANVAS],
-  },
-  toon: {
-    name: "Toon",
-    about: "Light in soft-stepped bands and crisp highlights on every material, ink outlines from depth, a banded sky.",
-    bloom: [0.15, 0.4, 2.0], tone: THREE.NeutralToneMapping, exposure: 0.95, vignette: 0.12,
-    shade: { frag: TOON_LIGHT, blur: 2 }, display: [TOON_POST],
-  },
-  retro: {
-    name: "Arcade",
-    about: "A 90s arcade board: 200 lines with sharp pixels, short draw distance into haze, dithered colour, CRT scanlines.",
-    bloom: [0.35, 0.5, 1.4], vignette: 0.15,
-    shade: { vert: SNAP }, display: [RETRO],
-  },
-  miniature: {
-    name: "Miniature",
-    about: "Tilt-shift: a shallow focus on your car turns the road into a model, in bright toy colour with soft cool shadows.",
-    bloom: [0.18, 0.5, 1.8], tone: THREE.NeutralToneMapping, exposure: 1.0, vignette: 0,
-    hdr: [MINI_DOF], display: [MINI_GRADE],
-  },
-};
-export const LOOK_IDS = Object.keys(LOOKS);
-
-/** Draws the scene into its own multisampled target with a depth texture, then copies the colour on. */
-class ScenePass extends ShaderPass {
-  target: THREE.WebGLRenderTarget;
-  scene = new THREE.Scene();
-  constructor(public camera: THREE.Camera) {
-    super({ uniforms: { tDiffuse: { value: null } }, vertexShader: VS, fragmentShader: "uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ gl_FragColor = texture2D(tDiffuse, vUv); }" });
-    this.target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4, depthTexture: new THREE.DepthTexture(1, 1) });
+/** Occlusion, haze and camera motion blur, in HDR. The blur follows each pixel's own motion (its world
+ *  point, from depth, seen by last frame's camera), so it is strong at the edges and near the camera
+ *  at speed and nothing in the middle; it skips car pixels (alpha 0) both as targets and as samples.
+ *  The haze thins with height, and its colour is the sky photo straight above the horizon that way. */
+const COMBINE = DEPTH + ACES + `
+  uniform sampler2D tColor, tAO, tSky; uniform mat4 viewInv, prevVP; uniform mat3 skyRot; uniform vec3 camPos; uniform vec2 texel;
+  uniform float aoAmt, shutter, maxBlur, haze, hazeFall, skyIntensity, useSky; uniform vec3 fogColor, sunDir, sunCol; varying vec2 vUv;
+  vec3 skyAt(vec3 d){
+    d = skyRot * normalize(vec3(d.x, max(d.y, 0.035), d.z));
+    vec2 uv = vec2(atan(d.z, d.x) * 0.1591549 + 0.5, asin(clamp(d.y, -1.0, 1.0)) * 0.3183099 + 0.5);
+    return useSky > 0.5 ? unaces(textureLod(tSky, uv, 6.0).rgb) * skyIntensity : fogColor;
   }
-  setSize(w: number, h: number) { this.target.setSize(w, h); }
-  render(gl: THREE.WebGLRenderer, writeBuffer: THREE.WebGLRenderTarget) {
-    gl.setRenderTarget(this.target);
-    gl.clear();
-    gl.render(this.scene, this.camera);
-    this.uniforms.tDiffuse.value = this.target.texture;
-    gl.setRenderTarget(this.renderToScreen ? null : writeBuffer);
-    (this as unknown as { _fsQuad: { render(r: THREE.WebGLRenderer): void } })._fsQuad.render(gl);
+  vec3 lit(vec2 uv, vec3 c){ return c * mix(1.0, texture2D(tAO, uv).r, aoAmt); }
+  void main(){
+    float d = texture2D(tDepth, vUv).x;
+    vec3 wp = (viewInv * vec4(viewPos(vUv, d), 1.0)).xyz;
+    vec4 pc = prevVP * vec4(wp, 1.0);
+    vec2 vel = (vUv - (pc.xy / pc.w * 0.5 + 0.5)) * shutter;
+    float L = length(vel / texel);
+    if (pc.w <= 0.0) vel = vec2(0.0), L = 0.0;
+    if (L > maxBlur) vel *= maxBlur / L, L = maxBlur;
+    vec4 c0 = texture2D(tColor, vUv);
+    vel *= clamp(c0.a, 0.0, 1.0);
+    vec3 c = lit(vUv, c0.rgb);
+    if (L * c0.a > 1.0) {
+      float w = 1.0, j = ign(gl_FragCoord.xy);
+      for (int i = 0; i < 10; i++) {
+        vec2 uv = vUv + vel * ((float(i) + j) / 10.0 - 0.5);
+        vec4 s = texture2D(tColor, uv);
+        float ws = clamp(s.a, 0.0, 1.0);
+        c += lit(uv, s.rgb) * ws; w += ws;
+      }
+      c /= w;
+    }
+    if (d < 1.0 && haze > 0.0) {
+      vec3 ray = wp - camPos;
+      float dist = length(ray), kd = hazeFall * ray.y;
+      float od = haze * exp(-hazeFall * max(camPos.y, 0.0)) * dist * (abs(kd) > 1e-4 ? (1.0 - exp(-kd)) / kd : 1.0);
+      // and the sun lighting the haze, strongest looking toward it (Henyey-Greenstein, g = 0.7)
+      float mu = dot(ray / dist, sunDir), hg = 0.51 / (12.566 * pow(1.49 - 1.4 * mu, 1.5));
+      c = mix(c, skyAt(ray / dist) + sunCol * hg, 1.0 - exp(-od));
+    }
+    gl_FragColor = vec4(c.r + c.g + c.b < 3000.0 ? max(c, 0.0) : vec3(0.0), 1.0); // a NaN or an overflow would bloom into a black screen
+
+  }`;
+
+/** To the screen: exposure and ACES, then the place's grade on the encoded image (white balance,
+ *  a soft contrast curve that never clips, saturation, lift and gain), vignette, hit, dim, dither. */
+const FINISH = ACES + `
+  uniform sampler2D tHDR; uniform vec2 texel; uniform float sharpen, exposure, contrast, saturation, warmth, vignette, hit, dim, grade, time; uniform vec3 lift, gain; varying vec2 vUv;
+  float ign(vec2 p){ return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))); }
+  vec3 srgb(vec3 c){ return mix(c * 12.92, 1.055 * pow(max(c, 1e-6), vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
+  vec3 curve(vec3 c, float k){ return mix(0.45 * pow(max(c, 1e-6) / 0.45, vec3(k)), 1.0 - 0.55 * pow(max(1.0 - c, 1e-6) / 0.55, vec3(k)), step(0.45, c)); }
+  void main(){
+    // a little sharpening (the panel is small): the pixel pushed away from its four neighbours' mean, limited
+    // to a fraction of its own brightness so edges never ring
+    vec3 h = texture2D(tHDR, vUv).rgb;
+    vec3 nb = (texture2D(tHDR, vUv + vec2(texel.x, 0.0)).rgb + texture2D(tHDR, vUv - vec2(texel.x, 0.0)).rgb + texture2D(tHDR, vUv + vec2(0.0, texel.y)).rgb + texture2D(tHDR, vUv - vec2(0.0, texel.y)).rgb) * 0.25;
+    h = max(h + clamp((h - nb) * sharpen, -0.25 * h, 0.25 * h), 0.0) * exposure;
+    h *= grade > 0.5 ? vec3(1.0 + warmth, 1.0 + warmth * 0.1, 1.0 - warmth) : vec3(1.0);
+    vec3 c = srgb(aces(h));
+    if (grade > 0.5) {
+      c = curve(clamp(c, 0.0, 1.0), contrast);
+      float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+      c = max(mix(vec3(l), c, saturation), 0.0);
+      c = c * gain + lift * (1.0 - c);
+    }
+    vec2 q = (vUv - 0.5) * vec2(1.0, 0.62);
+    c *= 1.0 - vignette * smoothstep(0.18, 0.62, length(q));
+    float r = length(vUv - vec2(0.5, 0.52));
+    c = mix(c, c * vec3(1.6, 0.55, 0.45) + vec3(0.12, 0.0, 0.0), hit * smoothstep(0.15, 0.85, r));
+    c *= 1.0 - dim;
+    c += (ign(gl_FragCoord.xy + fract(time) * 97.0) - 0.5) / 255.0;
+    gl_FragColor = vec4(c, 1.0);
+  }`;
+
+const quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+class Quad {
+  mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
+  constructor(fragmentShader: string, uniforms: Record<string, THREE.IUniform>) {
+    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({ vertexShader: VS, fragmentShader, uniforms, depthTest: false, depthWrite: false }));
+    this.mesh.frustumCulled = false;
   }
+  get u() { return this.mesh.material.uniforms; }
+  draw(gl: THREE.WebGLRenderer, target: THREE.WebGLRenderTarget | null) { gl.setRenderTarget(target); gl.render(this.mesh, quadCam); }
 }
 
-export class Looks {
-  id = "real";
-  private composer: EffectComposer;
-  private scenePass: ScenePass;
-  private bloom: UnrealBloomPass;
-  private finish: ShaderPass;
-  private output = new OutputPass();
-  private passes: ShaderPass[] = [];
-  private patched = new Map<THREE.Material, { obc: THREE.Material["onBeforeCompile"]; key: () => string }>();
-  private toast = document.createElement("div");
-  private hideToast: ReturnType<typeof setTimeout> | undefined;
-  private tone: THREE.ToneMapping;
+const FX = new Set((new URLSearchParams(location.search).get("fx") ?? "").split(",").filter((s) => s.startsWith("-")).map((s) => s.slice(1)));
+const v2 = () => ({ value: new THREE.Vector2() });
+
+export class Finish {
+  /** The scene, multisampled, with its depth. */
+  scene = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4, depthTexture: new THREE.DepthTexture(1, 1) });
+  private hdr = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType });
+  private ao = [0, 1].map(() => new THREE.WebGLRenderTarget(1, 1, { depthBuffer: false }));
+  private aoQ = new Quad(AO, { tDepth: { value: null }, projInv: { value: new THREE.Matrix4() }, texel: v2(), radius: { value: 1.2 }, intensity: { value: 1.3 }, scale: { value: 1 } });
+  private blurQ = new Quad(AO_BLUR, { tDepth: { value: null }, projInv: { value: new THREE.Matrix4() }, tAO: { value: null }, aoTexel: v2() });
+  private combQ = new Quad(COMBINE, {
+    tDepth: { value: null }, projInv: { value: new THREE.Matrix4() }, tColor: { value: null }, tAO: { value: null }, tSky: { value: null },
+    viewInv: { value: new THREE.Matrix4() }, prevVP: { value: new THREE.Matrix4() }, skyRot: { value: new THREE.Matrix3() }, camPos: { value: new THREE.Vector3() }, texel: v2(),
+    aoAmt: { value: 1 }, shutter: { value: 0 }, maxBlur: { value: 60 }, haze: { value: 0 }, hazeFall: { value: 0.02 }, skyIntensity: { value: 1 }, useSky: { value: 1 }, fogColor: { value: new THREE.Color() },
+    sunDir: { value: new THREE.Vector3(0, 1, 0) }, sunCol: { value: new THREE.Color() },
+  });
+  private finQ = new Quad(FINISH, {
+    tHDR: { value: null }, texel: v2(), sharpen: { value: 0.35 }, exposure: { value: 1 }, contrast: { value: 1 }, saturation: { value: 1 }, warmth: { value: 0 }, vignette: { value: 0.2 }, hit: { value: 0 }, dim: { value: 0 }, grade: { value: 1 }, time: { value: 0 },
+    lift: { value: new THREE.Vector3() }, gain: { value: new THREE.Vector3(1, 1, 1) },
+  });
+  bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.12, 0.55, 1.6);
+  private prevVP = new THREE.Matrix4();
+  private prevPos = new THREE.Vector3();
+  private prevDir = new THREE.Vector3();
+  private lastT = 0;
+  private fog: THREE.FogExp2 | null = null;
+  private vp = new THREE.Matrix4();
+  private m4 = new THREE.Matrix4();
+  /** The parts turned off (`?fx=-ao,-blur,-haze,-bloom,-grade,-sharpen`). */
+  off = FX;
 
   constructor(private gl: THREE.WebGLRenderer, private camera: THREE.PerspectiveCamera) {
-    this.tone = gl.toneMapping;
-    this.composer = new EffectComposer(gl, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType }));
-    this.scenePass = new ScenePass(camera);
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.1, 0.35, 2.5);
-    this.finish = new ShaderPass(FINISH);
-    Object.assign(this.toast.style, { position: "fixed", left: "50%", top: "14px", transform: "translateX(-50%)", padding: "6px 14px", borderRadius: "8px", background: "rgba(0,0,0,.6)", color: "#fff", font: "600 13px/1.3 Overpass, system-ui, sans-serif", pointerEvents: "none", opacity: "0", transition: "opacity .4s", zIndex: "50", textAlign: "center", maxWidth: "80vw" });
-    document.body.append(this.toast);
-    addEventListener("keydown", (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() !== "l" || e.metaKey || e.ctrlKey || e.repeat) return;
-      const id = LOOK_IDS[(LOOK_IDS.indexOf(this.id) + (e.shiftKey ? -1 : 1) + LOOK_IDS.length) % LOOK_IDS.length];
-      this.set(id);
-      this.show();
-    });
-    const want = new URLSearchParams(location.search).get("look");
-    if (want && LOOKS[want]) this.set(want);
-    // for screenshots and comparisons: switch, then draw the last frame again
-    (window as unknown as { highwayLooks: unknown }).highwayLooks = this;
+    this.scene.depthTexture!.type = THREE.UnsignedIntType;
+    for (const t of this.ao) t.texture.minFilter = t.texture.magFilter = THREE.LinearFilter;
   }
 
-  set(id: string) {
-    const def = LOOKS[id];
-    if (!def) return;
-    this.id = id;
-    this.unpatch();
-    this.gl.toneMapping = def.tone ?? this.tone;
-    if (id === "real") return;
-    const c = this.composer;
-    c.passes.length = 0;
-    this.passes = [];
-    c.addPass(this.scenePass);
-    for (const s of def.hdr ?? []) c.addPass(this.add(s));
-    const [strength, radius, threshold] = def.bloom;
-    Object.assign(this.bloom, { strength, radius, threshold });
-    (def.tint ?? [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]).forEach((t, i) => this.bloom.bloomTintColors[i].set(...t));
-    c.addPass(this.bloom);
-    for (const s of def.post ?? []) c.addPass(this.add(s));
-    this.finish.uniforms.vignette.value = def.vignette ?? 0.28;
-    c.addPass(this.finish);
-    c.addPass(this.output);
-    for (const s of def.display ?? []) c.addPass(this.add(s));
+  setSize(w: number, h: number) {
+    const pr = this.gl.getPixelRatio(), W = Math.round(w * pr), H = Math.round(h * pr);
+    this.scene.setSize(W, H);
+    this.hdr.setSize(W, H);
+    for (const t of this.ao) t.setSize(W >> 1, H >> 1);
+    this.bloom.setSize(W, H);
   }
 
-  private add(s: Shader) { const p = new ShaderPass(s); this.passes.push(p); return p; }
-
-  private show() {
-    const d = LOOKS[this.id];
-    this.toast.innerHTML = `${d.name}<div style="font-weight:400;font-size:11px;opacity:.8">${d.about}</div>`;
-    this.toast.style.opacity = "1";
-    clearTimeout(this.hideToast);
-    this.hideToast = setTimeout(() => (this.toast.style.opacity = "0"), 2200);
+  /** Fog is ours to draw (as haze, by depth): taken off the scene so no material compiles with it. */
+  private takeFog(scene: THREE.Scene) {
+    if (scene.fog) { this.fog = scene.fog as THREE.FogExp2; scene.fog = null; }
   }
 
-  setSize(w: number, h: number) { this.composer.setSize(w, h); }
+  /** Compile the scene's shaders as the frame will draw them (into the multisampled target, no fog). */
+  async warm(scene: THREE.Scene) {
+    this.takeFog(scene);
+    this.gl.setRenderTarget(this.scene);
+    await this.gl.compileAsync(scene, this.camera);
+    this.gl.render(scene, this.camera);
+    this.gl.setRenderTarget(null);
+  }
 
-  /** Patch the scene's materials for the look before its shaders are compiled. */
-  prepare(scene: THREE.Scene) { const sh = LOOKS[this.id].shade; if (sh) this.patch(scene, sh); }
+  render(scene: THREE.Scene, fx: Fx) {
+    const gl = this.gl, cam = this.camera;
+    this.takeFog(scene);
+    const look = lookOf(scene, this.fog?.color) ?? SKY_LOOKS.partly_cloudy;
+    const g: Grade = look.grade;
 
-  /** Draw with the look; false for the plain one (render.ts draws it). */
-  render(scene: THREE.Scene, fx: Fx): boolean {
-    const def = LOOKS[this.id];
-    if (this.id === "real") return false;
-    if (def.shade) this.patch(scene, def.shade);
-    const exposure = this.gl.toneMappingExposure;
-    this.gl.toneMappingExposure = exposure * (def.exposure ?? 1);
-    this.scenePass.scene = scene;
-    const pr = this.gl.getPixelRatio(), size = this.gl.getDrawingBufferSize(new THREE.Vector2());
-    const fog = scene.fog?.color;
-    for (const p of this.passes) {
-      const u = p.uniforms;
-      u.tDepth.value = this.scenePass.target.depthTexture;
-      u.cNear.value = this.camera.near; u.cFar.value = this.camera.far;
-      u.time.value = performance.now() / 1000;
-      u.dpr.value = pr;
-      (u.res.value as THREE.Vector2).copy(size);
-      if (u.tBloom) u.tBloom.value = this.bloom.renderTargetsVertical[1].texture;
-      if (u.haze && fog) (u.haze.value as THREE.Color).copy(fog).convertLinearToSRGB();
+    gl.setRenderTarget(this.scene);
+    gl.render(scene, cam);
+    const W = this.scene.width, H = this.scene.height, depth = this.scene.depthTexture;
+
+    // occlusion, at half resolution
+    const ao = !this.off.has("ao");
+    if (ao) {
+      const u = this.aoQ.u;
+      u.tDepth.value = depth; u.projInv.value.copy(cam.projectionMatrixInverse);
+      u.texel.value.set(1 / W, 1 / H);
+      u.scale.value = H * 0.5 * cam.projectionMatrix.elements[5];
+      this.aoQ.draw(gl, this.ao[0]);
+      const b = this.blurQ.u;
+      b.tDepth.value = depth; b.projInv.value.copy(cam.projectionMatrixInverse); b.tAO.value = this.ao[0].texture;
+      b.aoTexel.value.set(2 / W, 2 / H);
+      this.blurQ.draw(gl, this.ao[1]);
     }
-    const f = this.finish.uniforms;
-    f.speed.value = fx.speed ?? 0; f.hit.value = fx.hit ?? 0; f.dim.value = fx.dim ?? 0;
-    this.composer.render();
-    this.gl.toneMappingExposure = exposure;
-    return true;
-  }
 
-  /** The last frame again (a comparison changes the look on a frozen frame). */
-  redraw?: () => void;
+    // combine: occlusion, motion blur, haze
+    const now = performance.now(), dt = THREE.MathUtils.clamp((now - this.lastT) / 1000, 1 / 240, 1 / 20);
+    this.lastT = now;
+    this.vp.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
+    const pos = cam.getWorldPosition(new THREE.Vector3()), dir = cam.getWorldDirection(new THREE.Vector3());
+    // a cut (a new view, the garage to the road) is not motion
+    if (pos.distanceTo(this.prevPos) > 6 || dir.dot(this.prevDir) < 0.97) this.prevVP.copy(this.vp);
+    const c = this.combQ.u;
+    c.tDepth.value = depth; c.projInv.value.copy(cam.projectionMatrixInverse); c.tColor.value = this.scene.texture;
+    c.tAO.value = this.ao[1].texture; c.aoAmt.value = ao ? 1 : 0;
+    c.viewInv.value.copy(cam.matrixWorld); c.prevVP.value.copy(this.prevVP); c.camPos.value.copy(pos);
+    c.texel.value.set(1 / W, 1 / H);
+    c.shutter.value = this.off.has("blur") ? 0 : (1 / 60) * 0.55 / dt; // a 1/110 s shutter
+    c.maxBlur.value = 0.045 * W;
+    const bg = scene.background as THREE.Texture | null;
+    // the night photo's sky is stars and a bright moon: sampled per direction it streaks the haze, so
+    // night haze is the plain fog colour
+    const night = !!(scene.userData.look as { night?: boolean } | undefined)?.night;
+    c.useSky.value = bg && (bg as THREE.Texture).isTexture && !night ? 1 : 0;
+    c.tSky.value = c.useSky.value ? bg : null;
+    c.skyRot.value.setFromMatrix4(this.m4.makeRotationFromEuler(scene.backgroundRotation)).transpose();
+    c.skyIntensity.value = scene.backgroundIntensity;
+    c.haze.value = this.off.has("haze") ? 0 : g.haze;
+    c.hazeFall.value = 1 / g.hazeHeight;
+    if (this.fog) c.fogColor.value.copy(this.fog.color);
+    const sun = scene.children.find((o) => (o as THREE.DirectionalLight).isDirectionalLight) as THREE.DirectionalLight | undefined;
+    if (sun) { c.sunDir.value.subVectors(sun.position, sun.target.position).normalize(); c.sunCol.value.copy(sun.color).multiplyScalar(sun.intensity * 0.04 * g.glow); }
+    else c.sunCol.value.setScalar(0);
+    this.combQ.draw(gl, this.hdr);
+    this.prevVP.copy(this.vp); this.prevPos.copy(pos); this.prevDir.copy(dir);
 
-  private patch(scene: THREE.Scene, shade: Shade) {
-    scene.traverse((o) => {
-      const mats = (o as THREE.Mesh).material;
-      if (!mats) return;
-      for (const m of Array.isArray(mats) ? mats : [mats]) {
-        if (this.patched.has(m) || !(m as THREE.MeshStandardMaterial).isMeshStandardMaterial) continue;
-        const obc = m.onBeforeCompile, key = m.customProgramCacheKey.bind(m), base = key();
-        this.patched.set(m, { obc, key: m.customProgramCacheKey });
-        m.onBeforeCompile = (sh, r) => {
-          obc.call(m, sh, r);
-          if (shade.frag) sh.fragmentShader = sh.fragmentShader.replace("#include <aomap_fragment>", `#include <aomap_fragment>\n${shade.frag}`);
-          if (shade.blur && !m.alphaTest && !m.transparent) sh.fragmentShader = sh.fragmentShader.replace("#include <map_fragment>", THREE.ShaderChunk.map_fragment.replace("texture2D( map, vMapUv )", `texture2D( map, vMapUv, ${shade.blur.toFixed(2)} )`));
-          if (shade.vert) sh.vertexShader = sh.vertexShader.replace("#include <project_vertex>", `#include <project_vertex>\n${shade.vert}`);
-        };
-        m.customProgramCacheKey = () => `${base}|look:${this.id}`;
-        m.needsUpdate = true;
-      }
-    });
-  }
+    // bloom, added into the HDR image
+    if (!this.off.has("bloom")) {
+      this.bloom.strength = g.bloom;
+      this.bloom.render(gl, null as unknown as THREE.WebGLRenderTarget, this.hdr, 0, false);
+    }
 
-  private unpatch() {
-    for (const [m, { obc, key }] of this.patched) { m.onBeforeCompile = obc; m.customProgramCacheKey = key; m.needsUpdate = true; }
-    this.patched.clear();
+    // to the screen
+    const f = this.finQ.u;
+    f.tHDR.value = this.hdr.texture; f.texel.value.set(1 / W, 1 / H); f.sharpen.value = this.off.has("sharpen") ? 0 : 0.35;
+    f.exposure.value = gl.toneMappingExposure;
+    f.grade.value = this.off.has("grade") ? 0 : 1;
+    f.contrast.value = g.contrast; f.saturation.value = g.saturation; f.warmth.value = g.warmth;
+    f.lift.value.set(...g.lift); f.gain.value.set(...g.gain);
+    f.vignette.value = g.vignette;
+    f.hit.value = fx.hit ?? 0; f.dim.value = fx.dim ?? 0;
+    f.time.value = now / 1000;
+    this.finQ.draw(gl, null);
   }
 }

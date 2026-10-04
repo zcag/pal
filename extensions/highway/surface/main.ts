@@ -373,14 +373,28 @@ let acc = 0, last = performance.now(), t = 0, lastGear = 1;
 let autoLane = 1;
 function autopilot(target = 108): Input {
   const rn = run!, v = rn.veh, L = rn.layout;
-  const room = (l: number) => Math.min(400, ...rn.traffic.cars.filter((n) => !n.oncoming && (n.lane === l || n.from === l) && n.z > v.z - 6).map((n) => n.z - v.z));
-  if (room(autoLane) < 70) for (const l of [autoLane - 1, autoLane + 1]) if (l >= 0 && l < L.lanes && room(l) > room(autoLane) + 10) autoLane = l;
-  // the key sets how fast the car crosses: ask for a gentle sideways speed that shrinks as the lane's
-  // centre comes near, so it eases in and settles instead of weaving
+  // seconds until it would reach the car ahead in a lane (Infinity when the lane is clear), or -1 when
+  // a car is alongside in it, which rules that lane out
+  const ttc = (l: number) => {
+    let t = Infinity;
+    for (const n of rn.traffic.cars) {
+      if (n.oncoming || n.hit || (n.lane !== l && n.from !== l)) continue;
+      const gap = n.z - v.z - (n.length + rn.player.size.z) / 2;
+      if (gap < -6) continue;
+      if (gap < 2 && l !== autoLane) return -1;
+      t = Math.min(t, Math.max(0, gap) / Math.max(0.5, v.u - n.v));
+    }
+    return t;
+  };
+  const here = ttc(autoLane);
+  if (here < 3) for (const l of [autoLane - 1, autoLane + 1]) if (l >= 0 && l < L.lanes && ttc(l) > Math.max(here, ttc(autoLane)) + 0.5) autoLane = l;
+  // the key sets how fast the car crosses: a sideways speed that shrinks as the lane's centre comes
+  // near, so it moves over decisively and settles instead of weaving
   const dx = laneX(L, autoLane) - v.x;
   const across = 5.5 * FEEL.pace + 0.07 * v.u; // what full steering gives at this speed (game/vehicle.ts)
-  const steer = THREE.MathUtils.clamp(THREE.MathUtils.clamp(dx * 1.4, -4, 4) / across, -1, 1);
-  return { throttle: v.kmh / FEEL.pace < target && room(autoLane) > 40 ? (target > 120 ? 1 : 0.6) : 0, brake: room(autoLane) < 25 ? 0.5 : 0, steer };
+  const steer = THREE.MathUtils.clamp(THREE.MathUtils.clamp(dx * 2.2, -9, 9) / across, -1, 1);
+  const boxed = ttc(autoLane) < 1.3;
+  return { throttle: !boxed && v.kmh / FEEL.pace < target ? 1 : 0, brake: boxed ? 1 : 0, steer };
 }
 
 function frame() {

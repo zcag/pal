@@ -34,7 +34,7 @@ const CALIPER = /caliper[a-z]*_(fl|fr)(?![a-z])/i;
 const PAINT = /bodymat|(^|_)body$/i;
 
 /** Merge every part that never moves on its own into one mesh per material:
- *  ~80 meshes become ~10. Wheels, calipers and lamps stay separate. */
+ *  ~80 meshes become ~10. Wheels, calipers, lamps and their lenses stay separate. */
 function prepare(src: THREE.Group): THREE.Group {
   src.updateMatrixWorld(true);
   const groups = new Map<THREE.Material, THREE.BufferGeometry[]>();
@@ -43,7 +43,7 @@ function prepare(src: THREE.Group): THREE.Group {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh) return;
     const names = [mesh.name, mesh.parent?.name ?? "", mesh.parent?.parent?.name ?? ""].join(" ");
-    if (WHEEL.test(names) || CALIPER.test(names) || LAMP.some(([re]) => re.test(names))) return;
+    if (WHEEL.test(names) || CALIPER.test(names) || LENS.test(names) || LAMP.some(([re]) => re.test(names))) return; // a lamp's lens stays its own mesh: clear, not a window
     const g = mesh.geometry.clone();
     // the same plain float attributes everywhere, so they merge
     for (const name of Object.keys(g.attributes)) {
@@ -73,6 +73,54 @@ function prepare(src: THREE.Group): THREE.Group {
   return src;
 }
 
+const cars = new Set<Car>();
+
+/** Real reflections for the car nearest the camera (the hero: in the garage and on the road it is
+ *  yours): a 256 px cube of the scene around it, one face every other frame, so its paint and
+ *  windows mirror the road, the trees, the other cars and the lamps rather than only the sky photo.
+ *  The car itself is hidden while a face is drawn; the shadow map is not redrawn for it. */
+export class Reflections {
+  private target = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType, generateMipmaps: false });
+  private cube = new THREE.CubeCamera(0.4, 250, this.target);
+  private face = 0;
+  private tick = 0;
+  private car: Car | null = null;
+  private v = new THREE.Vector3();
+
+  /** Compile every car's shaders as the reflecting car draws them too: a car first taking the cube
+   *  mid-drive would otherwise build its variant then, a stall of a frame or several. */
+  async warm(compile: () => Promise<unknown>) {
+    for (const c of cars) c.reflect(this.target.texture);
+    await compile();
+    for (const c of cars) if (c !== this.car) c.reflect(null);
+  }
+
+  update(gl: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera) {
+    // the nearest car within 20 m; the one already reflecting keeps it unless another is clearly nearer
+    const at = (c: Car) => c.root.getWorldPosition(this.v).distanceTo(camera.position);
+    let best: Car | null = null, bd = 20;
+    for (const c of cars) {
+      if (!c.root.parent || !c.root.visible) continue;
+      const d = at(c) * (c === this.car ? 0.75 : 1);
+      if (d < bd) { best = c; bd = d; }
+    }
+    if (best !== this.car) { this.car?.reflect(null); best?.reflect(this.target.texture); this.car = best; }
+    if (!best || this.tick++ % 2) return;
+    best.root.getWorldPosition(this.cube.position).y += best.size.y * 0.55;
+    this.cube.updateMatrixWorld();
+    if (this.cube.coordinateSystem !== gl.coordinateSystem) { this.cube.coordinateSystem = gl.coordinateSystem; this.cube.updateCoordinateSystem(); }
+    const shadows = gl.shadowMap.autoUpdate, last = gl.getRenderTarget();
+    gl.shadowMap.autoUpdate = false;
+    best.root.visible = false;
+    gl.setRenderTarget(this.target, this.face);
+    gl.render(scene, this.cube.children[this.face] as THREE.Camera);
+    best.root.visible = true;
+    gl.shadowMap.autoUpdate = shadows;
+    gl.setRenderTarget(last);
+    if (++this.face === 6) { this.face = 0; this.target.texture.needsPMREMUpdate = true; }
+  }
+}
+
 let contact: THREE.MeshBasicMaterial | null = null;
 function contactMaterial() {
   if (contact) return contact;
@@ -86,8 +134,97 @@ function contactMaterial() {
   return contact;
 }
 
-/** Lamp colours and how bright each is lit. */
+/** Lamp colours, how bright each is lit (times the level run.ts asks for: a lit brake lamp is far
+ *  brighter than a tail lamp and blooms), and the colour of each when off. */
 const LAMP_COLOR: Record<Lamp, number> = { head: 0xfff4e0, brake: 0xff1a0a, reverse: 0xffffff, left: 0xff8a10, right: 0xff8a10, bar: 0xff2020 };
+const LAMP_GAIN: Record<Lamp, number> = { head: 1.0, brake: 3.4, reverse: 1.2, left: 1.6, right: 1.6, bar: 2 };
+const LAMP_OFF: Record<Lamp, number> = { head: 0xd8d8d8, brake: 0xb0140c, reverse: 0xdddddd, left: 0x8a4a08, right: 0x8a4a08, bar: 0x6a0a06 };
+const LENS = /(head|tail|brake)\w*_?glass|lights?_glass/i;
+const TYRE = /tire|tyre/i;
+
+/** Car pixels write alpha 0 (opaque parts in the shader, see-through ones by their blending), which
+ *  the finishing reads as "a car": no motion blur on it, and none of its colour smeared onto the road. */
+function carAlpha(m: THREE.Material) {
+  if (m.userData.carAlpha) return;
+  m.userData.carAlpha = true;
+  if (m.transparent) {
+    Object.assign(m, { blending: THREE.CustomBlending, blendSrc: THREE.SrcAlphaFactor, blendDst: THREE.OneMinusSrcAlphaFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.ZeroFactor });
+    return;
+  }
+  const prev = m.onBeforeCompile.bind(m), key = m.customProgramCacheKey.bind(m);
+  m.onBeforeCompile = (sh, r) => { prev(sh, r); sh.fragmentShader = sh.fragmentShader.replace("#include <dithering_fragment>", "#include <dithering_fragment>\n\tgl_FragColor.a = 0.0;"); };
+  m.customProgramCacheKey = () => key() + "|car";
+}
+
+/** A physical material with a standard one's maps and settings (copying a standard material into a
+ *  physical one directly reads physical-only fields it does not have). */
+function physical(src: THREE.Material) {
+  const m = new THREE.MeshPhysicalMaterial();
+  THREE.MeshStandardMaterial.prototype.copy.call(m, src as THREE.MeshStandardMaterial);
+  m.defines = { STANDARD: "", PHYSICAL: "" };
+  return m;
+}
+
+const rubbers = new Map<THREE.Material, THREE.MeshStandardMaterial>();
+/** The wheel atlas: tyres matte rubber (the model calls the whole wheel metal), rims and discs metal. */
+function rubber(src: THREE.Material) {
+  let m = rubbers.get(src);
+  if (m) return m;
+  m = (src as THREE.MeshStandardMaterial).clone();
+  m.onBeforeCompile = (sh) => {
+    sh.fragmentShader = sh.fragmentShader.replace("#include <metalnessmap_fragment>", `#include <metalnessmap_fragment>
+      float rub = 1.0 - smoothstep(0.06, 0.22, dot(diffuseColor.rgb, vec3(0.3333)));
+      metalnessFactor *= 1.0 - rub;
+      roughnessFactor = mix(roughnessFactor, 0.88, rub);`);
+  };
+  m.customProgramCacheKey = () => "rubber";
+  rubbers.set(src, m);
+  return m;
+}
+
+const chromes = new Map<THREE.Material, THREE.MeshStandardMaterial>();
+/** Badges and trim: polished metal. */
+function chrome(src: THREE.Material) {
+  let m = chromes.get(src);
+  if (m) return m;
+  m = (src as THREE.MeshStandardMaterial).clone();
+  m.metalness = 1; m.roughness = 0.1; m.envMapIntensity = 1.4;
+  chromes.set(src, m);
+  return m;
+}
+
+let beamGeo: THREE.BufferGeometry | null = null, beamMat: THREE.ShaderMaterial | null = null;
+const BEAM_LEN = 15;
+/** A cone 15 m long from the lamp, opening forward and a little down. */
+function beamGeometry() {
+  return (beamGeo ??= new THREE.ConeGeometry(2.4, BEAM_LEN, 24, 1, true).translate(0, -BEAM_LEN / 2, 0).rotateX(-Math.PI / 2).rotateX(0.06));
+}
+/** Light in hazy air: added, brightest where you look along the cone, fading with distance from the
+ *  lamp and toward the road (no hard line where the cone meets the ground). Leaves alpha alone. */
+function beamMaterial() {
+  return (beamMat ??= new THREE.ShaderMaterial({
+    uniforms: { color: { value: new THREE.Color(0xffe6c4).multiplyScalar(0.05) } },
+    vertexShader: `varying vec3 vN, vV; varying float vT, vY, vSeen;
+      void main(){
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vT = clamp(length(position) / ${BEAM_LEN.toFixed(1)}, 0.0, 1.0); vY = wp.y;
+        vN = normalize(mat3(modelMatrix) * normal); vV = normalize(cameraPosition - wp.xyz);
+        // seen only from just behind its own car (the chase view): from anywhere else a cone of light
+        // in the air reads as a solid thing
+        vec3 lamp = (modelMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz, to = lamp - cameraPosition;
+        vSeen = smoothstep(0.8, 0.92, dot(normalize(to), normalize(mat3(modelMatrix) * vec3(0.0, 0.0, 1.0)))) * (1.0 - smoothstep(11.0, 16.0, length(to)));
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }`,
+    fragmentShader: `uniform vec3 color; varying vec3 vN, vV; varying float vT, vY, vSeen;
+      void main(){
+        float d = abs(dot(normalize(vN), normalize(vV))), t = 1.0 - vT;
+        float f = d * d * t * t * smoothstep(0.0, 0.45, vY) * smoothstep(0.03, 0.3, vT) * vSeen;
+        gl_FragColor = vec4(color * f, 0.0);
+      }`,
+    side: THREE.DoubleSide, transparent: true, depthWrite: false,
+    blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.OneFactor,
+  }));
+}
 
 export class Car {
   kind = "";
@@ -101,6 +238,9 @@ export class Car {
   anchors = { head: [] as THREE.Vector3[], tail: [] as THREE.Vector3[] };
   wheelbase = 2.6;
   track = 1.5;
+  private beams: THREE.Mesh[] = [];
+  /** Paint and windows: what mirrors the world (Reflections). */
+  private shiny: THREE.MeshStandardMaterial[] = [];
 
   static async load(id: string, color: THREE.ColorRepresentation, opts: { shadow?: boolean } = {}) {
     const car = new Car();
@@ -121,6 +261,7 @@ export class Car {
     model.traverse((o) => { if ((o as THREE.Mesh).isMesh) meshes.push(o as THREE.Mesh); });
     const paintFor = new Map<THREE.Material, THREE.MeshPhysicalMaterial>();
     const wheelNodes = new Set<THREE.Object3D>();
+    const heads = new THREE.Box3();
 
     for (const mesh of meshes) {
       const names = [mesh.name, mesh.parent?.name ?? "", mesh.parent?.parent?.name ?? ""].join(" ");
@@ -128,32 +269,39 @@ export class Car {
       mesh.receiveShadow = true;
       const mat = mesh.material as THREE.MeshStandardMaterial;
 
-      // paint: one material per car, so a colour is just that car's
+      // paint: one material per car, so a colour is just that car's. A metallic base (the model's flake
+      // texture varies it) under a glossy clear coat that mirrors the sky
       if (PAINT.test(mat.name)) {
         let p = paintFor.get(mat);
         if (!p) {
-          p = new THREE.MeshPhysicalMaterial().copy(mat as THREE.MeshPhysicalMaterial);
+          p = physical(mat);
           p.color.set(color);
-          p.metalness = 0.55; p.roughness = 0.32;
-          p.clearcoat = 1; p.clearcoatRoughness = 0.03;
-          p.envMapIntensity = 1.1;
+          p.metalness = 0.6; p.roughness = 0.42;
+          p.clearcoat = 1; p.clearcoatRoughness = 0.035;
+          p.envMapIntensity = 1.6;
           paintFor.set(mat, p);
           this.paint.push(p);
+          this.shiny.push(p);
         }
         mesh.material = p;
       } else if (/glass|windshield/i.test(names) && mat.transparent) {
-        const g = (mat as THREE.MeshPhysicalMaterial).clone();
-        g.roughness = 0.02; g.metalness = 0; g.envMapIntensity = 1.6;
-        g.color.multiplyScalar(0.6);
-        g.opacity = Math.max(g.opacity, 0.82);
-        g.depthWrite = false;
+        // a lamp's lens is clear; a window is tinted, dark from outside, and reflects the sky
+        const lens = LENS.test(names), g = physical(mat);
+        g.metalness = 0; g.roughness = 0.05; g.clearcoat = 1; g.clearcoatRoughness = 0.03;
+        g.color.set(lens ? 0xf4f4f4 : 0x06090c); g.opacity = lens ? 0.3 : 0.9;
+        g.envMapIntensity = lens ? 1.5 : 2.2;
+        g.depthWrite = !lens; // a window is the surface the depth-based finishing sees, not the cabin behind it
+        if (!lens) this.shiny.push(g);
         mesh.material = g;
         mesh.renderOrder = 2;
-      }
+      } else if (TYRE.test(mat.name)) mesh.material = rubber(mat);
+      else if (/badges/i.test(mat.name)) mesh.material = chrome(mat);
 
       const lamp = LAMP.find(([re]) => re.test(names))?.[1];
       if (lamp) {
         const m = (mesh.material as THREE.MeshStandardMaterial).clone();
+        // off, a headlamp is a chrome reflector and a tail lamp coloured plastic
+        m.color.set(LAMP_OFF[lamp]); m.metalness = lamp === "head" ? 1 : 0.1; m.roughness = lamp === "head" ? 0.12 : 0.25;
         m.emissive = new THREE.Color(LAMP_COLOR[lamp]);
         m.emissiveMap = m.map;
         m.emissiveIntensity = 0;
@@ -168,7 +316,7 @@ export class Car {
           this.lamps[lamp].push(m);
         }
         const c = new THREE.Box3().setFromObject(mesh).getCenter(new THREE.Vector3());
-        if (lamp === "head") this.anchors.head.push(c); else if (lamp === "brake") this.anchors.tail.push(c);
+        if (lamp === "head") { this.anchors.head.push(c); heads.union(new THREE.Box3().setFromObject(mesh)); } else if (lamp === "brake") this.anchors.tail.push(c);
       }
 
       if (WHEEL.test(names)) {
@@ -205,6 +353,23 @@ export class Car {
       const wheel = c && this.wheels.find((w) => w.front && w.left === cx > 0);
       if (wheel) wheel.pivot.attach(mesh);
     }
+    // every part of the car writes alpha 0: the motion blur (looks.ts) leaves cars sharp
+    this.body.traverse((o) => { const m = (o as THREE.Mesh).material; if (m) for (const x of Array.isArray(m) ? m : [m]) carAlpha(x); });
+    for (const w of this.wheels) w.pivot.traverse((o) => { const m = (o as THREE.Mesh).material; if (m) carAlpha(m as THREE.Material); });
+    // the light the headlamps throw through the air at night, one cone from each lamp
+    if (!heads.isEmpty()) {
+      const hw = (heads.max.x - heads.min.x) / 2, cy = (heads.min.y + heads.max.y) / 2;
+      for (const x of hw > 0.4 ? [heads.min.x + 0.16, heads.max.x - 0.16] : [(heads.min.x + heads.max.x) / 2]) {
+        const cone = new THREE.Mesh(beamGeometry(), beamMaterial());
+        cone.position.set(x, cy, heads.max.z - 0.05);
+        cone.visible = false;
+        this.body.add(cone);
+        this.beams.push(cone);
+      }
+    }
+
+    cars.add(this);
+
     // a soft dark patch under the car: grounds it where the shadow map doesn't reach
     const blob = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), contactMaterial());
     blob.scale.set(this.size.x * 1.5, 1, this.size.z * 1.25);
@@ -228,10 +393,16 @@ export class Car {
 
   setColor(color: THREE.ColorRepresentation) { for (const p of this.paint) p.color.set(color); }
 
-  /** How brightly each lamp glows (0 off). */
-  light(lamp: Lamp, level: number) { for (const m of this.lamps[lamp]) m.emissiveIntensity = level; }
+  /** How brightly each lamp glows (0 off); a lit headlamp also shows its beam. */
+  light(lamp: Lamp, level: number) {
+    for (const m of this.lamps[lamp]) m.emissiveIntensity = level * LAMP_GAIN[lamp];
+    if (lamp === "head") for (const b of this.beams) b.visible = level > 0;
+  }
 
-  dispose() { this.root.removeFromParent(); }
+  /** Mirror a cube of the world (Reflections) instead of the sky photo, or the photo again (null). */
+  reflect(env: THREE.Texture | null) { for (const m of this.shiny) m.envMap = env; }
+
+  dispose() { this.root.removeFromParent(); cars.delete(this); }
 }
 
 /** Two meshes from one: the triangles left of the car's centre and right of it. */

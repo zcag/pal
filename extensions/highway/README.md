@@ -28,6 +28,10 @@ as a view level whose body is the extension's own page (`surface/`, a
   row, always a lane through), `score.ts`, `crash.ts` (boxes and impulses),
   `content.ts` every number and name, `meta.ts` the save.
 - `surface/`: the page. `world.ts` builds a place (sky, road, rails, land),
+  `terrain.ts` streams the land and plans it (forest, fields or a town each
+  side, cuttings and embankments, an overpass every kilometre or two),
+  `foliage.ts` makes trees cheap (impostors baked at startup) and the grass,
+  `structures.ts` the overpasses, noise barriers, signs and lamp light,
   `run.ts` a run, `camera.ts` the views, `audio.ts` the sound, `main.ts` the
   screens.
 - `scripts/drive.ts` measures every car (0 to 100, top speed, braking, a lane

@@ -30,26 +30,17 @@ const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 const pool = new Map<string, Car[]>();
 const sizes = new Map<string, THREE.Vector3>();
 const loading = new Set<string>();
-let glow: THREE.Texture | null = null;
 
 async function makeCar(id: string) {
   const t = TRAFFIC.find((x) => x.id === id)!;
   const color = t.livery ? "#ffffff" : t.colors![Math.floor(rnd() * t.colors!.length)];
   const c = await Car.load(id, color);
-  // the light its headlights throw ahead at night
-  const beam = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: glow, color: 0xffe2b8, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }));
-  beam.position.set(0, 0.03, c.size.z / 2 + 9);
-  beam.scale.set(5, 1, 16);
-  beam.visible = false;
-  beam.name = "beam";
-  c.root.add(beam);
   return c;
 }
 
 /** Make two of every traffic model before the first run (`progress` 0..1 as they come in), so a
  *  run never stops to load one, and compile their shaders while nobody is driving. */
 export async function preloadTraffic(world: World, warm: (scene: THREE.Scene) => Promise<void>, progress: (f: number) => void) {
-  glow = world.glow;
   let done = 0;
   await Promise.all(TRAFFIC.map(async (t) => {
     if (sizes.has(t.id)) return;
@@ -71,10 +62,8 @@ export async function preloadTraffic(world: World, warm: (scene: THREE.Scene) =>
 
 /** Lamps for the time of day. */
 function lamps(car: Car, night: boolean, braking: boolean) {
-  car.light("head", night ? 6 : 0);
+  car.light("head", night ? 3 : 0);
   car.light("brake", braking ? 3.5 : night ? 0.9 : 0);
-  const beam = car.root.getObjectByName("beam");
-  if (beam) beam.visible = night;
 }
 
 export class Run {
@@ -111,9 +100,11 @@ export class Run {
     this.lights = [];
     const player = this.player;
     if (this.world.night) for (const p of player.anchors.head.length ? player.anchors.head : [new THREE.Vector3(0.6, 0.7, 2), new THREE.Vector3(-0.6, 0.7, 2)]) {
-      const spot = new THREE.SpotLight(0xfff1dc, 900, 120, 0.42, 0.55, 1.6);
+      // dipped beams: aimed well down the road and soft-edged, so the road lights from a few metres out to
+      // about 40 m instead of a hot patch at the bumper
+      const spot = new THREE.SpotLight(0xfff1dc, 380, 110, 0.38, 0.85, 1.4);
       spot.position.copy(p);
-      spot.target.position.set(p.x * 0.6 - 0.4, 0, p.z + 30);
+      spot.target.position.set(p.x * 0.6 - 0.4, 0, p.z + 45);
       player.body.add(spot, spot.target);
       this.lights.push(spot);
     }
