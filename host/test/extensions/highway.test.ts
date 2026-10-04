@@ -5,7 +5,7 @@ import { Score } from "../../../extensions/highway/game/score.ts";
 import { CARS, FEEL, spec } from "../../../extensions/highway/game/content.ts";
 import { fresh, buyCar, buyUpgrade, load } from "../../../extensions/highway/game/meta.ts";
 
-const NO_UP = { speed: 0, handling: 0, brakes: 0 };
+const NO_UP = { speed: 0, handling: 0, brakes: 0, nitro: 0 };
 
 test("every car reaches about its top speed, and brakes from 100 km/h to a crawl in about a second", () => {
   for (const car of [CARS[0], CARS[CARS.length - 1]]) {

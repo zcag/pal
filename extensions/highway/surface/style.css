@@ -113,3 +113,42 @@ kbd { display: inline-block; min-width: 18px; padding: 1px 5px 0; border-radius:
 button[data-key] { font: inherit; color: inherit; background: none; border: 0; padding: 2px 4px; margin: -2px -4px; border-radius: 6px; cursor: pointer; }
 button[data-key]:hover { background: rgba(255, 255, 255, 0.12); }
 .row { cursor: pointer; }
+
+/* ---- the driver's level and missions, right of the garage sign ---- */
+#side { position: fixed; right: 12px; top: 12px; width: 220px; display: flex; flex-direction: column; gap: 8px; }
+.driver, .missions { background: var(--asphalt); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: 10px; padding: 9px 11px; }
+.driver b { font-size: 15px; font-weight: 800; margin-right: 6px; }
+.driver span { font-size: 11px; color: var(--dim); }
+.driver i { display: block; height: 4px; margin: 5px 0 3px; border-radius: 2px; background: rgba(255,255,255,0.18); overflow: hidden; }
+.driver i::after { content: ""; display: block; height: 100%; width: calc(var(--v) * 100%); background: var(--yellow); transition: width 400ms ease; }
+.driver small { display: block; font-size: 10.5px; color: var(--yellow); }
+.missions > div { padding: 3px 0; font-size: 11.5px; line-height: 1.25; }
+.missions > div + div { border-top: 1px solid rgba(255,255,255,0.1); }
+.missions em { display: block; font-style: normal; font-size: 10.5px; color: var(--dim); }
+.missions i { display: block; height: 3px; margin: 3px 0 2px; border-radius: 2px; background: rgba(255,255,255,0.15); overflow: hidden; }
+.missions i::after { content: ""; display: block; height: 100%; width: calc(var(--v) * 100%); background: var(--white); }
+.missions .done em { color: var(--yellow); font-weight: 700; }
+.missions .done i::after { background: var(--yellow); }
+.row .val em.lock { color: rgba(255,255,255,0.5); font-weight: 600; }
+
+/* ---- nitro and the modes' clocks in the HUD ---- */
+#nitro { position: absolute; left: 16px; bottom: 16px; display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--dim); }
+#nitro i { width: 110px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.16); overflow: hidden; }
+#nitro i::after { content: ""; display: block; height: 100%; width: calc(var(--v, 0) * 100%); background: linear-gradient(90deg, #4fb3ff, #a8e1ff); transition: width 120ms linear; }
+#nitro kbd { opacity: 0; transition: opacity 200ms; }
+#nitro.ready kbd { opacity: 1; }
+#nitro.ready span { color: var(--white); }
+#nitro.lit i::after { background: linear-gradient(90deg, #ff9f1c, #fff1a8); box-shadow: 0 0 10px rgba(255, 180, 60, 0.8); }
+#modebox { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); text-align: center; }
+#modebox b { display: block; font-size: 30px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+#modebox b.low { color: #ff8a7a; }
+#modebox span { font-size: 11px; color: var(--dim); }
+.pop.mission { background: var(--white); color: var(--sign); }
+.pop.mission small { display: block; margin: 0; font-weight: 600; }
+
+/* ---- the end of a run: the pay counting up on the left, the level and missions on the right ---- */
+#card .sign:has(.result) { width: min(600px, calc(100vw - 32px)); }
+.result { display: grid; grid-template-columns: 1fr 210px; gap: 16px; }
+.result dl { margin: 8px 0 6px; }
+.result .right { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
+.result .driver, .result .missions { background: rgba(0, 0, 0, 0.18); }

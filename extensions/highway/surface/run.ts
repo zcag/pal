@@ -7,7 +7,7 @@ import { Car } from "./car.ts";
 import type { World } from "./world.ts";
 import type { Input } from "../game/vehicle.ts";
 import { Drive, type DriveEvents } from "../game/drive.ts";
-import { TRAFFIC, FEEL, type PlayerCar, type Upgrades } from "../game/content.ts";
+import { TRAFFIC, FEEL, type ModeId, type PlayerCar, type Upgrades } from "../game/content.ts";
 import { laneX, oncomingX, type Layout } from "../game/layout.ts";
 
 const rnd = Math.random;
@@ -61,8 +61,8 @@ export class Run {
   pose = { x: 0, z: 0, yaw: 0, u: 0, ax: 0, delta: 0 };
   private prev = { x: 0, z: 0, yaw: 0 };
 
-  constructor(public world: World, public layout: Layout, public player: Car, car: PlayerCar, up: Upgrades, events: DriveEvents, density = 1) {
-    this.drive = new Drive(layout, car, up, { x: player.size.x, z: player.size.z }, player.wheelbase, (id) => sizes.get(id), events, { density });
+  constructor(public world: World, public layout: Layout, public player: Car, car: PlayerCar, up: Upgrades, events: DriveEvents, density = 1, mode: ModeId = "endless") {
+    this.drive = new Drive(layout, car, up, { x: player.size.x, z: player.size.z }, player.wheelbase, (id) => sizes.get(id), events, { density, mode });
     world.scene.add(player.root);
     this.headlights();
     this.settle();

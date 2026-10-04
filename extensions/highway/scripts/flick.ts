@@ -4,7 +4,7 @@ import { Vehicle } from "../game/vehicle.ts";
 import { CARS, FEEL, spec } from "../game/content.ts";
 const dt = 1 / 120;
 for (const [car, lv] of [[CARS[0], 0], [CARS[7], 0], [CARS[7], 5], [CARS[CARS.length - 1], 5]] as const) {
-  const v = new Vehicle(spec(car, { speed: 0, handling: lv, brakes: 0 }, 2.6));
+  const v = new Vehicle(spec(car, { speed: 0, handling: lv, brakes: 0, nitro: 0 }, 2.6));
   v.launch((160 / 3.6) * FEEL.pace);
   for (let i = 0; i < 60; i++) v.step(dt, { throttle: 0.5, brake: 0, steer: 1 });
   const x0 = v.x; let t = 0, turned = 0, peak = v.x;

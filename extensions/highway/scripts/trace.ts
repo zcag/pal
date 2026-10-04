@@ -3,7 +3,7 @@
 import { Vehicle } from "../game/vehicle.ts";
 import { CARS, spec } from "../game/content.ts";
 const car = CARS.find((c) => c.id === (process.argv[2] ?? "jdm-sport-99"))!;
-const v = new Vehicle(spec(car, { speed: 0, handling: 0, brakes: 0 }, 2.6));
+const v = new Vehicle(spec(car, { speed: 0, handling: 0, brakes: 0, nitro: 0 }, 2.6));
 v.launch(+(process.argv[3] ?? 160) / 3.6);
 let t = 0;
 const dt = 1 / 120;

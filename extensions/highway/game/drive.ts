@@ -8,7 +8,7 @@ import { Traffic, crossing, type Npc } from "./traffic.ts";
 import { Director } from "./director.ts";
 import { Score, type Miss } from "./score.ts";
 import { collide, resolve, type Rigid } from "./crash.ts";
-import { TRAFFIC, FEEL, spec, type PlayerCar, type Upgrades } from "./content.ts";
+import { TRAFFIC, FEEL, spec, nitroOf, type ModeId, type PlayerCar, type Upgrades } from "./content.ts";
 import { laneX, oncomingX, edges, LANE_W, type Layout } from "./layout.ts";
 
 /** Closing speed that ends a run (km/h on the dial), as in the original; any touch of an oncoming car does too. */
@@ -21,7 +21,12 @@ export type DriveEvents = {
   bump?(impulse: number, side: number): void;
   crash?(info: Crash): void;
   scrape?(): void;
+  nitro?(on: boolean): void;
+  checkpoint?(added: number): void;
+  end?(why: End): void;
 };
+/** Why a run ended: a crash, the clock (Time Attack), too slow for too long (Speed Trap). */
+export type End = "crash" | "time" | "slow";
 
 /** A car's footprint: width and length, m. */
 export type Size = { x: number; z: number };
@@ -29,19 +34,26 @@ export type Size = { x: number; z: number };
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 export class Drive {
+  mode: ModeId;
   veh: Vehicle;
   traffic: Traffic;
   director: Director;
   score = new Score();
   over = false;
   scraping = 0;
+  ended: End | null = null;
+  // nitro: a bar near misses fill, burnt while it lasts
+  nitro = 0; boosting = false; private wanted = false;
+  // Time Attack: the clock and the next checkpoint (m on the dial); Speed Trap: the floor and time under it
+  clock = 60; checkpoints = 0; floor = 0; under = 0;
   /** The body on its springs (squat, dive, lean), for the car and the camera. */
   spring = { pitch: 0, pitchV: 0, roll: 0, rollV: 0 };
   private seed: number;
   private pace = FEEL.pace; // the pace the car's physics were made at
 
   constructor(public layout: Layout, public car: PlayerCar, public up: Upgrades, public size: Size, wheelbase: number,
-    private sizeOf: (id: string) => Size | undefined, public events: DriveEvents = {}, o: { density?: number; seed?: number } = {}) {
+    private sizeOf: (id: string) => Size | undefined, public events: DriveEvents = {}, o: { density?: number; seed?: number; mode?: ModeId } = {}) {
+    this.mode = o.mode ?? "endless";
     this.seed = o.seed ?? Math.floor(Math.random() * 2147483646) + 1;
     this.veh = new Vehicle(spec(car, up, wheelbase));
     this.veh.x = laneX(layout, Math.min(1, layout.lanes - 1));
@@ -79,9 +91,28 @@ export class Drive {
     return list[0];
   }
 
+  /** End the run, once. */
+  private finish(why: End) {
+    if (this.over) return;
+    this.over = true;
+    this.ended = why;
+    this.boosting = false;
+    this.events.end?.(why);
+  }
+
   step(dt: number, input: Input) {
     const v = this.veh, L = this.layout, ev = this.events;
     if (this.over) input = { throttle: 0, brake: 0.3, steer: 0 };
+    // nitro: lit on a press with a quarter of a bar or more, out when the bar is empty or on the brakes
+    const n2 = nitroOf(this.up);
+    if (input.nitro && !this.wanted && !this.boosting && this.nitro >= 0.25 && !this.over) { this.boosting = true; this.score.nitroUses++; ev.nitro?.(true); }
+    this.wanted = !!input.nitro;
+    if (this.boosting) {
+      this.nitro = Math.max(0, this.nitro - dt / n2.burn);
+      if (this.nitro <= 0 || input.brake > 0.2) { this.boosting = false; ev.nitro?.(false); }
+    }
+    v.boost = this.boosting ? n2.push * FEEL.pace : 0;
+    this.score.boosting = this.boosting;
     v.step(dt, input);
 
     // the guardrails
@@ -124,7 +155,10 @@ export class Drive {
       ev.pass?.(n, gap, closing, side);
       if (this.over) continue;
       const m = this.score.pass(gap, kmh, n.oncoming || lp.oncoming);
-      if (m) ev.miss?.(m, n, side);
+      if (m) {
+        this.nitro = Math.min(1, this.nitro + (m.double ? 0.4 : m.grade.nitro) * n2.fill);
+        ev.miss?.(m, n, side);
+      }
     }
 
     // contact
@@ -149,8 +183,8 @@ export class Drive {
       n.hit = { vx: them.vx, yaw: nyaw, r: them.r };
       n.signal = 0;
       if (!this.over && fatal) {
-        this.over = true;
         ev.crash?.({ you: Math.round(kmh), them: Math.round((n.v * 3.6) / FEEL.pace), kind: n.kind, oncoming: n.oncoming });
+        this.finish("crash");
       } else ev.bump?.(j, n.x > v.x ? -1 : 1);
     }
     this.traffic.remove((n) => n.z < v.z - 70 || n.z > v.z + 1000);
@@ -163,6 +197,25 @@ export class Drive {
     sp.pitchV += ((pitchT - sp.pitch) * 120 - sp.pitchV * 11) * dt; sp.pitch += sp.pitchV * dt;
     sp.rollV += ((rollT - sp.roll) * 110 - sp.rollV * 10) * dt; sp.roll += sp.rollV * dt;
 
-    if (!this.over) this.score.tick(dt, kmh, lp.oncoming);
+    if (this.over) return;
+    this.score.tick(dt, kmh, lp.oncoming);
+
+    // the modes' own rules
+    if (this.mode === "time") {
+      this.clock -= dt;
+      // every 2.5 km on the dial: 30 s, 27, 24 ... never under 12
+      if (this.score.distance >= (this.checkpoints + 1) * 2500) {
+        const added = Math.max(12, 30 - 3 * this.checkpoints);
+        this.checkpoints++;
+        this.clock += added;
+        ev.checkpoint?.(added);
+      }
+      if (this.clock <= 0) { this.clock = 0; this.finish("time"); }
+    } else if (this.mode === "trap") {
+      // 90 km/h for the first 10 s, then 5 more every 10 s
+      this.floor = 90 + 5 * Math.floor(this.score.time / 10);
+      this.under = kmh < this.floor ? this.under + dt : Math.max(0, this.under - dt * 2);
+      if (this.under >= 3) this.finish("slow");
+    }
   }
 }

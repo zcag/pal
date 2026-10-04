@@ -10,9 +10,11 @@ import { Chase, VIEWS } from "./camera.ts";
 import { Car } from "./car.ts";
 import { Sound } from "./audio.ts";
 import { ONE_WAY, TWO_WAY, laneX } from "../game/layout.ts";
-import { CARS, LOCATIONS, MODES, PAINTS, PAINT_PRICE, UPGRADE_MAX, FEEL, upgradeCost, stats, type Upgrades } from "../game/content.ts";
-import { load, fresh, carOf, buyCar, buyUpgrade, paint, buyLocation, finish, type Save, type Scene } from "../game/meta.ts";
+import { CARS, LOCATIONS, MODES, UPGRADE_MAX, FEEL, upgradeCost, stats, paintSet, type Upgrades } from "../game/content.ts";
+import { load, fresh, carOf, buyCar, buyUpgrade, paint, finish, places, modes, paintsOpen, opensAt, fillMissions, NO_UP, type Save, type Scene, type Result } from "../game/meta.ts";
+import { xpFor, nextUnlock, progressOf, statsOf, MAX_LEVEL } from "../game/progress.ts";
 import type { Miss } from "../game/score.ts";
+import type { End } from "../game/drive.ts";
 import type { Input } from "../game/vehicle.ts";
 
 declare const pal: SurfaceKit;
@@ -33,11 +35,11 @@ let names = new Map<string, string>(); // model id to its name, for the crash li
 let scene: Scene | null = null;
 let trial = false; // ?test: everything open, nothing saved
 const persist = () => { if (!scene && !trial) pal.storage.set("save", save).catch((e: unknown) => console.error("highway: save", e)); };
-const layoutOf = (mode: string) => (mode === "twoway" ? TWO_WAY : ONE_WAY);
+const layoutOf = (mode: string) => (MODES.find((m) => m.id === mode)?.twoWay ? TWO_WAY : ONE_WAY);
 const money = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 const kmh = (v: number) => (save.settings.units === "mph" ? v * 0.6214 : v);
 const unit = () => (save.settings.units === "mph" ? "mph" : "km/h");
-const NO_UP: Upgrades = { speed: 0, handling: 0, brakes: 0 };
+const today = () => new Date().toISOString().slice(0, 10);
 
 // ---------------------------------------------------------------- the road
 
@@ -57,7 +59,7 @@ async function road(demo: boolean) {
   const car = demo ? CARS[browse] : carOf(save.car);
   const owned = save.owned[car.id];
   const player = await Car.load(car.id, owned?.paint ?? car.paint);
-  run = new Run(world, layout, player, car, owned?.upgrades ?? NO_UP, events, loc.density);
+  run = new Run(world, layout, player, car, owned?.upgrades ?? NO_UP, events, loc.density, demo ? "endless" : save.mode);
   if (demo) run.veh.launch((105 / 3.6) * FEEL.pace);
   run.settle();
   chase.reset(run.pose);
@@ -90,6 +92,7 @@ const events = {
   },
   crash(info: { you: number; them: number; kind: string; oncoming: boolean }) {
     if (state === "garage") { setTimeout(() => state === "garage" && road(true), 1800); return; }
+    ended = "crash";
     state = "over";
     sound.play("crash_heavy", { gain: 1 });
     sound.play("glass_break", { gain: 0.6 });
@@ -100,7 +103,18 @@ const events = {
     slowmo = 1.7;
   },
   scrape() { sound.play("impact_metal", { gain: 0.35 }); },
+  nitro(on: boolean) { if (state === "run" && on) { sound.play("backfire", { gain: 0.5 }); chase.hit(0, 0.25); } },
+  checkpoint(added: number) { if (state === "run") { banner(`+${added} s`); sound.play("countdown_go", { gain: 0.5 }); } },
+  end(why: End) {
+    if (state !== "run" || why === "crash") return;
+    ended = why;
+    state = "over";
+    sound.play(why === "time" ? "countdown_beep" : "ui_error", { gain: 0.6 });
+    banner(why === "time" ? "Time's up" : "Too slow");
+    slowmo = 1.2;
+  },
 };
+let ended: End | null = null;
 
 // ---------------------------------------------------------------- input
 
@@ -131,6 +145,7 @@ function input(): Input {
     throttle: k("arrowup", "w") ? 1 : 0,
     brake: k("arrowdown", "s") ? 1 : 0,
     steer: (k("arrowleft", "a") ? 1 : 0) - (k("arrowright", "d") ? 1 : 0),
+    nitro: k(" ", "shift"),
   };
 }
 
@@ -148,6 +163,7 @@ function onKey(k: string) {
     return;
   }
   if (state === "results") {
+    if (tallying) { skipTally(); return; } // a key while it counts shows it all at once
     if (k === "enter" || k === " ") drive();
     if (k === "backspace" || k === "g") garage();
   }
@@ -157,21 +173,25 @@ function onKey(k: string) {
 
 let row = 0;
 let browse = 0; // the car shown, owned or not
-const ROWS = ["car", "paint", "speed", "handling", "brakes", "mode", "place"] as const;
+const ROWS = ["car", "paint", "speed", "handling", "brakes", "nitro", "mode", "place"] as const;
 
 async function garage() {
   state = "garage";
   $("card").hidden = true;
   $("hud").hidden = true;
   browse = CARS.findIndex((c) => c.id === save.car);
+  fillMissions(save);
+  persist();
   await road(true);
   sound.setEngine(CARS[browse].engine);
   drawGarage();
   $("garage").hidden = false;
+  $("side").hidden = false;
 }
 
 const shownCar = () => CARS[browse];
 const tag = (price: number) => `<em class="${save.cash >= price ? "can" : "no"}">${money(price)}</em>`;
+const lock = (level: number) => `<em class="lock">level ${level}</em>`;
 const pips = (n: number) => Array.from({ length: UPGRADE_MAX }, (_, i) => `<i class="${i < n ? "f" : ""}"></i>`).join("");
 let tint = ""; // a colour being looked at, not yet bought
 
@@ -188,10 +208,11 @@ function drawGarage() {
     return `<div class="row${sel(k)}"><span>${label}</span><div class="val"><span class="pips">${pips(lv)}</span>${price}</div></div>`;
   };
   const carTag = owned ? `<em>${car.id === save.car ? "Yours" : "Owned"}</em>` : tag(car.price);
-  const placeTag = save.locations.includes(loc.id) ? "" : tag(loc.price);
+  const placeOpen = places(save).includes(loc), modeOpen = modes(save).includes(mode);
   const shown = tint || owned?.paint;
-  const paintTag = owned && tint && !owned.paints.includes(tint) ? tag(PAINT_PRICE) : "";
-  const swatches = PAINTS.map((c) => `<i style="background:${c}" class="${shown === c ? "on" : ""}"></i>`).join("");
+  const set = paintSet(shown ?? car.paint);
+  const paintTag = owned && tint && !owned.paints.includes(tint) ? (paintsOpen(save).includes(set) ? tag(set.price) : lock(opensAtPaint(set.id))) : "";
+  const swatches = set.colors.map((c) => `<i style="background:${c}" class="${shown === c ? "on" : ""}"></i>`).join("");
   $("garage").innerHTML = `
     <div class="sign">
       <div class="head"><b>Highway</b><span>${money(save.cash)}</span></div>
@@ -203,18 +224,32 @@ function drawGarage() {
           <span>Handling</span><i style="--v:${st.handling.toFixed(1)}"></i>
           <span>Brakes</span><i style="--v:${st.brakes.toFixed(1)}"></i>
         </div>
-        <div class="row${sel("paint")}"><span>Paint</span><div class="val"><span class="swatches">${swatches}</span>${paintTag}</div></div>
+        <div class="row${sel("paint")}"><span>${set.name}</span><div class="val"><span class="swatches">${swatches}</span>${paintTag}</div></div>
         ${upRow("speed", "Engine")}
         ${upRow("handling", "Handling")}
         ${upRow("brakes", "Brakes")}
-        <div class="row${sel("mode")}"><span>Mode</span><div class="val"><span class="arrows">${mode.name}</span></div></div>
-        <div class="row${sel("place")}"><span>Place</span><div class="val"><span class="arrows">${loc.name}</span>${placeTag}</div></div>
+        ${upRow("nitro", "Nitro")}
+        <div class="row${sel("mode")}"><span>Mode</span><div class="val"><span class="arrows">${mode.name}</span>${modeOpen ? "" : lock(opensAt("mode", mode.id))}</div></div>
+        <div class="row${sel("place")}"><span>Place</span><div class="val"><span class="arrows">${loc.name}</span>${placeOpen ? "" : lock(opensAt("place", loc.id))}</div></div>
       </div>
       <div class="drive">
-        <div><div class="go">${owned ? "Drive" : "Buy it to drive"}</div><div class="best">${best ? `Best ${best.score.toLocaleString("en-US")} in ${(best.distance / 1000).toFixed(1)} km` : mode.about}</div></div>
+        <div><div class="go">${!owned ? "Buy it to drive" : !modeOpen || !placeOpen ? "Not open yet" : "Drive"}</div><div class="best">${best ? `Best ${best.score.toLocaleString("en-US")} in ${(best.distance / 1000).toFixed(1)} km` : mode.about}</div></div>
         <div class="keys"><button data-key=" "><kbd>space</kbd> drive</button><br><button data-key="enter"><kbd>enter</kbd> buy</button></div>
       </div>
     </div>`;
+  drawSide();
+}
+const opensAtPaint = (id: string) => { for (let l = 1; l <= MAX_LEVEL; l++) if (paintsOpen({ ...save, level: l }).some((p) => p.id === id)) return l; return 1; };
+
+/** The driver's level and the missions, on the right. */
+function drawSide() {
+  const next = nextUnlock(save.level);
+  const need = xpFor(save.level);
+  $("side").innerHTML = `
+    <div class="driver"><b>Level ${save.level}</b><span>${save.level >= MAX_LEVEL ? "Top level" : `${Math.round(save.xp).toLocaleString("en-US")} / ${need.toLocaleString("en-US")} XP`}</span>
+      <i style="--v:${save.level >= MAX_LEVEL ? 1 : save.xp / need}"></i>
+      ${next ? `<small>Level ${next.level} opens ${next.unlocks.map((u) => u.name).join(", ")}</small>` : ""}</div>
+    <div class="missions">${save.missions.map((m) => `<div><span>${m.text}</span><em>${money(m.reward.cash)} · ${m.reward.xp} XP</em></div>`).join("")}</div>`;
 }
 
 async function garageKey(k: string) {
@@ -224,31 +259,36 @@ async function garageKey(k: string) {
     if (tint && owned) { tint = ""; run?.player.setColor(owned.paint); }
     row = (row + (k === "arrowup" || k === "w" ? ROWS.length - 1 : 1)) % ROWS.length;
   } else if (k === " ") {
-    if (!owned) { sound.play("ui_error", { gain: 0.5 }); return; }
+    const loc = LOCATIONS.find((l) => l.id === save.location)!, mode = MODES.find((m) => m.id === save.mode)!;
+    if (!owned || !places(save).includes(loc) || !modes(save).includes(mode)) { sound.play("ui_error", { gain: 0.5 }); return; }
     if (tint) { tint = ""; run?.player.setColor(owned.paint); }
     if (save.car !== car.id) { save.car = car.id; persist(); }
-    if (!save.locations.includes(save.location)) { sound.play("ui_error", { gain: 0.5 }); hintGarage(); return; }
     drive();
     return;
   } else if (k === "arrowleft" || k === "arrowright" || k === "a" || k === "d") {
     const d = k === "arrowleft" || k === "a" ? -1 : 1;
     if (what === "car") { browse = (browse + d + CARS.length) % CARS.length; tint = ""; sound.play("ui_select", { gain: 0.5 }); await preview(); }
-    else if (what === "paint" && owned) { const i = PAINTS.indexOf(tint || owned.paint); tint = PAINTS[(i + d + PAINTS.length) % PAINTS.length]; if (owned.paints.includes(tint)) { owned.paint = tint; tint = ""; persist(); } run?.player.setColor(tint || owned.paint); }
-    else if (what === "mode") { const i = MODES.findIndex((m) => m.id === save.mode); save.mode = MODES[(i + d + MODES.length) % MODES.length].id; persist(); await road(true); }
-    else if (what === "place") { const i = LOCATIONS.findIndex((l) => l.id === save.location); save.location = LOCATIONS[(i + d + LOCATIONS.length) % LOCATIONS.length].id; if (save.locations.includes(save.location)) persist(); await road(true); }
+    else if (what === "paint" && owned) {
+      // the open collections' colours, then the next locked one's to look at
+      const colors = paintsOpen(save).flatMap((p) => p.colors);
+      const i = colors.indexOf(tint || owned.paint);
+      tint = colors[(i + d + colors.length) % colors.length];
+      if (owned.paints.includes(tint)) { owned.paint = tint; tint = ""; persist(); }
+      run?.player.setColor(tint || owned.paint);
+    }
+    else if (what === "mode") { const i = MODES.findIndex((m) => m.id === save.mode); save.mode = MODES[(i + d + MODES.length) % MODES.length].id; if (modes(save).some((m) => m.id === save.mode)) persist(); await road(true); }
+    else if (what === "place") { const i = LOCATIONS.findIndex((l) => l.id === save.location); save.location = LOCATIONS[(i + d + LOCATIONS.length) % LOCATIONS.length].id; if (places(save).some((l) => l.id === save.location)) persist(); await road(true); }
     else return;
   } else if (k === "enter") {
     let ok = false;
     if (what === "car") { ok = !owned && buyCar(save, car); if (owned) { save.car = car.id; ok = true; } }
     else if (what === "paint" && owned && tint) { ok = paint(save, car, tint); if (ok) tint = ""; }
-    else if ((what === "speed" || what === "handling" || what === "brakes") && owned) { ok = buyUpgrade(save, car, what); if (ok && run) run.setPlayer(run.player, car, owned.upgrades); }
-    else if (what === "place") ok = buyLocation(save, save.location);
+    else if ((what === "speed" || what === "handling" || what === "brakes" || what === "nitro") && owned) { ok = buyUpgrade(save, car, what); if (ok && run) run.setPlayer(run.player, car, owned.upgrades); }
     sound.play(ok ? "cash" : "ui_error", { gain: 0.6 });
     if (ok) persist();
   } else return;
   drawGarage();
 }
-function hintGarage() { const el = $("garage").querySelector(".best"); if (el) el.textContent = "Buy this place first, or pick one you own"; }
 
 /** Show the browsed car on the road. */
 async function preview() {
@@ -267,8 +307,11 @@ async function drive() {
   const car = carOf(save.car);
   browse = CARS.indexOf(car);
   $("garage").hidden = true;
+  $("side").hidden = true;
   $("card").hidden = true;
   crashInfo = null;
+  ended = null;
+  done.clear();
   await road(false);
   chase.view = save.settings.camera;
   if (q.has("launch")) { run!.veh.launch((+q.get("launch")! / 3.6) * FEEL.pace); run!.settle(); } // ?launch=<km/h>: start a run at a speed, for trying the feel
@@ -278,8 +321,10 @@ async function drive() {
   state = "run";
   $("hud").hidden = false;
   $("unit").textContent = unit();
-  banner(LOCATIONS.find((l) => l.id === save.location)!.name);
-  hint(save.totals.runs < 3 ? "Arrows to drive. Pass close above 100 km/h for points" : "");
+  const mode = MODES.find((m) => m.id === save.mode)!;
+  banner(mode.id === "endless" ? LOCATIONS.find((l) => l.id === save.location)!.name : mode.name);
+  $("modebox").hidden = mode.id !== "time" && mode.id !== "trap";
+  hint(save.totals.runs < 3 ? "Arrows to drive. Pass close above 100 km/h for points; Space lights the nitro" : "");
 }
 
 function pause() {
@@ -291,30 +336,92 @@ function pause() {
 function resume() { state = "run"; $("card").hidden = true; sound.start(); last = performance.now(); }
 function giveUp() { if (run) { crashInfo = null; results(); } }
 
+let tallying = false, skipTally = () => {};
+
 function results() {
   if (!run) return;
   state = "results";
   $("hud").hidden = true;
-  const s = run.score, loc = LOCATIONS.find((l) => l.id === save.location)!;
-  const cash = Math.round(s.cash() * loc.cash);
-  const record = finish(save, save.mode, { score: Math.round(s.points), distance: s.distance, combo: s.bestCombo, topSpeed: s.topSpeed, misses: s.misses, cash });
+  const s = run.score;
+  const res = finish(save, s, save.mode, save.location, today());
   persist();
   const what = crashInfo ? names.get(crashInfo.kind) ?? "car" : "";
-  const why = crashInfo
+  const why = ended === "time" ? "Time's up" : ended === "slow" ? "Too slow for too long" : crashInfo
     ? crashInfo.oncoming ? `Head-on with a ${what} at ${Math.round(kmh(crashInfo.you))} ${unit()}` : `Into a ${what}: you at ${Math.round(kmh(crashInfo.you))}, it at ${Math.round(kmh(crashInfo.them))} ${unit()}`
     : "You pulled over";
-  card(`<h2>${Math.round(s.points).toLocaleString("en-US")} points</h2>
-    <div class="why ${crashInfo ? "crash" : ""}">${why}</div>
-    ${record && s.points > 0 ? `<div class="record"><span class="plate">New best for ${MODES.find((m) => m.id === save.mode)!.name}</span></div>` : ""}
-    <dl>
-      <dt>Distance</dt><dd>${(s.distance / 1000).toFixed(2)} km</dd>
-      <dt>Near misses</dt><dd>${s.misses}</dd>
-      <dt>Best combo</dt><dd>×${s.bestCombo}</dd>
-      <dt>Top speed</dt><dd>${Math.round(kmh(s.topSpeed))} ${unit()}</dd>
-      <dt class="total">Earned</dt><dd class="total">${money(cash)}</dd>
-    </dl>
+  card(`<div class="result">
+      <div class="left">
+        <h2>${Math.round(s.points).toLocaleString("en-US")} points</h2>
+        <div class="why ${crashInfo ? "crash" : ""}">${why}</div>
+        ${res.record && s.points > 0 ? `<div class="record"><span class="plate">New best for ${MODES.find((m) => m.id === save.mode)!.name}</span></div>` : ""}
+        <dl id="tally"></dl>
+      </div>
+      <div class="right">
+        <div class="driver"><b id="lvl">Level ${res.before.level}</b><span id="xpn"></span><i id="xpbar" style="--v:${res.before.xp / xpFor(res.before.level)}"></i><small id="lvlup"></small></div>
+        <div class="missions">${res.missions.map((m) => `<div class="${m.done ? "done" : ""}"><span>${m.mission.text}</span><i style="--v:${m.progress}"></i><em>${m.done ? `Done: ${money(m.mission.reward.cash)} · ${m.mission.reward.xp} XP` : `${Math.round(m.progress * 100)}%`}</em></div>`).join("")}</div>
+      </div>
+    </div>
     <div class="keys"><button data-key="enter"><kbd>enter</kbd> drive again</button><button data-key="g"><kbd>g</kbd> garage</button></div>`);
-  sound.play("cash", { gain: 0.6 });
+  tally(res);
+}
+
+/** Count the run's pay up line by line, then the XP bar fills, a level at a time. */
+function tally(res: Result) {
+  const dl = $("tally");
+  const rows: [string, string, number][] = [
+    ...res.lines.map((l) => [l.label, money(l.amount), l.amount] as [string, string, number]),
+    ...res.mults.map((m) => [m.label, `×${m.mult}`, 0] as [string, string, number]),
+    ...(res.missionCash ? [["Missions", money(res.missionCash), res.missionCash] as [string, string, number]] : []),
+    ...res.levels.map((l) => [`Level ${l.level}`, money(l.cash), l.cash] as [string, string, number]),
+  ];
+  const total = res.cash + res.missionCash + res.levels.reduce((a, l) => a + l.cash, 0);
+  let i = 0, timer = 0;
+  tallying = true;
+  const xpAnim = () => {
+    // the bar fills to the end of each level climbed, then to where it stops
+    let lvl = res.before.level, x = res.before.xp, left = res.xp;
+    const step = () => {
+      const need = xpFor(lvl), take = Math.min(left, need - x);
+      x += take; left -= take;
+      ($("xpbar") as HTMLElement).style.setProperty("--v", String(x / need));
+      $("xpn").textContent = `+${res.xp.toLocaleString("en-US")} XP`;
+      if (x >= need && lvl < MAX_LEVEL) {
+        lvl++; x = 0;
+        const got = res.levels.find((l) => l.level === lvl);
+        timer = window.setTimeout(() => {
+          $("lvl").textContent = `Level ${lvl}`;
+          $("lvlup").textContent = got?.unlocks.length ? `${got.unlocks.map((u) => u.name).join(", ")} ${got.unlocks.length > 1 ? "are" : "is"} open` : "";
+          ($("xpbar") as HTMLElement).style.setProperty("--v", "0");
+          sound.play("bell_ding", { gain: 0.6 });
+          if (left > 0) timer = window.setTimeout(step, 260); else tallying = false;
+        }, 420);
+      } else tallying = false;
+    };
+    step();
+  };
+  const next = () => {
+    if (i < rows.length) {
+      const [label, value, amount] = rows[i++];
+      dl.insertAdjacentHTML("beforeend", `<dt>${label}</dt><dd>${value}</dd>`);
+      if (amount) sound.play("coin", { gain: 0.35, rate: 0.9 + i * 0.04 });
+      timer = window.setTimeout(next, 170);
+    } else {
+      dl.insertAdjacentHTML("beforeend", `<dt class="total">Earned</dt><dd class="total">${money(total)}</dd>`);
+      sound.play("cash", { gain: 0.6 });
+      timer = window.setTimeout(xpAnim, 300);
+    }
+  };
+  skipTally = () => {
+    window.clearTimeout(timer);
+    dl.innerHTML = rows.map(([l, v]) => `<dt>${l}</dt><dd>${v}</dd>`).join("") + `<dt class="total">Earned</dt><dd class="total">${money(total)}</dd>`;
+    $("lvl").textContent = `Level ${res.after.level}`;
+    ($("xpbar") as HTMLElement).style.setProperty("--v", String(res.after.level >= MAX_LEVEL ? 1 : res.after.xp / xpFor(res.after.level)));
+    $("xpn").textContent = `+${res.xp.toLocaleString("en-US")} XP`;
+    const opened = res.levels.flatMap((l) => l.unlocks);
+    $("lvlup").textContent = opened.length ? `${opened.map((u) => u.name).join(", ")} ${opened.length > 1 ? "are" : "is"} open` : "";
+    tallying = false;
+  };
+  timer = window.setTimeout(next, 450);
 }
 
 // ---------------------------------------------------------------- HUD bits
@@ -362,7 +469,19 @@ function hud() {
   const c = $("combo");
   c.hidden = !s.combo;
   if (s.combo) { c.querySelector("b")!.textContent = `Combo ×${s.combo}`; c.style.setProperty("--left", String(s.comboLeft / 4)); }
+  // nitro: the bar, lit while it burns, and a nudge once it can be lit
+  const d = run.drive, nb = $("nitro");
+  nb.style.setProperty("--v", String(d.nitro));
+  nb.classList.toggle("lit", d.boosting);
+  nb.classList.toggle("ready", !d.boosting && d.nitro >= 0.25);
+  // the mode's own clock or floor
+  if (d.mode === "time") $("modebox").innerHTML = `<b class="${d.clock < 10 ? "low" : ""}">${d.clock.toFixed(1)}</b><span>${d.checkpoints ? `${d.checkpoints} checkpoint${d.checkpoints > 1 ? "s" : ""}` : "Next time at 2.5 km"}</span>`;
+  if (d.mode === "trap") $("modebox").innerHTML = `<b class="${d.under > 0 ? "low" : ""}">${Math.round(kmh(d.floor))}</b><span>${d.under > 0 ? `Speed up: ${(3 - d.under).toFixed(1)} s` : `Stay above, ${unit()}`}</span>`;
+  // a mission finished mid-run says so at once
+  const st = statsOf(s, d.mode);
+  for (const m of save.missions) if (!done.has(m) && progressOf(m, st) >= 1) { done.add(m); pop(`Mission done<small>${m.text}</small>`, "mission"); sound.play("ui_confirm", { gain: 0.6 }); }
 }
+const done = new Set<object>();
 
 // ---------------------------------------------------------------- the loop
 
@@ -449,7 +568,8 @@ pal.onSettings((s: Record<string, unknown>) => { if (typeof s.volume === "number
 
 /** Play a staged scene: set the place and car, then the garage, a run already going, or its end. */
 async function stage(sc: Scene) {
-  if (sc.location) { save.location = sc.location; if (!save.locations.includes(sc.location)) save.locations.push(sc.location); }
+  if (sc.location) save.location = sc.location;
+  save.level = Math.max(save.level, 12); // a staged scene can show any place and mode
   if (sc.mode) save.mode = sc.mode;
   if (sc.car) {
     save.car = sc.car;
@@ -477,7 +597,7 @@ async function stage(sc: Scene) {
     trial = true;
     save.cash = 2_000_000;
     for (const c of CARS) save.owned[c.id] ??= { upgrades: { ...NO_UP }, paint: c.paint, paints: [c.paint] };
-    save.locations = LOCATIONS.map((l) => l.id);
+    save.level = Math.max(save.level, 25);
     const want = q.get("test");
     save.car = CARS.some((c) => c.id === want) ? want! : "thunderbolt-96";
   }
@@ -486,6 +606,7 @@ async function stage(sc: Scene) {
   sound.volume = save.settings.sound;
   names = new Map((await fetch("./cars/cars.json").then((x) => x.json())).map((c: { id: string; name: string }) => [c.id, c.name]));
   browse = CARS.findIndex((c) => c.id === save.car);
+  fillMissions(save);
   const loc = LOCATIONS.find((l) => l.id === save.location)!;
   veil(true, `Driving to ${loc.name}`);
   await world.build(loc.sky, loc.asphalt, layoutOf(save.mode));

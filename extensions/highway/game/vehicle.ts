@@ -31,6 +31,7 @@ export type Spec = {
   brake: number; // max brake deceleration in g, before the tyres limit it
   steerMax: number; // road-wheel angle at a standstill, rad
   agility?: number; // how hard full lock turns at speed, in g (default 0.62)
+  top?: number; // the top speed it was built for, m/s (the nitro may pass it)
 };
 
 export const SEDAN: Spec = {
@@ -40,7 +41,7 @@ export const SEDAN: Spec = {
   drag: 0.62, grip: 1.05, corner: 16, brake: 1.0, steerMax: 0.6,
 };
 
-export type Input = { throttle: number; brake: number; steer: number }; // steer: +1 left
+export type Input = { throttle: number; brake: number; steer: number; nitro?: boolean }; // steer: +1 left
 
 const G = 9.81, RHO = 1.2, CRR = 0.012, SHIFT_TIME = 0.16;
 // The tyres grip harder sideways than real ones (and the car turns in faster): a lane at 160 km/h
@@ -64,6 +65,7 @@ export class Vehicle {
   wheelSpin = 0; // rad, for the wheels on screen
   steer = 0; // the driver's input, eased in as a thumb on a key does
   knocked = 0; // seconds of the tyre model taking over after a hit
+  boost = 0; // nitro's push while it burns, m/s^2
   constructor(public spec: Spec) { this.rpm = spec.idle; }
 
   get kmh() { return this.u * 3.6; }
@@ -171,7 +173,8 @@ export class Vehicle {
       const want = this.steer * across, reverse = (want - lat) * lat < 0;
       const aMax = (26 + 36 * h) * (reverse ? 1.9 : 1);
       const next = lat + Math.max(-aMax * dt, Math.min(aMax * dt, want - lat));
-      const du = Flong / s.mass;
+      // nitro pushes on past the top speed, to a fifth over it
+      const du = Flong / s.mass + (this.boost && this.u < (s.top ?? 99) * 1.2 ? this.boost : 0);
       const crawl = (FEEL.crawl / 3.6) * FEEL.pace;
       this.u = Math.max(Math.min(this.u, crawl), this.u + du * dt); // the brakes slow you to a crawl, never a stop
       const yaw = Math.asin(Math.max(-0.6, Math.min(0.6, next / Math.max(this.u, 1))));
