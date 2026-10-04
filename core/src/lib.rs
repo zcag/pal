@@ -1,5 +1,6 @@
 //! pal core: the parts of pal that are neither UI nor OS glue.
 
+pub mod account;
 pub mod apps;
 pub mod audio;
 pub mod ax;
@@ -31,6 +32,7 @@ pub mod selection;
 pub mod spotlight;
 pub mod states;
 pub mod storage;
+pub mod sync;
 pub mod system;
 pub mod theme;
 pub mod tool;

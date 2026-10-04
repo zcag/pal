@@ -289,11 +289,17 @@ pub struct Roots {
     pub local: BTreeSet<String>,
 }
 
-/// What `pal.json` must say before a directory counts as an extension.
+/// What `pal.json` must say before a directory counts as an extension;
+/// `sync` and `leaderboards`, when there, must parse
+/// (`crate::sync::Decl`, `crate::account::boards`).
 #[derive(Debug, Deserialize)]
 struct Manifest {
     name: Option<String>,
     version: Option<serde_json::Value>,
+    #[serde(default)]
+    sync: serde_json::Value,
+    #[serde(default)]
+    leaderboards: serde_json::Value,
 }
 
 /// A manifest name that is safe as a directory name: lowercase ascii,
@@ -329,6 +335,9 @@ fn validate_manifest_text(text: &str) -> Result<(String, String)> {
         None => String::new(),
         Some(_) => return Err(Error::Manifest("version must be a string".into())),
     };
+    let declared = serde_json::json!({ "sync": m.sync, "leaderboards": m.leaderboards });
+    crate::sync::Decl::from_manifest(&declared).map_err(Error::Manifest)?;
+    crate::account::boards(&declared).map_err(Error::Manifest)?;
     Ok((name, version))
 }
 
@@ -1284,6 +1293,9 @@ pub(crate) mod tests {
             (r#"{"name":"a b","version":"1"}"#, None),
             ("not json", None),
             ("[]", None),
+            (r#"{"name":"g","sync":{"best":"max","hand":"local"},"leaderboards":[{"id":"stage/*","title":"Stage {1}","order":"asc","format":"time"}]}"#, Some(("g", ""))),
+            (r#"{"name":"g","sync":{"best":"most"}}"#, None),
+            (r#"{"name":"g","leaderboards":[{"id":"Stage","title":"x","order":"asc","format":"time"}]}"#, None),
         ];
         for (text, want) in cases {
             let got = validate_manifest_text(text).ok();

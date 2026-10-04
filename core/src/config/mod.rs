@@ -25,6 +25,7 @@ pub mod reshape;
 pub mod schema;
 pub mod secrets;
 pub mod specs;
+pub mod sync;
 mod watch;
 use crate::fs;
 
