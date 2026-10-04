@@ -272,7 +272,8 @@ function frame() {
 
 function input(): Input {
   const k = held[held.length - 1];
-  return { dir: k === "l" ? -1 : k === "r" ? 1 : 0, focus };
+  // Right turns clockwise, as in Super Hexagon; the sim counts angles the other way.
+  return { dir: k === "l" ? 1 : k === "r" ? -1 : 0, focus };
 }
 
 function stepDemo(dt: number) {
