@@ -1,0 +1,9 @@
+{
+  "name": "pal-ext-highway",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@types/three": "0.186.0",
+    "three": "0.186.1"
+  }
+}

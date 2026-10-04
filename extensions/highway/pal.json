@@ -1,0 +1,118 @@
+{
+  "name": "highway",
+  "title": "Highway",
+  "description": "Weave through highway traffic at speed: a driving game with real car handling, traffic that drives like traffic, near misses that build combos, and a garage of seventeen cars to buy, paint and upgrade. Five places under photographed skies, from a cloudy countryside to a night run.",
+  "version": "0.1.0",
+  "icon": {
+    "tile": {
+      "svg": "M1.5 15 6.6 1h1.1L4.6 15zM14.5 15 9.4 1H8.3l3.1 14zM7.45 12h1.1v2.6h-1.1zM7.55 7.2h.9v2.2h-.9zM7.65 3.4h.7v1.5h-.7z",
+      "bg": "green"
+    }
+  },
+  "author": "pal",
+  "repo": "bundled",
+  "license": "MIT",
+  "settings": [
+    {
+      "id": "volume",
+      "label": "Volume",
+      "kind": "number",
+      "description": "How loud the game is: engine, traffic, music.",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "slider": true,
+      "default": 80
+    }
+  ],
+  "store": {
+    "tagline": "Weave through highway traffic at speed",
+    "category": "fun",
+    "play": true,
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "actions": [
+      {
+        "title": "Drive",
+        "description": "Up is the gas, down the brake, left and right steer; WASD too.",
+        "keys": "up, down, left, right"
+      },
+      {
+        "title": "Change the view",
+        "description": "Chase, far, or from the bumper.",
+        "keys": "c"
+      },
+      {
+        "title": "Pause or carry on",
+        "keys": "p"
+      },
+      {
+        "title": "Sound on or off",
+        "keys": "m"
+      },
+      {
+        "title": "In the garage",
+        "description": "Up and down pick a line, left and right change it, Enter buys, Space drives.",
+        "keys": "space"
+      }
+    ],
+    "features": [
+      "Cars that drive like cars: tyres that grip and slide, weight that shifts under the brakes, an engine with real gears; the body squats, dives and leans",
+      "Traffic with drivers: they keep their distance, brake, signal and change lanes when it's safe, and react when you cut in",
+      "Pass close above 100 km/h for a near miss, graded by the gap you left; near misses within four seconds build a combo",
+      "Endless on four lanes going your way, or Two-Way, where the oncoming side pays three times and touching it ends the run",
+      "Seventeen cars from a city car to a V12, each with engine, handling and brake upgrades and twelve paints",
+      "Five places under photographed skies: Countryside, High Noon, Golden Hour, Grey Day and a Night Run with headlights"
+    ],
+    "screenshots": [
+      {
+        "file": "1-run.png",
+        "caption": "196 km/h through countryside traffic in the Stinger '96, the drivers signalling and keeping their gaps"
+      },
+      {
+        "file": "2-garage.png",
+        "caption": "The garage: your car drives the road behind a sign where you choose it, paint it, upgrade it and pick the place"
+      },
+      {
+        "file": "3-night.png",
+        "caption": "A night run: headlights on the road, tail lamps ahead, brake lights when a driver slows"
+      },
+      {
+        "file": "4-twoway.png",
+        "caption": "Two-Way at high noon: the oncoming side pays three times, and touching it ends the run"
+      },
+      {
+        "file": "5-results.png",
+        "caption": "The end of a run: what you hit and how fast, the score, the near misses and the cash it paid"
+      }
+    ]
+  },
+  "palettes": {
+    "highway": {
+      "title": "Highway",
+      "kind": "view",
+      "description": "A run on the highway. Escape or closing the panel pauses it.",
+      "keys": [
+        {
+          "keys": "up",
+          "title": "Drive (arrows or WASD)"
+        },
+        {
+          "keys": "c",
+          "title": "Change the view"
+        },
+        {
+          "keys": "p",
+          "title": "Pause or carry on"
+        },
+        {
+          "keys": "m",
+          "title": "Sound on or off"
+        }
+      ]
+    }
+  }
+}

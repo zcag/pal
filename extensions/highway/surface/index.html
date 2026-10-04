@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Highway</title>
+<script src="/__pal/surface.js"></script>
+<link rel="stylesheet" href="./style.css">
+<script type="module" src="./main.ts"></script>
+</head>
+<body>
+<canvas id="view" aria-label="The road"></canvas>
+
+<div id="hud" hidden>
+  <div id="score"><b>0</b><span id="rate"></span></div>
+  <div id="combo" hidden><b></b><i></i></div>
+  <div id="trip"><span id="dist">0.0 km</span><span id="earn"></span></div>
+  <div id="gauge"><div><span id="gear">1</span><b id="speed">0</b></div><span id="unit">km/h</span><div id="rpm"><i></i></div></div>
+  <div id="pops"></div>
+  <div id="hint"></div>
+</div>
+
+<div id="garage" hidden></div>
+<div id="card" hidden></div>
+<div id="loading"><div class="sign"><b>Highway</b><span id="loadmsg">Loading the road</span><i><em></em></i></div></div>
+</body>
+</html>
