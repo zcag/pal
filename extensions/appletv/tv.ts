@@ -334,7 +334,7 @@ export function publishControls(): void {
     player: c && loaded && power !== "off" ? {
       device: name, state: n.state === "paused" ? "paused" : n.state === "stopped" ? "stopped" : "playing",
       title: titles(n, app?.name).title, artist: n.series ?? n.artist, album: n.album, artwork: coverArt.data, app: app?.name,
-      position: n.position, at: n.at, duration: n.duration, palette: "now", item: "playing",
+      position: n.position, at: n.at, duration: n.duration, palette: "remote", item: "playing",
     } : null,
   };
   for (const k of ["volume", "power", "player"] as const) {

@@ -475,7 +475,7 @@ describe("in a group with a TV", () => {
     host.viewShown(E, { palette: "remote" }, "remote");
     await view();
     await host.until(() => host.published.get(`${E}\0player`)?.title === "The Long Quiet", 3000, "the player published");
-    expect(host.published.get(`${E}\0player`)).toMatchObject({ device: "Living Room", state: "playing", app: "TV", palette: "now", item: "playing", duration: 6120 });
+    expect(host.published.get(`${E}\0player`)).toMatchObject({ device: "Living Room", state: "playing", app: "TV", palette: "remote", item: "playing", duration: 6120 });
     expect(host.published.get(`${E}\0power`)).toMatchObject({ device: "Living Room", on: true });
     expect(host.published.get(`${E}\0volume`)).toMatchObject({ level: 0.5 });
     const t = text(await view());
