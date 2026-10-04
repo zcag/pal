@@ -3,11 +3,11 @@
 // the host says where they differ. `checkPalettes` as a table, the host
 // carrying its warnings on the wire, and the bundled extensions all clean.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { badged, checkIcon, tile, tileBrand, tinted } from "../../sdk/src/icon.ts";
 import { checkBarSettings, checkPalettes, kindOf, paletteMeta } from "../../sdk/src/manifest.ts";
 import type { Extension, Manifest, ManifestPalette, Palette } from "../../sdk/src/protocol.ts";
-import { BUNDLED, Host, Root, manifest, simpleExt } from "./harness.ts";
+import { Host, Root, extensionsByName, manifest, simpleExt } from "./harness.ts";
 
 const rows = () => [{ id: "a", name: "A" }];
 const pick = () => {};
@@ -309,9 +309,7 @@ describe("the bundled extensions", () => {
     const host = await Host.bundled();
     try {
       // Every directory with an entry file (one without is not an extension yet).
-      const dirs = readdirSync(BUNDLED, { withFileTypes: true })
-        .filter((d) => d.isDirectory() && !d.name.startsWith(".") && d.name !== "node_modules" && ["index.ts", "index.js"].some((f) => existsSync(`${BUNDLED}/${d.name}/${f}`)))
-        .map((d) => d.name).sort();
+      const dirs = [...extensionsByName()].filter(([, dir]) => ["index.ts", "index.js"].some((f) => existsSync(`${dir}/${f}`))).map(([name]) => name).sort();
       const loaded = host.loaded();
       expect(loaded.map((l) => l.extension).sort()).toEqual(dirs);
       const drift = Object.fromEntries(loaded.filter((l) => l.warnings.length).map((l) => [l.extension, l.warnings]));
@@ -332,13 +330,11 @@ describe("the bundled extensions", () => {
   test("every manifest palette has a title", () => {
     const perPlatform = ["services.services"];
     const missing = [];
-    for (const name of readdirSync(BUNDLED)) {
-      const file = `${BUNDLED}/${name}/pal.json`;
-      if (!existsSync(file)) continue;
-      const m = JSON.parse(readFileSync(file, "utf8")) as Manifest;
-      for (const [key, p] of Object.entries(m.palettes ?? {})) if (p.title === undefined) missing.push(`${name}.${key}`);
+    for (const [name, dir] of extensionsByName()) {
+      const m = JSON.parse(readFileSync(`${dir}/pal.json`, "utf8")) as Manifest;
+      for (const [key, p] of Object.entries(m.palettes ?? {})) if (p.title === undefined && !perPlatform.includes(`${name}.${key}`)) missing.push(`${name}.${key}`);
     }
-    expect(missing).toEqual(perPlatform);
+    expect(missing).toEqual([]);
   });
 });
 
@@ -352,10 +348,6 @@ describe("bar item settings", () => {
     expect(checkBarSettings({ ...m, bar: undefined, settings: [{ kind: "boolean", id: "bar_dot", label: "Dot" }] } as unknown as Manifest)).toEqual([]);
   });
   test("no bundled extension still spells an item's setting the old way", () => {
-    for (const name of readdirSync(BUNDLED)) {
-      const file = `${BUNDLED}/${name}/pal.json`;
-      if (!existsSync(file)) continue;
-      expect(checkBarSettings(JSON.parse(readFileSync(file, "utf8")) as Manifest), name).toEqual([]);
-    }
+    for (const [name, dir] of extensionsByName()) expect(checkBarSettings(JSON.parse(readFileSync(`${dir}/pal.json`, "utf8")) as Manifest), name).toEqual([]);
   });
 });

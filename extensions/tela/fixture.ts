@@ -4,7 +4,7 @@
 // harness against the tests' mock instance (host/test/extensions/tela-mock.ts),
 // with a few more pages added so the listings look lived in; nothing here
 // is the owner's (the tests' "you" is renamed deniz). `make shots EXT=tela`.
-import { BUNDLED, Host, stored } from "../../host/test/harness.ts";
+import { Host, stored } from "../../host/test/harness.ts";
 import { BASE, FAVORITES, NOTIFICATIONS, PAGES, RECENT, SETTINGS, SPACES, server, setRead } from "../../host/test/extensions/tela-mock.ts";
 import { pinClock, settle, writeFixture } from "../../app/scripts/fixture-kit.ts";
 import manifest from "./pal.json" with { type: "json" };
@@ -33,7 +33,7 @@ const icon = manifest.icon;
 stored.clear();
 delete process.env.PAL_TELA_URL;
 delete process.env.PAL_TELA_TOKEN;
-const host = await Host.bundled({ roots: [BUNDLED], settings: { tela: { settings: SETTINGS } }, timeout: 20000 });
+const host = await Host.bundled({ settings: { tela: { settings: SETTINGS } }, timeout: 20000 });
 try {
   const loaded = (await host.hello()).extensions.find((x) => x.name === "tela")!;
   const meta = (name: string) => loaded.palettes.find((p) => p.name === name)!;

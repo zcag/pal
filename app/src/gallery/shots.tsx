@@ -21,6 +21,7 @@ import { Launcher, type LauncherHandle, type SurfaceBridge } from "../Launcher";
 import { ASK_ID, PALETTES, sourceKey, toItem, toView, type Ctx, type Effect, type SourceInfo, type WireItem } from "../items";
 import type { Hit } from "../ui";
 import type { Detail, FilterOption, Item, ViewSpec } from "../ui/types";
+import { shots } from "virtual:pal-extensions";
 import { svgIcon } from "./data";
 
 type Palette = {
@@ -56,7 +57,7 @@ type Palette = {
 };
 export type Fixture = { palettes: Record<string, Palette>; effects?: Record<string, Effect>; inline?: Record<string, { palette: string; items: WireItem[] }> };
 
-const fixtures = import.meta.glob<{ default: Fixture }>("./shots/*.json");
+const fixtures = shots as Record<string, () => Promise<{ default: Fixture }>>;
 
 /** The tile colours of the letter icons standing in for app artwork, which only the app's `icon://` scheme serves. */
 const tiles = ["#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#14b8a6", "#ef4444", "#6366f1"];
@@ -168,7 +169,7 @@ export default function Shots({ extension, palette, theme = "light" }: { extensi
   const [fixture, setFixture] = useState<Fixture | null>(null);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    const load = fixtures[`./shots/${extension}.json`];
+    const load = fixtures[`${extension}.json`];
     if (!load) { document.title = `no fixture for ${extension}`; return; }
     load().then((m) => setFixture(m.default));
   }, [extension, theme]);

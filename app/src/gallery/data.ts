@@ -1,4 +1,5 @@
 /** Hand-written items exercising every field, plus a fixture sample. */
+import { manifests } from "virtual:pal-extensions";
 import { toItem, type Raw } from "../fixtures";
 import { iconOf as iconFromWire } from "../items";
 import type { Action, FormField, Item } from "../ui/types";
@@ -438,11 +439,9 @@ export const nerdGlyphs: Item[] = [
  * extension in load order, plus a row of the extension's own colour
  * (`tint`) as its rows carry it.
  */
-const manifests = import.meta.glob<{ default: { name: string; title: string; icon?: unknown } }>("../../../extensions/*/pal.json", { eager: true });
-/** One bundled extension's manifest title and icon, for a level keyed on the extension without a source of its own (a bar item's popover in bar-shot.tsx). */
-export const manifestOf = (name: string) => Object.values(manifests).map((m) => m.default).find((m) => m.name === name);
-export const tileRows: Item[] = Object.values(manifests)
-  .map((m) => m.default)
+/** One extension's manifest title and icon, for a level keyed on the extension without a source of its own (a bar item's popover in bar-shot.tsx). */
+export const manifestOf = (name: string) => manifests.find((m) => m.name === name);
+export const tileRows: Item[] = [...manifests]
   .sort((a, b) => a.name.localeCompare(b.name))
   .map((m) => ({ id: m.name, name: m.title, subtitle: m.name, icon: iconFromWire(m.icon, m.title), palette: "palettes", accessories: [{ text: "Palette" }] }));
 
@@ -464,7 +463,7 @@ const listingOf = (m: Manifest): Listing => ({
   palettes: Object.entries(m.palettes ?? {}).map(([id, p]) => ({ id, title: p.title ?? m.title ?? id, kind: p.kind ?? "list" })),
   screenshots: (m.store?.screenshots ?? []).map((s) => ({ url: `/__ext/${m.name}/screenshots/${s.file}`, caption: s.caption })), requires: m.requires ?? [], suggests: m.suggests ?? [],
 });
-const registryManifests = Object.values(manifests).map((m) => m.default as Manifest).sort((a, b) => a.name.localeCompare(b.name));
+const registryManifests = manifests.map((m) => m as Manifest).sort((a, b) => a.name.localeCompare(b.name));
 export const browseStore: StoreState = {
   ...settingsStore,
   registries: [{ ...settingsStore.registries[0], count: registryManifests.length }, { ...settingsStore.registries[1], last_error: null, last_ok: settingsStore.registries[1].last_checked }],

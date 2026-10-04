@@ -19,6 +19,7 @@ import { Hud } from "../ui";
 import { BarStrip, MENUBAR_H, SKETCHYBAR_H, type BarStripItem } from "../ui/BarStrip";
 import { POPOVER_MAX_H, popoverHeight } from "../ui/popover-size";
 import { toItem, toView, type Effect, type SourceInfo, type WireItem } from "../items";
+import { shots } from "virtual:pal-extensions";
 import { manifestOf } from "./data";
 import type { Item } from "../ui/types";
 
@@ -42,7 +43,7 @@ export type BarFixture = {
 type Target = "menubar" | "sketchybar";
 type Theme = "dark" | "light";
 
-const fixtures = import.meta.glob<{ default: BarFixture }>("./shots/bar-*.json");
+const fixtures = shots as Record<string, () => Promise<{ default: BarFixture }>>;
 
 /** The strip: 720 by 60, the band at the top and the desktop under it. */
 const W = 720, STRIP_H = 60;
@@ -135,7 +136,7 @@ export default function BarShot({ bar, target, theme, state, popover }: { bar: s
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     const ext = bar.split("/")[0];
-    const load = fixtures[`./shots/bar-${ext}.json`];
+    const load = fixtures[`bar-${ext}.json`];
     if (!load) { document.title = `no bar fixture for ${ext}`; return; }
     load().then((m) => setFx(m.default));
   }, [bar, theme]);

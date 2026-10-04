@@ -8,9 +8,9 @@
 // from a canned board (the core's `leaderboard.get`) and a canned list of
 // boards (pal's server, a local one here).
 // `bun run extensions/games/fixture.ts`, then `make shots EXT=games`.
-import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
-import { BUNDLED, Host } from "../../host/test/harness.ts";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { Host, extensionsByName } from "../../host/test/harness.ts";
 import { pinClock, writeFixture } from "../../app/scripts/fixture-kit.ts";
 import type { AvailableExtension, LeaderboardRow, View } from "../../sdk/src/index.ts";
 import manifest from "./pal.json" with { type: "json" };
@@ -18,10 +18,11 @@ import manifest from "./pal.json" with { type: "json" };
 const INSTALLED = new Set(["games", "solitaire", "wordle", "snake"]);
 
 pinClock();
-const names = readdirSync(BUNDLED).filter((n) => existsSync(join(BUNDLED, n, "pal.json"))).sort();
-const installed = names.filter((n) => INSTALLED.has(n)).map((name) => ({ name, version: "0.1.0", root: BUNDLED, loaded: true, store: name !== "games", bundled: name === "games" }));
+const dirs = extensionsByName();
+const names = [...dirs.keys()].sort();
+const installed = names.filter((n) => INSTALLED.has(n)).map((name) => ({ name, version: "0.1.0", root: dirname(dirs.get(name)!), loaded: true, store: name !== "games", bundled: name === "games" }));
 const available: AvailableExtension[] = names.map((name) => {
-  const m = JSON.parse(readFileSync(join(BUNDLED, name, "pal.json"), "utf8"));
+  const m = JSON.parse(readFileSync(join(dirs.get(name)!, "pal.json"), "utf8"));
   const s = m.store ?? {};
   return {
     name, registry: "pal", installed: INSTALLED.has(name), bundled: name === "games", installable: true,

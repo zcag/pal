@@ -17,15 +17,16 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
-import { BUNDLED } from "./harness.ts";
+import { extensionsByName } from "./harness.ts";
 
 /** Fun extensions with a view palette that are not games: the shelf itself, a GIF search. */
 const NOT_GAMES = new Set(["games", "gifs"]);
 
 type Manifest = { sync?: Record<string, unknown>; store?: { category?: string }; palettes?: Record<string, { kind?: string }> };
-const manifestOf = (name: string): Manifest => JSON.parse(readFileSync(join(BUNDLED, name, "pal.json"), "utf8"));
+const DIRS = extensionsByName();
+const manifestOf = (name: string): Manifest => JSON.parse(readFileSync(join(DIRS.get(name)!, "pal.json"), "utf8"));
 
-const names = readdirSync(BUNDLED).filter((n) => existsSync(join(BUNDLED, n, "pal.json"))).sort();
+const names = [...DIRS.keys()].sort();
 const isGame = (m: Manifest, name: string) => !NOT_GAMES.has(name) && m.store?.category === "fun" && Object.values(m.palettes ?? {}).some((p) => p.kind === "view");
 const games = names.filter((n) => isGame(manifestOf(n), n));
 const checked = names.filter((n) => isGame(manifestOf(n), n) || manifestOf(n).sync !== undefined);
@@ -53,7 +54,7 @@ function writtenKeys(src: string): { keys: string[]; unknown: string[] } {
 
 /** Per game: the keys it writes and where, and the writes no key could be read from. */
 function scan(name: string): { keys: Map<string, string>; unknown: string[] } {
-  const dir = join(BUNDLED, name);
+  const dir = DIRS.get(name)!;
   const keys = new Map<string, string>(), unknown: string[] = [];
   for (const file of sources(dir)) {
     const w = writtenKeys(readFileSync(file, "utf8"));
@@ -74,8 +75,9 @@ describe("synced storage is declared", () => {
     expect(writtenKeys("storage.set(key, v); storage.set(`run:${id}`, v)")).toEqual({ keys: [], unknown: ["key", "`run:${id}`"] });
   });
 
+  // Those of them in the extension repos this run reads (pal-games has the games, pal-extensions the shelf).
   test("the games are found", () => {
-    for (const g of ["2048", "wordle", "sudoku", "crossword", "solitaire"]) expect(games).toContain(g);
+    for (const g of ["2048", "wordle", "sudoku", "crossword", "solitaire"].filter((n) => DIRS.has(n))) expect(games).toContain(g);
     for (const n of NOT_GAMES) expect(games).not.toContain(n);
   });
 

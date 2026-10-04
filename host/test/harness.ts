@@ -8,6 +8,7 @@ import { setDefaultTimeout } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { extensionDirs, extensionRepos } from "../../app/scripts/extension-repos.mjs";
 import type { BarCtx, BarItem, BarMeta, ClipboardEntry, ControlName, Ctx, Detail, Effect, Group, Item, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SystemCommand, ViewNode, ViewUpdate, Window } from "../../sdk/src/index.ts";
 
 // A test's own budget grows with its waits (`until` triples them on the CI runner): at bun's 5 s a test was killed while its 7.5 s wait
@@ -17,10 +18,21 @@ setDefaultTimeout(process.env.CI ? 15_000 : 5_000);
 export const HOST = resolve(import.meta.dir, "../src/host.ts");
 /** The requests that ask every loaded extension at once (the root's sections). */
 const ROOT_SECTIONS = new Set(["suggest", "inline", "fallback", "fallback/late"]);
-/** The bundled extensions, for the integration tests. */
-export const BUNDLED = resolve(import.meta.dir, "../../extensions");
-/** A bundled extension's `icon` as its pal.json has it: a logo tile's path is the manifest's to keep (app/scripts/brand-icons.ts), not a test's to copy. */
-export const bundledIcon = (name: string) => JSON.parse(readFileSync(join(BUNDLED, name, "pal.json"), "utf8")).icon;
+/**
+ * pal's own extensions, for the integration tests: the roots of the extension repos
+ * (`../pal-extensions`, `../pal-games`, or what PAL_EXTENSION_REPOS lists; app/scripts/extension-repos.mjs).
+ */
+export const ROOTS: string[] = extensionRepos().map((r) => r.dir);
+/** One of those extensions' directory, for a test that reads its files. */
+export function extDir(name: string): string {
+  const dir = extensionDirs().get(name)?.dir;
+  if (!dir) throw new Error(`no extension ${name} in ${ROOTS.join(", ") || "any extension repo (PAL_EXTENSION_REPOS, app/scripts/extension-repos.mjs)"}`);
+  return dir;
+}
+/** Every one of those extensions, by name: its directory. */
+export const extensionsByName = (): Map<string, string> => new Map([...extensionDirs()].map(([n, e]) => [n, e.dir]));
+/** An extension's `icon` as its pal.json has it: a logo tile's path is the manifest's to keep (app/scripts/brand-icons.ts), not a test's to copy. */
+export const bundledIcon = (name: string) => JSON.parse(readFileSync(join(extDir(name), "pal.json"), "utf8")).icon;
 /** Absolute import specifiers for fixture extensions written outside the repo (the SDK by path; `@zcag/pal` by name works too, through the link the host makes). */
 export const API = resolve(import.meta.dir, "../../sdk/src/index.ts");
 export const PROTOCOL = resolve(import.meta.dir, "../../sdk/src/protocol.ts");
@@ -184,10 +196,10 @@ export class Host {
     return h;
   }
 
-  /** The bundled root; `scripts` reads no v1 config unless the overlay says which. */
+  /** The extension repos' roots; `scripts` reads no v1 config unless the overlay says which. */
   static bundled(opts: Partial<Options> = {}): Promise<Host> {
     const settings: Overlay = { scripts: { settings: { config: join(tmpdir(), "pal-test-no-such-config.toml") } }, ...opts.settings };
-    return Host.start({ roots: [BUNDLED], ...opts, settings });
+    return Host.start({ roots: ROOTS, ...opts, settings });
   }
 
   get pid() { return this.proc.pid; }
@@ -233,7 +245,7 @@ export class Host {
   async request<T = unknown>(method: string, params?: unknown, timeout?: number): Promise<T> {
     // Every bundled extension's root section is real machine state (sessions reads this Mac's Claude sessions, files asks Spotlight)
     // and some wait on timers the fake clock holds: a test asks only the extensions it is about.
-    if (ROOT_SECTIONS.has(method) && this.opts.roots.includes(BUNDLED) && !this.opts.only) throw new Error(`${method} on a bundled host asks every extension: start it with only: [the extensions under test] (README.md, Time)`);
+    if (ROOT_SECTIONS.has(method) && this.opts.roots.some((r) => ROOTS.includes(r)) && !this.opts.only) throw new Error(`${method} on a bundled host asks every extension: start it with only: [the extensions under test] (README.md, Time)`);
     const r = await this.call(method, params, timeout);
     if (r.error !== undefined) throw new HostError(method, r.error);
     return r.result as T;

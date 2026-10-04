@@ -21,7 +21,7 @@ import { actions as nowActions, chapterAt, panels, render as renderNow, type Now
 import { backdrop, dominant, pngData, rounded } from "../../../extensions/appletv/image.ts";
 import { checkView } from "../../../sdk/src/view.ts";
 import type { BarItem, Served, View } from "../../../sdk/src/protocol.ts";
-import { API, BUNDLED, Host, Root, bundledIcon, logLines, manifest, stored } from "../harness.ts";
+import { API, Host, ROOTS, Root, bundledIcon, logLines, manifest, stored } from "../harness.ts";
 
 const E = "appletv";
 const LIVING = { id: "32:C4:F2:8D:8E:A9", name: "Living Room", address: "192.168.1.113", model: "AppleTV11,1", modelName: "Apple TV 4K (2nd generation)", os: "26.6", companionPort: 49153, airplayPort: 7000 };
@@ -467,7 +467,7 @@ describe("in a group with a TV", () => {
     process.env.PAL_APPLETV_FAKE = dir;
     stored.set(`${E}\0devices`, [{ ...LIVING, companion: { serverId: `${LIVING.id}-companion` }, airplay: { serverId: `${LIVING.id}-airplay` } }]);
     root = new Root({ tv: { "index.ts": GROUP_TV, "pal.json": manifest("tv", { controls: ["volume", "power", "inputs"] }) } });
-    host = await Host.bundled({ roots: [BUNDLED, root.dir], only: [E, "tv"], settings: { [E]: { settings: { stay: false } } } });
+    host = await Host.bundled({ roots: [...ROOTS, root.dir], only: [E, "tv"], settings: { [E]: { settings: { stay: false } } } });
   });
   afterAll(() => { host.kill(); root.rm(); delete process.env.PAL_APPLETV_FAKE; rmSync(dir, { recursive: true, force: true }); });
 

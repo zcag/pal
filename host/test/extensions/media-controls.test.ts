@@ -8,7 +8,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { MediaPlayer, NowPlaying, PlayerState } from "../../../sdk/src/index.ts";
 import { fromPublished, merged } from "../../../extensions/media/index.ts";
-import { API, BUNDLED, Host, Root, manifest, stored } from "../harness.ts";
+import { API, Host, ROOTS, Root, manifest, stored } from "../harness.ts";
 
 /** A device that plays: its pick publishes the state the id spells (null withdraws), its transport is logged in its own storage. */
 const BOX = `
@@ -32,7 +32,7 @@ let root: Root;
 let host: Host;
 beforeAll(async () => {
   root = new Root({ box: { "index.ts": BOX, "pal.json": manifest("box", { controls: ["player"], palettes: { now: { title: "Box Now Playing" } } }) } });
-  host = await Host.start({ roots: [BUNDLED, root.dir], only: ["media", "box"], core: { "media.now_playing": () => np, "media.control": () => null } });
+  host = await Host.start({ roots: [...ROOTS, root.dir], only: ["media", "box"], core: { "media.now_playing": () => np, "media.control": () => null } });
 });
 afterAll(() => { host.kill(); root.rm(); });
 

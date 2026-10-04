@@ -6,7 +6,7 @@
 // the owner's. The mock's days sit around the tests' clock (22 Sep); they
 // move with it to the shots' (16 Sep), so an overdue stays overdue and
 // today's today. `make shots EXT=odak`.
-import { BUNDLED, Host, stored } from "../../host/test/harness.ts";
+import { Host, stored } from "../../host/test/harness.ts";
 import { BASE, ITEMS, NOW as MOCK_NOW, SETTINGS, idOf, server } from "../../host/test/extensions/odak-mock.ts";
 import { NOW, pinClock, settle, writeFixture } from "../../app/scripts/fixture-kit.ts";
 import manifest from "./pal.json" with { type: "json" };
@@ -32,7 +32,7 @@ const icon = manifest.icon;
 stored.clear();
 delete process.env.PAL_ODAK_URL;
 delete process.env.PAL_ODAK_KEY;
-const host = await Host.bundled({ roots: [BUNDLED], settings: { odak: { settings: SETTINGS } }, timeout: 20000 });
+const host = await Host.bundled({ settings: { odak: { settings: SETTINGS } }, timeout: 20000 });
 try {
   const loaded = (await host.hello()).extensions.find((x) => x.name === "odak")!;
   const meta = (name: string) => loaded.palettes.find((p) => p.name === name)!;

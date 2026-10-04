@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // The store screenshots (docs/design/screenshots.md): for each extension,
-// every panel shot its fixture plans (`src/gallery/shots/<name>.json`,
+// every panel shot its fixture plans (`test/shots/<name>.json` in its repo,
 // `?gallery&shot=<name>`) and every bar shot (`shots/bar-<name>.json`,
 // `?gallery&bar=...`), each on the light theme as `<file>.png` and on the
-// dark one as `<file>-dark.png`, into extensions/<name>/screenshots/. Then
+// dark one as `<file>-dark.png`, into the extension's screenshots/. Then
 // the directory holds exactly those (an older picture is removed),
 // `store.screenshots` in pal.json lists the light ones with the fixtures'
 // captions (a popover with its `box`, where it sits in the picture), and `screenshots/.shots.json` stamps the fixtures' hash, which
@@ -24,12 +24,12 @@
 // `menubar-<state>`, `popover-<state>`. The browser is playwright-core's
 // own Chrome for Testing (`npx playwright-core install chromium`), never the
 // daily one.
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
-import { FIXTURES as fixtures, NOW, ROOT as root, TZ, barFixtureOf, fixtureHash, fixtureOf } from "./shots-lib.mjs";
+import { NOW, TZ, barFixtureOf, extensions, fixtureHash, fixtureOf } from "./shots-lib.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const base = process.env.SHOTS_URL ?? "http://127.0.0.1:1430";
@@ -43,7 +43,7 @@ const read = (f) => JSON.parse(readFileSync(f, "utf8"));
 const args = process.argv.slice(2);
 const names = args.length
   ? args
-  : [...new Set(readdirSync(fixtures).filter((f) => f.endsWith(".json")).map((f) => f.replace(/^bar-/, "").slice(0, -5)))].filter((n) => existsSync(join(root, "extensions", n))).sort();
+  : [...extensions().keys()].filter((n) => fixtureOf(n) || barFixtureOf(n)).sort();
 
 const keyOf = { down: "ArrowDown", up: "ArrowUp", left: "ArrowLeft", right: "ArrowRight", tab: "Tab", enter: "Enter", escape: "Escape", backspace: "Backspace", space: "Space" };
 const combo = (s) => s.split("+").map((k) => ({ cmd: "Meta", shift: "Shift", alt: "Alt", ctrl: "Control" })[k] ?? keyOf[k] ?? k).join("+");  // a letter as written: "s" is e.key "s", as a page compares it
@@ -136,7 +136,9 @@ const barUrl = (key, shot, theme) => {
 for (const name of names) {
   const panel = fixtureOf(name) && read(fixtureOf(name));
   const bar = barFixtureOf(name) && read(barFixtureOf(name));
-  const dir = join(root, "extensions", name, "screenshots");
+  const ext = extensions().get(name)?.dir;
+  if (!ext) { failed++; console.error(`${name}: no such extension in the extension repos`); continue; }
+  const dir = join(ext, "screenshots");
   const out = outDir ?? dir;
   mkdirSync(out, { recursive: true });
   const listed = [];
@@ -170,7 +172,7 @@ for (const name of names) {
   if (outDir || broke) continue;
   // The directory is exactly what the fixtures plan: a picture no fixture makes any more goes.
   for (const f of readdirSync(dir)) if (f.endsWith(".png") && !made.has(f)) { rmSync(join(dir, f)); console.log(`${name}/${f}: removed (no fixture plans it)`); }
-  writeList(join(root, "extensions", name, "pal.json"), listed.map(({ file, caption, kind, box }) => ({ file, caption, ...(kind && { kind }), ...(box && { box }) })));
+  writeList(join(ext, "pal.json"), listed.map(({ file, caption, kind, box }) => ({ file, caption, ...(kind && { kind }), ...(box && { box }) })));
   writeFileSync(join(dir, ".shots.json"), JSON.stringify({ fixtures: fixtureHash(name) }) + "\n");
 }
 await browser.close();

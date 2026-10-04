@@ -16,6 +16,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import * as si from "simple-icons";
+import { extensionDirs } from "./extension-repos.mjs";
 
 type Logo = { slug: string; fg?: `#${string}` };
 
@@ -39,7 +40,7 @@ const LOGOS: Record<string, Logo> = {
   youtube: { slug: "youtube" },
 };
 
-const root = join(import.meta.dir, "../../extensions");
+const dirs = extensionDirs();
 const icons = new Map((Object.values(si) as { slug?: string; path: string; hex: string }[]).filter((i) => i.slug).map((i) => [i.slug!, i]));
 const check = process.argv.includes("--check");
 let differs = 0;
@@ -47,7 +48,10 @@ let differs = 0;
 for (const [name, { slug, fg }] of Object.entries(LOGOS)) {
   const icon = icons.get(slug);
   if (!icon) throw new Error(`${name}: simple-icons has no "${slug}"`);
-  const file = join(root, name, "pal.json");
+  // One the repos read here lack (pal-games has none of these) is another checkout's to write.
+  const dir = dirs.get(name)?.dir;
+  if (!dir) continue;
+  const file = join(dir, "pal.json");
   const text = readFileSync(file, "utf8");
   const manifest = JSON.parse(text);
   manifest.icon = { tile: { svg: icon.path, box: 24, bg: `#${icon.hex.toUpperCase()}`, ...(fg && { fg }) } };

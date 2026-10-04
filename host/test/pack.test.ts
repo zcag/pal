@@ -6,13 +6,14 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { addBuild, build, finish, listingOf, promote, readIndex, retain, statement, writeIndex, writeStatements, type Entry, type Index, type IndexBuild } from "../../sdk/pack/pack.ts";
 import { tar } from "../../sdk/pack/tar.ts";
 import { treeHash } from "../../sdk/pack/treehash.ts";
 import { PROTOCOL, type Manifest } from "../../sdk/src/protocol.ts";
-import { BUNDLED, Host, manifest } from "./harness.ts";
+import { extensionRepos } from "../../app/scripts/extension-repos.mjs";
+import { Host, extDir, extensionsByName, manifest } from "./harness.ts";
 
 const REPO = resolve(import.meta.dir, "../..");
 const FIXTURE = join(REPO, "core/tests/fixtures/tree-hash");
@@ -143,13 +144,15 @@ describe("build", () => {
     expect(run(dir, "build", "broken", "--out", join(dir, "bad"), "--cwd", dir, "--seq", "7").stderr.toString()).toContain(`broken: pal.json names it "other"`);
   });
 
-  test("a repo extension: seq and commit from git; the listing's palette titles from the manifest, the extension's for one named after it", async () => {
+  // Weather where the extension repos have it (pal-extensions, not pal-games): the path in bun's comments is the one from its repo's root.
+  test.skipIf(!extensionsByName().has("weather"))("a repo extension: seq and commit from git; the listing's palette titles from the manifest, the extension's for one named after it", async () => {
     const out = join(dir, "repo");
-    const e = await build(join(BUNDLED, "weather"), { out, dirOnly: true });
-    const git = (...a: string[]) => Bun.spawnSync(["git", ...a], { cwd: REPO }).stdout.toString().trim();
+    const src = extDir("weather");
+    const e = await build(src, { out, dirOnly: true });
+    const git = (...a: string[]) => Bun.spawnSync(["git", ...a], { cwd: src }).stdout.toString().trim();
     expect(e.build.seq).toBe(Number(git("log", "-1", "--format=%ct")));
     expect(e.build.commit).toBe(git("rev-parse", "HEAD"));
-    expect(readFileSync(join(out, "weather", "index.js"), "utf8")).toContain("// extensions/weather/index.ts");
+    expect(readFileSync(join(out, "weather", "index.js"), "utf8")).toContain(`// ${relative(git("rev-parse", "--show-toplevel"), src)}/index.ts`);
     expect(e.listing.palettes).toEqual([{ id: "weather", title: "Weather", kind: "live" }]);
     expect(e.listing.screenshots).toEqual([]);
   });
@@ -263,24 +266,35 @@ describe("index", () => {
   });
 });
 
+// app/bundled.txt (the names the app ships) and each extension repo's registry-only.txt (the rest of its names).
 describe("the bundled list", () => {
-  const list = (file: string) => readFileSync(join(BUNDLED, file), "utf8").split("\n").map((l) => l.replace(/#.*/, "").trim()).filter(Boolean);
-  test("bundled.txt and registry-only.txt are sorted, have no duplicates, and every name is an extension directory", () => {
-    for (const file of ["bundled.txt", "registry-only.txt"]) {
+  const list = (file: string) => readFileSync(file, "utf8").split("\n").map((l) => l.replace(/#.*/, "").trim()).filter(Boolean);
+  const bundled = list(join(REPO, "app/bundled.txt"));
+  const dirs = extensionsByName();
+  const sorted = (names: string[], file: string) => {
+    expect(names.length, file).toBeGreaterThan(0);
+    expect(names, file).toEqual([...new Set(names)].sort());
+  };
+  // Every bundled name is pal-extensions'; a run that reads only pal-games has none of them, and checks only its own list.
+  test("bundled.txt is sorted, has no duplicates, and every name is an extension (when the repos read have them)", () => {
+    sorted(bundled, "app/bundled.txt");
+    if (bundled.some((n) => dirs.has(n))) for (const n of bundled) expect(existsSync(join(dirs.get(n) ?? "-", "index.ts")), `app/bundled.txt: ${n}`).toBe(true);
+  });
+  for (const repo of extensionRepos()) {
+    const file = join(repo.dir, "registry-only.txt");
+    test(`${repo.dir}: registry-only.txt is sorted, has no duplicates, and every name is an extension there`, () => {
+      expect(existsSync(file), `${repo.dir} has no registry-only.txt`).toBe(true);
       const names = list(file);
-      expect(names.length, file).toBeGreaterThan(0);
-      expect(names, file).toEqual([...new Set(names)].sort());
-      for (const n of names) expect(existsSync(join(BUNDLED, n, "index.ts")), `${file}: ${n}`).toBe(true);
-    }
-  });
-  test("every extension is decided: in exactly one of bundled.txt and registry-only.txt", () => {
-    const bundled = new Set(list("bundled.txt")), registry = new Set(list("registry-only.txt"));
-    const dirs = readdirSync(BUNDLED, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(join(BUNDLED, d.name, "pal.json"))).map((d) => d.name);
-    const undecided = dirs.filter((d) => !bundled.has(d) && !registry.has(d));
-    const both = dirs.filter((d) => bundled.has(d) && registry.has(d));
-    expect(undecided, "add each to extensions/bundled.txt or extensions/registry-only.txt (CLAUDE.md)").toEqual([]);
-    expect(both).toEqual([]);
-  });
+      sorted(names, file);
+      for (const n of names) expect(existsSync(join(repo.dir, n, "index.ts")), `${file}: ${n}`).toBe(true);
+    });
+    test(`${repo.dir}: every extension is decided, in exactly one of pal's app/bundled.txt and registry-only.txt`, () => {
+      const registry = new Set(existsSync(file) ? list(file) : []), shipped = new Set(bundled);
+      const here = readdirSync(repo.dir, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(join(repo.dir, d.name, "pal.json"))).map((d) => d.name);
+      expect(here.filter((d) => !shipped.has(d) && !registry.has(d)), "add each to pal's app/bundled.txt or the repo's registry-only.txt (CLAUDE.md)").toEqual([]);
+      expect(here.filter((d) => shipped.has(d) && registry.has(d))).toEqual([]);
+    });
+  }
 });
 
 describe("a packaged extension in the host", () => {

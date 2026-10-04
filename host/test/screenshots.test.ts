@@ -7,7 +7,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { checkBarItem } from "../../sdk/src/index.ts";
-import { BUNDLED } from "./harness.ts";
+import { extensionsByName } from "./harness.ts";
 // @ts-expect-error a plain ESM module of the app's scripts, shared with shots.mjs
 import { SIZES, barFixtureOf, fixtureHash, fixtureOf } from "../../app/scripts/shots-lib.mjs";
 
@@ -20,21 +20,21 @@ function size(file: string): [number, number] {
   return [b.readUInt32BE(16), b.readUInt32BE(20)];
 }
 
-const extensions = readdirSync(BUNDLED).filter((e) => existsSync(join(BUNDLED, e, "pal.json"))).sort();
+const extensions = [...extensionsByName()].sort(([a], [b]) => a.localeCompare(b));
 
 describe("store screenshots", () => {
-  for (const ext of extensions) {
-    const manifest = read(join(BUNDLED, ext, "pal.json"));
+  for (const [ext, extDir] of extensions) {
+    const manifest = read(join(extDir, "pal.json"));
     const hasPalettes = Object.keys(manifest.palettes ?? {}).length > 0;
     const bars = Object.keys(manifest.bar ?? {});
     const panel = fixtureOf(ext) ? read(fixtureOf(ext)) : undefined;
     const bar = barFixtureOf(ext) ? read(barFixtureOf(ext)) : undefined;
-    const dir = join(BUNDLED, ext, "screenshots");
+    const dir = join(extDir, "screenshots");
 
     test(`${ext}: the set the manifest calls for`, () => {
       const panelShots = Object.keys(panel?.shots ?? {});
       if (hasPalettes) {
-        expect(panelShots.length, `${ext} has palettes: its fixture (app/src/gallery/shots/${ext}.json) plans 2 to 6 panel shots`).toBeGreaterThanOrEqual(2);
+        expect(panelShots.length, `${ext} has palettes: its fixture (test/shots/${ext}.json) plans 2 to 6 panel shots`).toBeGreaterThanOrEqual(2);
         expect(panelShots.length, `${ext}: at most 6 panel shots`).toBeLessThanOrEqual(6);
         for (const k of panelShots) expect(k, `${ext}: a panel shot is <n>-<what>`).toMatch(/^\d+-[a-z0-9-]+$/);
       }
@@ -42,9 +42,9 @@ describe("store screenshots", () => {
         expect(bar, `${ext} has no bar item, so no bar fixture`).toBeUndefined();
         return;
       }
-      expect(bar, `${ext} has a bar item: app/src/gallery/shots/bar-${ext}.json`).toBeDefined();
-      const gen = join(BUNDLED, ext, "fixture.ts");
-      expect(existsSync(gen) && /bar-/.test(readFileSync(gen, "utf8")), `${ext}: the bar fixture is written by extensions/${ext}/fixture.ts from the extension's own render and view, never by hand`).toBe(true);
+      expect(bar, `${ext} has a bar item: test/shots/bar-${ext}.json`).toBeDefined();
+      const gen = join(extDir, "fixture.ts");
+      expect(existsSync(gen) && /bar-/.test(readFileSync(gen, "utf8")), `${ext}: the bar fixture is written by ${ext}/fixture.ts from the extension's own render and view, never by hand`).toBe(true);
       const [bext, bid] = String(bar.key).split("/");
       expect(bext, `${ext}: the bar fixture's key is <extension>/<item>`).toBe(ext);
       expect(bars, `${ext}: the bar fixture's item is declared in pal.json`).toContain(bid);
@@ -84,7 +84,7 @@ describe("store screenshots", () => {
       }
     });
 
-    const gen = join(BUNDLED, ext, "fixture.ts");
+    const gen = join(extDir, "fixture.ts");
     if (existsSync(gen)) test(`${ext}: the generator pins the clock`, () => {
       const code = readFileSync(gen, "utf8");
       expect(/fixture-kit\.ts/.test(code) && /\bpinClock\(|\bNOW(_S)?\b/.test(code), `${ext}: fixture.ts takes its clock from app/scripts/fixture-kit.ts (NOW, and pinClock() before a Host)`).toBe(true);

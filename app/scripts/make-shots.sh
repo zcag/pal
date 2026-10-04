@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# `make shots [EXT="a b"]`: the store screenshots (docs/design/screenshots.md).
+# `make shots [EXT="a b"]`: the store screenshots (docs/design/screenshots.md),
+# of the extensions in the extension repos (app/scripts/extension-repos.mjs:
+# ../pal-extensions and ../pal-games, or PAL_EXTENSION_REPOS).
 #   1. each extension's fixture.ts, twice: a fixture that differs between the
 #      runs reads a clock, a port or a random number, and fails here;
 #   2. a private Vite server for the gallery (no hot reload, a free port);
@@ -13,8 +15,11 @@ root=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$root"
 exts=${EXT:-}
 design=${DESIGN:-}
+# <name> <dir> <shots> for every extension the repos have.
+list=$(node app/scripts/extension-repos.mjs list)
+at() { awk -F'\t' -v n="$1" -v c="$2" '$1 == n { print $c }' <<<"$list"; }
 if [ -z "$exts" ]; then
-  exts=$(ls app/src/gallery/shots/*.json | xargs -n1 basename | sed 's/\.json$//; s/^bar-//' | sort -u | while read -r e; do [ -d "extensions/$e" ] && echo "$e"; done | tr '\n' ' ')
+  exts=$(while IFS=$'\t' read -r e _ s; do if [ -f "$s/$e.json" ] || [ -f "$s/bar-$e.json" ]; then echo "$e"; fi; done <<<"$list" | tr '\n' ' ')
 fi
 
 # pngquant quantises every picture alike on every machine (shot-quant.py).
@@ -27,12 +32,13 @@ scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"; [ -n "${vite:-}" ] && kill "$vite" 2>/dev/null || true' EXIT
 fail=0
 for e in $exts; do
-  f="extensions/$e/fixture.ts"
+  [ -n "$(at "$e" 2)" ] || { echo "$e: no such extension in the extension repos"; fail=1; continue; }
+  f="$(at "$e" 2)/fixture.ts" s=$(at "$e" 3)
   [ -f "$f" ] || continue
   bun run "$f" >/dev/null || { echo "$f: failed"; fail=1; continue; }
-  for j in "app/src/gallery/shots/$e.json" "app/src/gallery/shots/bar-$e.json"; do [ -f "$j" ] && cp "$j" "$scratch/$(basename "$j")"; done
+  for j in "$s/$e.json" "$s/bar-$e.json"; do [ -f "$j" ] && cp "$j" "$scratch/$(basename "$j")"; done
   bun run "$f" >/dev/null
-  for j in "app/src/gallery/shots/$e.json" "app/src/gallery/shots/bar-$e.json"; do
+  for j in "$s/$e.json" "$s/bar-$e.json"; do
     [ -f "$j" ] && ! cmp -s "$j" "$scratch/$(basename "$j")" && { echo "$j: not the same on a second run (a clock, a port or a random number leaks in; app/scripts/fixture-kit.ts)"; fail=1; }
   done
 done
@@ -56,7 +62,7 @@ sheets="${TMPDIR:-/tmp}/pal-shots${design:+-$design}"
 mkdir -p "$sheets"
 if command -v montage >/dev/null; then
   for e in $exts; do
-    if [ -n "$design" ]; then set -- "$sheets/$e"-*.png; else set -- "extensions/$e/screenshots"/*.png; fi
+    if [ -n "$design" ]; then set -- "$sheets/$e"-*.png; else set -- "$(at "$e" 2)/screenshots"/*.png; fi
     [ -e "$1" ] || continue
     montage "$@" -tile 4x -geometry 480x+6+6 -background "#8a8a8a" "$sheets/$e.png" 2>/dev/null || true
   done

@@ -5,7 +5,7 @@
 // invented ones first and every poster drawn here as an SVG (the mock's
 // are a few bytes, and a real film's art is someone's); nothing here is
 // the owner's. `make shots EXT=theater`.
-import { BUNDLED, Host, stored } from "../../host/test/harness.ts";
+import { Host, stored } from "../../host/test/harness.ts";
 import * as M from "../../host/test/extensions/theater-mock.ts";
 import { pinClock, seeded, settle, writeFixture } from "../../app/scripts/fixture-kit.ts";
 import manifest from "./pal.json" with { type: "json" };
@@ -67,7 +67,7 @@ for (const k of Object.keys(process.env)) if (k.startsWith("PAL_THEATER_")) dele
 pinClock();
 stored.clear();
 const icon = manifest.icon;
-const host = await Host.bundled({ roots: [BUNDLED], settings: { theater: { settings: M.SETTINGS } }, timeout: 20000 });
+const host = await Host.bundled({ settings: { theater: { settings: M.SETTINGS } }, timeout: 20000 });
 try {
   const loaded = (await host.hello()).extensions.find((x) => x.name === "theater")!;
   const meta = (name: string) => loaded.palettes.find((p) => p.name === name)!;

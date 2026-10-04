@@ -38,6 +38,7 @@ use serde::{Deserialize, Serialize};
 use crate::fs::{self, write_atomic};
 use crate::registry::{self, Build, Channel, Entry, Registries, Source};
 
+pub mod dev;
 pub mod migrate;
 pub mod refs;
 

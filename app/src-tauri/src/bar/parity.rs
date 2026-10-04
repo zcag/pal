@@ -7,10 +7,14 @@
 //! (`PAL_UPDATE_PARITY=1 cargo test -p pal parity`); the vitest
 //! `bar-parity.test.ts` then fails until `ui/BarStrip.tsx` draws the same.
 //!
-//! The items: every gallery fixture's item (`app/src/gallery/shots/bar-*.json`)
-//! under each of [`LOOKS`], its states and every manifest mock
-//! (`extensions/*/pal.json` `bar.<id>.mocks`, what Settings previews) under
-//! the default look; each in both themes.
+//! The items: every gallery fixture's item (`test/shots/bar-*.json` in the
+//! extension repos, `pal_core::extensions::dev`) under each of [`LOOKS`],
+//! its states and every manifest mock (`<name>/pal.json` `bar.<id>.mocks`,
+//! what Settings previews) under the default look; each in both themes.
+//! The snapshot keeps each case's item, so the check draws those again and
+//! needs no checkout of the extensions: a mock changed in an extension repo
+//! never breaks pal, and `PAL_UPDATE_PARITY=1` takes the items afresh from
+//! the checkouts.
 
 use super::colors::Palette;
 use super::{menubar, sketchybar, BarItem, Draw};
@@ -43,6 +47,24 @@ fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
+/// The extension repos' checkouts.
+fn repos() -> Vec<pal_core::extensions::dev::Repo> {
+    pal_core::extensions::dev::repos(&root())
+}
+
+/// Every bar fixture in the extension repos, by file name.
+fn bar_fixtures() -> Vec<PathBuf> {
+    let mut v: Vec<PathBuf> = repos().iter().filter(|r| r.shots.is_dir()).flat_map(|r| sorted(&r.shots, |n| n.starts_with("bar-") && n.ends_with(".json"))).collect();
+    v.sort_by_key(|p| p.file_name().map(|n| n.to_os_string()));
+    v
+}
+
+/// One extension's pal.json in the extension repos.
+fn manifest(ext: &str) -> Option<Value> {
+    let (_, dir) = pal_core::extensions::dev::extensions(&repos()).into_iter().find(|(n, _)| n == ext)?;
+    serde_json::from_str(&std::fs::read_to_string(dir.join("pal.json")).ok()?).ok()
+}
+
 fn read(p: &Path) -> Value {
     serde_json::from_str(&std::fs::read_to_string(p).unwrap_or_else(|e| panic!("{}: {e}", p.display()))).unwrap_or_else(|e| panic!("{}: {e}", p.display()))
 }
@@ -65,7 +87,7 @@ fn strip_only(v: &Value) -> Value {
 /// `(name, item, whether every look applies)`: the gallery's items and states, then the manifests' mocks.
 fn items() -> Vec<(String, Value, bool)> {
     let mut out = vec![];
-    for p in sorted(&root().join("app/src/gallery/shots"), |n| n.starts_with("bar-") && n.ends_with(".json")) {
+    for p in bar_fixtures() {
         let fx = read(&p);
         let name = p.file_stem().unwrap().to_string_lossy().to_string();
         out.push((name.clone(), strip_only(&fx["item"]), true));
@@ -75,10 +97,9 @@ fn items() -> Vec<(String, Value, bool)> {
             out.push((format!("{name}#{}", s["id"].as_str().unwrap_or("?")), strip_only(&Value::Object(merged)), false));
         }
     }
-    for p in sorted(&root().join("extensions"), |_| true) {
+    for (ext, p) in pal_core::extensions::dev::extensions(&repos()) {
         let Ok(text) = std::fs::read_to_string(p.join("pal.json")) else { continue };
         let m: Value = serde_json::from_str(&text).unwrap();
-        let ext = p.file_name().unwrap().to_string_lossy().to_string();
         let bars: BTreeMap<String, Value> = m["bar"].as_object().map(|o| o.clone().into_iter().collect()).unwrap_or_default();
         for (id, bar) in bars {
             let mocks: BTreeMap<String, Value> = bar["mocks"].as_object().map(|o| o.clone().into_iter().collect()).unwrap_or_default();
@@ -107,32 +128,45 @@ fn drawn(item: &Value, look: &BarLook, dark: bool) -> Value {
     json!({ "menubar": menubar::describe(&draw, &palette), "sketchybar": sketchy })
 }
 
-fn snapshot() -> Value {
+/// One case: the item drawn under a look, both themes.
+fn case(name: &str, look_name: &str, over: &Value, item: &Value) -> Value {
+    let look = BarLook::default().with(&serde_json::from_value::<BarLookOverride>(over.clone()).unwrap());
+    json!({ "name": name, "look": look_name, "look_file": over, "item": item, "dark": drawn(item, &look, true), "light": drawn(item, &look, false) })
+}
+
+/// The cases from the extension repos' items ([`items`]).
+fn snapshot() -> Vec<Value> {
     let mut cases = vec![];
     for (name, item, every_look) in items() {
         for (look_name, over) in LOOKS.iter().take(if every_look { LOOKS.len() } else { 1 }) {
-            let over_v: Value = serde_json::from_str(over).unwrap();
-            let look = BarLook::default().with(&serde_json::from_value::<BarLookOverride>(over_v.clone()).unwrap());
-            cases.push(json!({ "name": name, "look": look_name, "look_file": over_v, "item": item, "dark": drawn(&item, &look, true), "light": drawn(&item, &look, false) }));
+            cases.push(case(&name, look_name, &serde_json::from_str(over).unwrap(), &item));
         }
     }
-    json!({ "cases": cases })
+    cases
 }
 
 #[test]
 fn parity_snapshot_is_current() {
     let path = root().join("app/src/ui/__tests__/bar-parity.json");
+    let was = std::fs::read_to_string(&path).unwrap_or_default();
+    // Written afresh from the checkouts, or the snapshot's own items drawn again.
+    let update = std::env::var_os("PAL_UPDATE_PARITY").is_some();
+    let cases: Vec<Value> = if update {
+        snapshot()
+    } else {
+        let old: Value = serde_json::from_str(&was).expect("bar-parity.json: run PAL_UPDATE_PARITY=1 cargo test -p pal parity with the extension repos checked out");
+        old["cases"].as_array().unwrap().iter().map(|c| case(c["name"].as_str().unwrap(), c["look"].as_str().unwrap(), &c["look_file"], &c["item"])).collect()
+    };
     // One case a line: a diff names the items whose drawing moved.
-    let cases: Vec<String> = snapshot()["cases"].as_array().unwrap().iter().map(|c| serde_json::to_string(c).unwrap()).collect();
-    let now = format!("{{\"cases\": [\n{}\n]}}\n", cases.join(",\n"));
-    if std::env::var_os("PAL_UPDATE_PARITY").is_some() {
+    let lines: Vec<String> = cases.iter().map(|c| serde_json::to_string(c).unwrap()).collect();
+    let now = format!("{{\"cases\": [\n{}\n]}}\n", lines.join(",\n"));
+    if update {
         std::fs::write(&path, &now).unwrap();
         return;
     }
-    let was = std::fs::read_to_string(&path).unwrap_or_default();
     // The first case that moved, both ways, so a failure on another machine (CI) says what differs there.
     let moved = was.lines().zip(now.lines()).find(|(a, b)| a != b).map(|(a, b)| format!("\nwas: {a}\nnow: {b}")).unwrap_or_default();
-    assert!(was == now, "the strip parity snapshot is stale: a renderer, a fixture or a mock changed. Run `PAL_UPDATE_PARITY=1 cargo test -p pal parity`, then `npx vitest run bar-parity` in app/ (BarStrip.tsx must draw the same){moved}");
+    assert!(was == now, "the strip parity snapshot is stale: a renderer changed. Run `PAL_UPDATE_PARITY=1 cargo test -p pal parity`, then `npx vitest run bar-parity` in app/ (BarStrip.tsx must draw the same){moved}");
 }
 
 /// The menu bar's real pixels for a few fixture items, to set beside the
@@ -166,11 +200,10 @@ fn dump_menubar_pictures() {
 #[test]
 fn fixtures_carry_what_their_rules_draw() {
     let mut wrong = vec![];
-    for p in sorted(&root().join("app/src/gallery/shots"), |n| n.starts_with("bar-") && n.ends_with(".json")) {
+    for p in bar_fixtures() {
         let fx = read(&p);
         let Some((ext, id)) = fx["key"].as_str().and_then(|k| k.split_once('/')) else { continue };
-        let Ok(text) = std::fs::read_to_string(root().join("extensions").join(ext).join("pal.json")) else { continue };
-        let m: Value = serde_json::from_str(&text).unwrap();
+        let Some(m) = manifest(ext) else { continue };
         let rules = m["bar"][id]["rules"].as_array().cloned().unwrap_or_default();
         if rules.is_empty() {
             continue;

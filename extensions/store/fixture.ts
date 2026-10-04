@@ -5,9 +5,9 @@
 // pal, Spotify, GitHub and Wordle installed from pal's registry (Spotify
 // with an update that waits), and the rest listed, not installed.
 // `bun run extensions/store/fixture.ts`, then `make shots EXT=store`.
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { BUNDLED, Host } from "../../host/test/harness.ts";
+import { Host, extensionsByName } from "../../host/test/harness.ts";
 import { NOW_S, pinClock, writeFixture } from "../../app/scripts/fixture-kit.ts";
 import type { AvailableExtension, StoreState, StoreStatus } from "../../sdk/src/index.ts";
 import manifest from "./pal.json" with { type: "json" };
@@ -19,8 +19,8 @@ const DAY = 86_400;
 const build = (name: string, days: number) => ({ hash: `${Buffer.from(name).toString("hex")}00000000000000`.slice(0, 16), seq: NOW_S - days * DAY, protocol: 3, commit: name.slice(0, 7) });
 
 pinClock();
-const available: AvailableExtension[] = readdirSync(BUNDLED).filter((n) => existsSync(join(BUNDLED, n, "pal.json"))).map((name) => {
-  const m = JSON.parse(readFileSync(join(BUNDLED, name, "pal.json"), "utf8"));
+const available: AvailableExtension[] = [...extensionsByName()].map(([name, dir]) => {
+  const m = JSON.parse(readFileSync(join(dir, "pal.json"), "utf8"));
   const s = m.store ?? {};
   return {
     name, registry: "pal", installed: CORE.has(name) || FROM_REGISTRY.includes(name), bundled: CORE.has(name), installable: true, build: build(name, 3),

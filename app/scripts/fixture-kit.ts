@@ -1,19 +1,21 @@
-// What every `extensions/<name>/fixture.ts` shares, so a fixture is the same
+// What every extension's `fixture.ts` shares, so a fixture is the same
 // on every run and on every machine (docs/design/screenshots.md, "Content"):
 //
-//   import { NOW, pinClock, settle } from "../../app/scripts/fixture-kit.ts";
+//   import { NOW, pinClock, settle } from "../.pal/app/scripts/fixture-kit.ts";
 //   pinClock();                                  // before the host starts: PAL_NOW and TZ for the extension
 //   ... build the fixture through the harness against the mock server ...
 //   const fx = await settle(fixture, { hosts: { [server.url]: "https://tela.example" } });
-//   writeFixture("tela", fx);                    // app/src/gallery/shots/tela.json
+//   writeFixture("tela", fx);                    // test/shots/tela.json in tela's repo
 //
 // `settle` must run while the mock servers are still up: it fetches every
 // picture the fixture points at on them and inlines it as a `data:` URI (the
 // gallery renders long after the servers are gone), and names what is left of
 // their addresses by the host you give (a subtitle that read `127.0.0.1:52891`
 // reads `odak.example.com`).
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { Host } from "../../host/test/harness.ts";
+import { extensionDirs } from "./extension-repos.mjs";
 
 // A fixture's hosts run on the real clock: the tests' fake one (host/src/clock.ts) would hold every debounce until advanced.
 Host.realClock = true;
@@ -93,7 +95,11 @@ export async function settle<T>(fixture: T, o: { hosts?: Record<string, string> 
   return JSON.parse(named) as T;
 }
 
-/** Writes `app/src/gallery/shots/<name>.json` (compact: it is data, the diff is the shots' business). */
+/** Writes `<name>.json` (or `bar-<name>.json`) into the shots of the extension's repo, its `test/shots/` (compact: it is data, the diff is the shots' business). */
 export function writeFixture(name: string, fixture: unknown) {
-  writeFileSync(new URL(`../src/gallery/shots/${name}.json`, import.meta.url), JSON.stringify(fixture) + "\n");
+  const ext = name.replace(/^bar-/, "");
+  const repo = extensionDirs().get(ext)?.repo;
+  if (!repo) throw new Error(`fixture: no extension ${ext} in the extension repos (app/scripts/extension-repos.mjs)`);
+  mkdirSync(repo.shots, { recursive: true });
+  writeFileSync(join(repo.shots, `${name}.json`), JSON.stringify(fixture) + "\n");
 }

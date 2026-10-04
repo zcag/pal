@@ -1,5 +1,5 @@
 // Lists one bundled palette through the host harness and prints its meta and
-// rows as JSON, the raw material of a screenshot fixture (src/gallery/shots).
+// rows as JSON, the raw material of a screenshot fixture (test/shots in its repo).
 // The core's capabilities answer from the harness's canned tables, so the
 // clipboard, windows and system rows are fixture data; anything an extension
 // reads from this machine itself (apps, bookmarks, ssh hosts) is real and is
@@ -9,13 +9,13 @@
 //   SHOT_SETTINGS='{"config":"/tmp/x.toml"}'   an overlay on the extension's settings
 //   SHOT_DETAIL=1                              also asks detail(id) for every row
 //   SHOT_STORAGE='{"rates":{...}}'             the extension's storage, pre-seeded
-import { BUNDLED, Host, stored } from "../../host/test/harness.ts";
+import { Host, stored } from "../../host/test/harness.ts";
 
 const [ext, palette, query, filter] = process.argv.slice(2);
 if (!ext || !palette) { console.error("usage: shot-list <extension> <palette> [query] [filter]"); process.exit(2); }
 for (const [k, v] of Object.entries(process.env.SHOT_STORAGE ? JSON.parse(process.env.SHOT_STORAGE) : {})) stored.set(`${ext}\0${k}`, v);
 const overlay = process.env.SHOT_SETTINGS ? { [ext]: { settings: JSON.parse(process.env.SHOT_SETTINGS) } } : {};
-const host = await Host.bundled({ roots: [BUNDLED], settings: overlay, timeout: 20000 });
+const host = await Host.bundled({ settings: overlay, timeout: 20000 });
 try {
   const hello = await host.hello();
   const e = hello.extensions.find((x) => x.name === ext);

@@ -118,20 +118,36 @@ pub(crate) fn resource_dir_through_link() -> Option<PathBuf> {
 }
 
 /// Whether the extensions come from a checkout (a debug build, or a
-/// release binary run from the repo): a dev layout, where the repo's
+/// release binary run from the repo): a dev layout, where the checkouts'
 /// extensions win over the store's.
 pub(crate) fn dev_layout(base: &Path) -> bool {
     base == Path::new(REPO)
 }
 
-/// The roots in load order, a later one winning a name: the bundled tree,
+/// Where the extensions that come with pal are: the bundle's
+/// `extensions/`, or in a dev layout the extension repos' checkouts
+/// (`../pal-extensions`, `../pal-games` or `PAL_EXTENSION_REPOS`,
+/// `pal_core::extensions::dev`), every extension in them.
+pub(crate) fn bundled_roots(base: &Path) -> Vec<PathBuf> {
+    if dev_layout(base) {
+        pal_core::extensions::dev::repos(base).into_iter().map(|r| r.dir).collect()
+    } else {
+        vec![base.join("extensions")]
+    }
+}
+
+/// The roots in load order, a later one winning a name: the bundled ones,
 /// the store (`<data dir>/extensions`, `pal_core::extensions::Store`), then
-/// every `general.extension_dirs` entry. In a dev layout the repo comes
+/// every `general.extension_dirs` entry. In a dev layout the checkouts come
 /// after the store, so a registry build installed there never shadows the
 /// file being edited.
-pub(crate) fn roots(base: &Path, store: &Path, extra: Vec<PathBuf>, dev: bool) -> Vec<PathBuf> {
-    let (bundled, store) = (base.join("extensions"), store.to_path_buf());
-    let mut roots = if dev { vec![store, bundled] } else { vec![bundled, store] };
+pub(crate) fn roots(bundled: Vec<PathBuf>, store: &Path, extra: Vec<PathBuf>, dev: bool) -> Vec<PathBuf> {
+    let mut roots = vec![store.to_path_buf()];
+    if dev {
+        roots.extend(bundled);
+    } else {
+        roots.splice(0..0, bundled);
+    }
     roots.extend(extra);
     roots
 }
@@ -139,13 +155,13 @@ pub(crate) fn roots(base: &Path, store: &Path, extra: Vec<PathBuf>, dev: bool) -
 /// What the store's rules and the update check need to know of the other
 /// roots (`pal_core::updates::Inputs`): the bundled extensions with their
 /// builds, and the names a local root provides. In a dev layout every name
-/// in the repo is local: edits there are never shadowed by a registry
+/// in the checkouts is local: edits there are never shadowed by a registry
 /// build nor updated from one.
 pub(crate) fn store_inputs(base: &Path, config: &pal_core::config::Config) -> pal_core::updates::Inputs {
     let names_in = |dir: &Path| -> Vec<String> {
         std::fs::read_dir(dir).into_iter().flatten().flatten().filter(|e| e.path().join("pal.json").is_file()).map(|e| e.file_name().to_string_lossy().into_owned()).collect()
     };
-    let bundled = pal_core::updates::bundled_builds(&base.join("extensions"));
+    let bundled = bundled_roots(base).iter().rev().flat_map(|r| pal_core::updates::bundled_builds(r)).collect::<std::collections::BTreeMap<_, _>>();
     let mut local: std::collections::BTreeSet<String> = config.general.extension_dirs().iter().flat_map(|d| names_in(d)).collect();
     if dev_layout(base) {
         local.extend(bundled.keys().cloned());
@@ -171,7 +187,7 @@ impl Layout {
         if let Err(e) = std::fs::create_dir_all(store.dir()) {
             eprintln!("host	store dir	{}	{e}", store.dir().display());
         }
-        let roots = roots(&base, store.dir(), crate::settings::config(app).general.extension_dirs(), dev_layout(&base));
+        let roots = roots(bundled_roots(&base), store.dir(), crate::settings::config(app).general.extension_dirs(), dev_layout(&base));
         Layout { bun, host: base.join("host/src/host.ts"), roots }
     }
 }
@@ -422,8 +438,10 @@ mod tests {
     #[test]
     fn the_repo_wins_over_the_store_in_a_dev_layout_only() {
         let (base, store, extra) = (Path::new("/app"), Path::new("/data/pal/extensions"), vec![PathBuf::from("/dots/pal")]);
-        assert_eq!(roots(base, store, extra.clone(), false), [PathBuf::from("/app/extensions"), store.into(), extra[0].clone()], "release: bundled, store, extension_dirs");
-        assert_eq!(roots(base, store, extra.clone(), true), [store.into(), PathBuf::from("/app/extensions"), extra[0].clone()], "dev: the repo after the store");
+        assert_eq!(bundled_roots(base), [PathBuf::from("/app/extensions")]);
+        assert_eq!(roots(bundled_roots(base), store, extra.clone(), false), [PathBuf::from("/app/extensions"), store.into(), extra[0].clone()], "release: bundled, store, extension_dirs");
+        let checkouts = vec![PathBuf::from("/src/pal-extensions"), PathBuf::from("/src/pal-games")];
+        assert_eq!(roots(checkouts.clone(), store, extra.clone(), true), [store.into(), checkouts[0].clone(), checkouts[1].clone(), extra[0].clone()], "dev: the checkouts after the store");
         assert!(dev_layout(Path::new(REPO)) && !dev_layout(base));
     }
 

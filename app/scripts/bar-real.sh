@@ -19,7 +19,8 @@ PAL_PARITY_DUMP="$out/menubar" cargo test -q -p pal dump_menubar_pictures -- --i
 curl -s -o /dev/null http://127.0.0.1:1430/ || { echo "the gallery is not up: (cd app && npx vite --port 1430)"; exit 1; }
 
 for e in "$@"; do
-  key=$(jq -r .key "app/src/gallery/shots/bar-$e.json")
+  shots=$(node app/scripts/extension-repos.mjs list | awk -F'\t' -v n="$e" '$1 == n { print $3 }')
+  key=$(jq -r .key "$shots/bar-$e.json")
   # The renderer's sketchybar properties for the fixture's item (bar-parity.json, default look, dark), as temporary items.
   mapfile -t items < <(jq -c --arg n "bar-$e" '.cases[] | select(.name == $n and .look == "default") | .dark.sketchybar[]' app/src/ui/__tests__/bar-parity.json)
   [ ${#items[@]} -gt 0 ] || { echo "bar-$e: not in bar-parity.json (PAL_UPDATE_PARITY=1 cargo test -p pal parity)"; continue; }

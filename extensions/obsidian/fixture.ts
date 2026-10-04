@@ -11,7 +11,7 @@ import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { NOW, pinClock, writeFixture } from "../../app/scripts/fixture-kit.ts";
-import { BUNDLED, Host, stored } from "../../host/test/harness.ts";
+import { Host, stored } from "../../host/test/harness.ts";
 import manifest from "./pal.json" with { type: "json" };
 
 pinClock();
@@ -54,7 +54,7 @@ const icon = manifest.icon;
 const clip = { id: 1, kind: "text", text: "The reader's first request after the disk spins down takes 4 s; worth a cache warm at 07:00.", image: null, files: null, source_app: null, at: now, bytes: 90, pinned: false, width: null, height: null };
 
 stored.clear();
-const host = await Host.bundled({ roots: [BUNDLED], settings: { obsidian: { settings: { vault, exclude: ["templates/**"] } } }, core: { "clipboard.current": () => clip }, timeout: 20000 });
+const host = await Host.bundled({ settings: { obsidian: { settings: { vault, exclude: ["templates/**"] } } }, core: { "clipboard.current": () => clip }, timeout: 20000 });
 try {
   const loaded = (await host.hello()).extensions.find((x) => x.name === "obsidian")!;
   const meta = (name: string) => loaded.palettes.find((p) => p.name === name)!;

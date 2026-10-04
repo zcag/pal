@@ -6,15 +6,13 @@
 //! through the `scripts` extension, with a new `config.toml` pointing at
 //! it. Any other existing file is left alone.
 
-use pal_core::config::{migrate, spec_defaults, ConfigFile};
+use pal_core::config::{migrate, ConfigFile};
 
-/// The `scripts` extension's `v1_repo` default: where a `base` that is
-/// gone from disk is looked for (the v1 checkout).
-const SCRIPTS_MANIFEST: &str = include_str!("../../../extensions/scripts/pal.json");
-
+/// Where a `base` that is gone from disk is looked for (the v1 checkout):
+/// the `scripts` extension's `v1_repo` default, which lives in
+/// zcag/pal-extensions now, so it is written here too.
 pub(crate) fn v1_repo() -> String {
-    let manifest: serde_json::Value = serde_json::from_str(SCRIPTS_MANIFEST).expect("bundled pal.json parses");
-    spec_defaults(&manifest["settings"]).get("v1_repo").and_then(toml::Value::as_str).unwrap_or("~/proj/pal-v1").to_string()
+    "~/proj/pal-v1".to_string()
 }
 
 pub fn install() {
@@ -35,8 +33,13 @@ pub fn install() {
 
 #[cfg(test)]
 mod tests {
+    /// The scripts manifest's default, where a checkout of the extensions has it.
     #[test]
-    fn v1_repo_comes_from_the_scripts_manifest() {
-        assert_eq!(super::v1_repo(), "~/proj/pal-v1");
+    fn v1_repo_is_the_scripts_manifests_default() {
+        let repos = pal_core::extensions::dev::repos(std::path::Path::new(crate::host::REPO));
+        let Some((_, dir)) = pal_core::extensions::dev::extensions(&repos).into_iter().find(|(n, _)| n == "scripts") else { return };
+        let manifest: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(dir.join("pal.json")).unwrap()).unwrap();
+        let default = pal_core::config::spec_defaults(&manifest["settings"]).get("v1_repo").and_then(toml::Value::as_str).map(String::from);
+        assert_eq!(default.as_deref(), Some(super::v1_repo().as_str()));
     }
 }

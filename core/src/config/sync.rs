@@ -216,8 +216,13 @@ mod tests {
 
     #[test]
     fn the_bundled_folder_lists_say_local_in_their_manifests() {
-        let read = |e: &str| serde_json::from_str::<Value>(&std::fs::read_to_string(format!("{}/../extensions/{e}/pal.json", env!("CARGO_MANIFEST_DIR"))).unwrap()).unwrap();
-        let ms: Vec<(String, Value)> = ["apps", "files", "make", "services"].iter().map(|e| (e.to_string(), read(e))).collect();
+        // Their manifests from a checkout of zcag/pal-extensions (crate::extensions::dev); without one there is nothing to read.
+        let pal = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+        let dirs: std::collections::BTreeMap<String, std::path::PathBuf> = crate::extensions::dev::extensions(&crate::extensions::dev::repos(&pal)).into_iter().collect();
+        let Some(ms) = ["apps", "files", "make", "services"].iter().map(|e| Some((e.to_string(), serde_json::from_str::<Value>(&std::fs::read_to_string(dirs.get(*e)?.join("pal.json")).unwrap()).unwrap()))).collect::<Option<Vec<(String, Value)>>>() else {
+            eprintln!("no checkout of pal-extensions: skipped");
+            return;
+        };
         let l = Local::with_manifests(&ms);
         for k in ["extensions.apps.folders", "extensions.files.folders", "extensions.make.projects", "extensions.services.agent_dirs"] {
             assert!(l.is_local(k), "{k}");

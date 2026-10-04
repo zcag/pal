@@ -1450,13 +1450,15 @@ mod tests {
         }
         eprintln!("restore: {} files {:.1} MB in {:?} (parse {parse:?}, fill {fill:?})", files.len(), bytes as f64 / 1e6, t0.elapsed());
         ix = Index::new();
+        let pal = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+        let manifests: std::collections::HashMap<String, std::path::PathBuf> = crate::extensions::dev::extensions(&crate::extensions::dev::repos(&pal)).into_iter().collect();
         for f in files {
             let v: Value = serde_json::from_str(&std::fs::read_to_string(&f).unwrap()).unwrap();
             let ext = f.parent().unwrap().file_name().unwrap().to_string_lossy().to_string();
             let pal = f.file_stem().unwrap().to_string_lossy().to_string();
             let src = Source::new(&ext, &pal);
             let title = v["meta"]["title"].as_str().unwrap_or(&pal).to_string();
-            let manifest = std::fs::read_to_string(format!("{}/../extensions/{ext}/pal.json", env!("CARGO_MANIFEST_DIR"))).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok());
+            let manifest = manifests.get(&ext).and_then(|d| std::fs::read_to_string(d.join("pal.json")).ok()).and_then(|t| serde_json::from_str::<Value>(&t).ok());
             let tier = match (ext.as_str(), pal.as_str()) {
                 ("scripts", "iconnerd" | "iconkde" | "chars") => Tier::Catalog,
                 _ => manifest.and_then(|m| serde_json::from_value(m["palettes"][&pal]["tier"].clone()).ok()).unwrap_or_default(),
