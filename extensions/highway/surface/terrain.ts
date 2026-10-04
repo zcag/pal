@@ -230,9 +230,12 @@ export class Land {
     fill(k.far, "far");
   }
 
-  /** Everything up to the horizon built now (behind the loading sign), not a step a frame. */
+  /** Everything up to the horizon built now (behind the loading sign), not a step a frame. Each update
+   *  sends only what it changed, and the next one in the same frame would drop that before the GPU got
+   *  it (stale trees and houses on the road for a few frames), so the lot goes up whole at the end. */
   ready(z: number) {
     do this.update(z); while (this.queue.length);
+    for (const k of this.kinds.values()) for (const m of [...k.meshes, ...k.far]) { m.instanceMatrix.clearUpdateRanges(); m.instanceMatrix.needsUpdate = true; }
   }
 
   update(z: number) {

@@ -46,7 +46,8 @@ const today = () => new Date().toISOString().slice(0, 10);
 // ---------------------------------------------------------------- the road
 
 /** Build the place (once per location and layout) and put a run on it. */
-async function road(demo: boolean) {
+/** Put a car on the road (building the place first if it changed); `ready` runs once it is placed, before any frame of it is shown. */
+async function road(demo: boolean, ready?: () => void) {
   const loc = LOCATIONS.find((l) => l.id === save.location)!;
   const layout = layoutOf(save.mode);
   const key = `${loc.id}/${save.mode}`;
@@ -65,6 +66,7 @@ async function road(demo: boolean) {
   if (demo) run.veh.launch((105 / 3.6) * FEEL.pace);
   run.settle();
   chase.reset(run.pose);
+  ready?.();
   // lift the sign over a finished picture: the land to the horizon built, every texture on the GPU, a few frames drawn
   world.land.ready(run.veh.z);
   r.upload(world.scene);
@@ -311,23 +313,29 @@ async function preview() {
 // ---------------------------------------------------------------- the run
 
 let musicOn = false;
-async function drive() {
+/** Start a run. The garage's last frame stays up (its sign too) until the run is ready, then it cuts to it; `prep` runs
+ *  on the new run before its first frame (a kept run unpacked into it). */
+async function drive(prep?: () => void) {
   const car = carOf(save.car);
   browse = CARS.indexOf(car);
-  $("garage").hidden = true;
-  $("side").hidden = true;
-  $("card").hidden = true;
+  state = "loading"; // nothing drawn while the car is swapped: the last frame holds
   crashInfo = null;
   ended = null;
   done.clear();
-  await road(false);
-  chase.view = viewOf(save);
-  if (q.has("launch")) { run!.veh.launch((+q.get("launch")! / 3.6) * FEEL.pace); run!.settle(); } // ?launch=<km/h>: start a run at a speed, for trying the feel
-  chase.reset(run!.pose);
+  await road(false, () => {
+    $("garage").hidden = true;
+    $("side").hidden = true;
+    $("card").hidden = true;
+    chase.view = viewOf(save);
+    if (q.has("launch")) { run!.veh.launch((+q.get("launch")! / 3.6) * FEEL.pace); run!.settle(); } // ?launch=<km/h>: start a run at a speed, for trying the feel
+    prep?.();
+    chase.reset(run!.pose);
+    state = "run";
+    hud();
+    $("hud").hidden = false;
+  });
   sound.setEngine(car.engine);
   if (!musicOn) { musicOn = true; sound.playMusic(); }
-  state = "run";
-  $("hud").hidden = false;
   $("unit").textContent = unit();
   const mode = MODES.find((m) => m.id === save.mode)!;
   banner(mode.id === "endless" ? LOCATIONS.find((l) => l.id === save.location)!.name : mode.name);
@@ -502,6 +510,7 @@ const done = new Set<object>();
 
 const STEP = 1 / 120;
 let acc = 0, last = performance.now(), t = 0, lastGear = 1;
+let drawn: State = "loading"; // the state the last frame was drawn in
 
 /** The garage's car drives itself: the lane with the most room, steered smoothly into. */
 let autoLane = 1;
@@ -566,6 +575,7 @@ function frame() {
   if (v.gear !== lastGear) { if (v.gear > lastGear && state === "run") sound.play("gear_change", { gain: 0.3 }); lastGear = v.gear; }
   if (state === "run") hud();
   flash = Math.max(0, flash - dt * 1.6);
+  if (state !== drawn) { r.finish.cut = true; drawn = state; } // a new view: the blur must not smear the old one into it
   r.render(world.scene, { speed: state === "garage" ? 0 : Math.max(0, (v.u - 30) / 45), hit: flash, dim: state === "results" ? 0.3 : 0 });
   // ?perf: a frame over 20 ms says where its time went
   if (q.has("perf")) { const t4 = performance.now(); if (t4 - t0 > 20) console.warn(`slow frame, ${r.gl.info.programs?.length} shaders, ${(t4 - t0).toFixed(1)}ms: step ${(t1 - t0).toFixed(1)} draw ${(t2 - t1).toFixed(1)} world ${(t3 - t2).toFixed(1)} render ${(t4 - t3).toFixed(1)}`); }
@@ -605,11 +615,11 @@ function keepRun() {
 }
 /** Back on the road where a kept run left off, paused. */
 async function carryOn(k: Kept) {
-  await drive();
-  run!.drive.unpack(k);
-  run!.settle();
-  chase.reset(run!.pose);
-  for (const i of k.done) if (save.missions[i]) done.add(save.missions[i]);
+  await drive(() => {
+    run!.drive.unpack(k);
+    run!.settle();
+    for (const i of k.done) if (save.missions[i]) done.add(save.missions[i]);
+  });
   hint("");
   pause();
 }
@@ -617,7 +627,7 @@ pal.onShown(() => { if (state !== "paused") sound.start(); last = performance.no
 pal.onSettings((s: Record<string, unknown>) => { if (typeof s.volume === "number") { save.settings.sound = s.volume / 100; sound.setVolume(muted ? 0 : save.settings.sound); } });
 
 // `?dev`: the page's state on window.hw, so a headless check can look inside
-if (q.has("dev")) Object.assign(window, { hw: { get run() { return run; }, get save() { return save; }, get state() { return state; } } });
+if (q.has("dev")) Object.assign(window, { hw: { get run() { return run; }, get save() { return save; }, get state() { return state; }, get camera() { return r.camera; }, get world() { return world; }, r, THREE } });
 
 /** Play a staged scene: set the place and car, then the garage, a run already going, or its end. */
 async function stage(sc: Scene) {

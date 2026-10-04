@@ -177,6 +177,8 @@ export class Finish {
   });
   bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.12, 0.55, 1.6);
   private prevVP = new THREE.Matrix4();
+  /** The next frame is a new view (say the garage to the road), however close the camera stayed: no blur across it. */
+  cut = false;
   private prevPos = new THREE.Vector3();
   private prevDir = new THREE.Vector3();
   private lastT = 0;
@@ -243,7 +245,8 @@ export class Finish {
     this.vp.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
     const pos = cam.getWorldPosition(new THREE.Vector3()), dir = cam.getWorldDirection(new THREE.Vector3());
     // a cut (a new view, the garage to the road) is not motion
-    if (pos.distanceTo(this.prevPos) > 6 || dir.dot(this.prevDir) < 0.97) this.prevVP.copy(this.vp);
+    if (this.cut || pos.distanceTo(this.prevPos) > 6 || dir.dot(this.prevDir) < 0.97) this.prevVP.copy(this.vp);
+    this.cut = false;
     const c = this.combQ.u;
     c.tDepth.value = depth; c.projInv.value.copy(cam.projectionMatrixInverse); c.tColor.value = this.scene.texture;
     c.tAO.value = this.ao[1].texture; c.aoAmt.value = ao ? 1 : 0;
