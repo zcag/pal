@@ -2237,6 +2237,17 @@ rounded into a PNG (the strip draws rasters only), is the `artwork` opt-in.
 A copied link is noticed by reading pal's own clipboard history every 2 s
 while an Apple TV is paired: no extension can subscribe to the clipboard.
 
+Open (2026-10-04, from the handoff): tested on the stand-in TV only, never
+live: language and speed changes, playing an Up Next item, lyrics, the rich
+Now Playing fields (chapters, tracks, description; YouTube sends only the
+title and the channel), typing (set, append, clear), the volume level, app
+launch, switching users, sleep and wake (a YouTube link's launch is the one
+verified on screen). `Found.asleep` is never set: no reliable sleep-proxy
+signal was found. Dropped by Cagdas: live per-keystroke typing, and a
+"remote mode" that sends the Mac's media keys to the TV. Netflix links are
+untried (no Netflix on yatak). The library's bugs above are filed upstream
+(energee/node-appletv-remote).
+
 ## Decided: controls and groups (2026-10-04)
 
 - **The ask (Cagdas, 2026-10-04).** He uses an Apple TV and a Samsung TV
