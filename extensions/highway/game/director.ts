@@ -8,6 +8,8 @@
 //
 // Pure: it decides kinds, lanes, gaps and speeds; the caller makes the cars.
 
+import { FEEL } from "./content.ts";
+
 export type Spawn = { lane: number; dz: number; heavy: boolean; v0: number; oncoming: boolean };
 export type Row = { z: number; spawns: Spawn[]; pattern: string };
 
@@ -40,6 +42,8 @@ const SPAN = 140, START = 5, MOST = 14, RAMP = 27;
 export class Director {
   frontier = 0; // the z the next row goes at
   time = 0; // seconds into the run
+  /** A lane kept free up to a point: the start, so a run never opens with a car in your lane. */
+  spare: { lane: number; until: number } | null = null;
   breather = 0; // metres of open road left in a breather
   constructor(public o: DirectorOpts) {}
 
@@ -52,12 +56,12 @@ export class Director {
   /** The speed a driver in a lane wants: below yours, faster to the left, trucks slowest. */
   private speed(lane: number, heavy: boolean, oncoming: boolean) {
     const r = this.o.rnd, top = this.o.topSpeed * 3.6;
-    if (oncoming) return (50 + r() * 25) / 3.6;
+    if (oncoming) return ((50 + r() * 25) / 3.6) * FEEL.pace;
     // the original's band, from your car's top speed: always slower than you, more so in a faster car
     const lo = 9 + top / 5.7, hi = 51.5 + top / 5.5;
     const k = this.o.lanes > 1 ? lane / (this.o.lanes - 1) : 0.5;
     const kmh = heavy ? Math.min(hi, lo + (hi - lo) * 0.35 + r() * 8) : lo + (hi - lo) * (0.15 + 0.6 * k + r() * 0.25);
-    return kmh / 3.6;
+    return (kmh / 3.6) * FEEL.pace; // the band is in dial km/h; the world goes by at the pace
   }
 
   /** Plan rows until the frontier is far enough ahead of the player. */
@@ -94,6 +98,7 @@ export class Director {
       return set;
     };
     while (spawns.length && blocked(spawns).size >= this.o.lanes) spawns.pop();
+    if (this.spare && z < this.spare.until) spawns = spawns.filter((s) => s.lane !== this.spare!.lane);
     // and keep clear of a car already in the same spot
     spawns = spawns.filter((s) => !cars.some((c) => !c.oncoming && c.lane === s.lane && Math.abs(c.z - (z + s.dz)) < 14));
     const out: Spawn[] = spawns.map((s) => ({ lane: s.lane, dz: s.dz, heavy: s.heavy, v0: this.speed(s.lane, s.heavy, false), oncoming: false }));

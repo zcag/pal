@@ -2,6 +2,15 @@
 // the places, and how the stats turn into a car that drives (spec()).
 import type { Spec } from "./vehicle.ts";
 
+/** How driving feels (DESIGN.md, "Feel").
+ *  pace: the world goes by 1.4 times what the dial says (Traffic Racer's 1.66 makes realistic cars
+ *    look like toys; true scale feels slow).
+ *  lean: the body rolls 45% of the original's 4 degrees + 0.05 per km/h at full lock (about 5 at 160).
+ *  yaw: the car is drawn turned 85% of the way it actually heads: into the move, never a drift.
+ *  across: how fast it crosses, 1 = 5.5 m/s + 7% of the speed (about 10 m/s at 100, 13 at 200 on the dial).
+ *  ramp: seconds to full steering, the original's 0.17: a tap nudges, holding commits. */
+export const FEEL = { pace: 1.4, lean: 0.45, yaw: 0.85, across: 1, ramp: 0.17 };
+
 export type Stats = { speed: number; accel: number; handling: number; brakes: number }; // 1..10 as the garage shows them
 export type PlayerCar = {
   id: string; name: string; price: number;
@@ -48,7 +57,7 @@ const G = 9.81, RHO = 1.2, CDA = 0.62, CRR = 0.012, EFF = 0.88;
 
 /** The physics for a car with its upgrades: power solved from the top speed, gears to suit. */
 export function spec(car: PlayerCar, up: Upgrades, wheelbase: number): Spec & { agility: number } {
-  const top = (car.top + up.speed * 7) / 3.6; // each speed level is +7 km/h
+  const top = ((car.top + up.speed * 7) / 3.6) * FEEL.pace; // each speed level is +7 km/h; the world's pace scales it all
   const power = (0.5 * RHO * CDA * top ** 3 + CRR * car.mass * G * top) / EFF / 1000; // kW at the top speed
   const redline = car.engine === "sport" ? 7200 : 6400;
   const wheelRadius = 0.32;

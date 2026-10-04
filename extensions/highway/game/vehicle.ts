@@ -10,6 +10,8 @@
 // aid stands in for the hands: the wheel turns in at a rate that slows with
 // speed, and with no input it holds the road's heading the way a driver would.
 
+import { FEEL } from "./content.ts";
+
 export type Spec = {
   mass: number; // kg
   wheelbase: number; // m
@@ -157,9 +159,10 @@ export class Vehicle {
     if (this.knocked > 0) this.knocked -= dt;
     if (this.knocked <= 0 && speed > 3) {
       const ag = (s.agility ?? 1.2) / 1.2;
-      this.steer += Math.max(-dt * 6, Math.min(dt * 6, input.steer - this.steer));
+      const ramp = dt / Math.max(0.01, FEEL.ramp);
+      this.steer += Math.max(-ramp, Math.min(ramp, input.steer - this.steer));
       const lat = speed * Math.sin(this.yaw) + this.v * Math.cos(this.yaw); // sideways speed on the road
-      const across = (5.5 + speed * 0.07) * ag;
+      const across = (5.5 + (speed / FEEL.pace) * 0.07) * ag * FEEL.across * FEEL.pace;
       const aMax = 34 * ag;
       const next = lat + Math.max(-aMax * dt, Math.min(aMax * dt, this.steer * across - lat));
       const du = Flong / s.mass;

@@ -10,7 +10,7 @@ import { Traffic, crossing, type Npc } from "../game/traffic.ts";
 import { Director } from "../game/director.ts";
 import { Score, type Miss } from "../game/score.ts";
 import { collide, resolve, type Rigid } from "../game/crash.ts";
-import { TRAFFIC, spec, type PlayerCar, type Upgrades } from "../game/content.ts";
+import { TRAFFIC, FEEL, spec, type PlayerCar, type Upgrades } from "../game/content.ts";
 
 /** Closing speed that ends a run (km/h), as in the original; any touch of an oncoming car does too. */
 export const FATAL_KMH = 35;
@@ -89,15 +89,17 @@ export class Run {
   private shown = new Map<number, Car>();
   private blink = 0;
   lights: THREE.SpotLight[] = [];
+  private pace = FEEL.pace; // the pace the car's physics were made at
 
-  constructor(public world: World, public layout: Layout, public player: Car, public car: PlayerCar, up: Upgrades, public events: RunEvents, density = 1) {
+  constructor(public world: World, public layout: Layout, public player: Car, public car: PlayerCar, public up: Upgrades, public events: RunEvents, density = 1) {
     seed = Math.floor(Math.random() * 2147483646) + 1;
     const s = spec(car, up, player.wheelbase);
     this.veh = new Vehicle(s);
     this.veh.x = laneX(layout, Math.min(1, layout.lanes - 1));
-    this.veh.launch(100 / 3.6);
+    this.veh.launch((100 / 3.6) * FEEL.pace);
     this.traffic = new Traffic(layout.lanes, layout.oncoming);
     this.director = new Director({ lanes: layout.lanes, oncomingLanes: layout.oncoming, topSpeed: car.top / 3.6, rnd, density });
+    this.director.spare = { lane: Math.min(1, layout.lanes - 1), until: 150 };
     world.scene.add(player.root);
     this.headlights();
     this.settle();
@@ -119,13 +121,15 @@ export class Run {
 
   /** Swap the car you drive, keeping where and how fast it goes (the garage's browsing). */
   setPlayer(player: Car, car: PlayerCar, up: Upgrades) {
+    this.up = up;
     const old = this.veh;
     this.player.root.removeFromParent();
     this.player = player;
     this.car = car;
     this.veh = new Vehicle(spec(car, up, player.wheelbase));
     this.veh.x = old.x; this.veh.z = old.z;
-    this.veh.launch(old.u);
+    this.veh.launch(old.u * (this.pace / FEEL.pace === 1 ? 1 : FEEL.pace / this.pace));
+    this.pace = FEEL.pace;
     this.world.scene.add(player.root);
     this.headlights();
     this.settle();
@@ -194,7 +198,7 @@ export class Run {
     }
 
     // passing: near misses and the whoosh
-    const kmh = v.kmh;
+    const kmh = v.kmh / FEEL.pace; // what the dial says
     for (const n of this.traffic.cars) {
       if (n.hit || n.passed) continue;
       const rel = n.z - v.z;
@@ -230,16 +234,18 @@ export class Run {
       n.hit = { vx: them.vx, yaw: nyaw, r: them.r };
       n.signal = 0;
       const side = n.x > v.x ? -1 : 1;
-      if (!this.over && (closing >= FATAL_KMH || n.oncoming)) {
+      if (!this.over && (closing / FEEL.pace >= FATAL_KMH || n.oncoming)) {
         this.over = true;
-        this.events.crash({ you: Math.round(kmh), them: Math.round(n.v * 3.6), kind: n.kind, oncoming: n.oncoming });
+        this.events.crash({ you: Math.round(kmh), them: Math.round((n.v * 3.6) / FEEL.pace), kind: n.kind, oncoming: n.oncoming });
       } else this.events.bump(j, side);
     }
     this.traffic.remove((n) => n.z < v.z - 70 || n.z > v.z + 1000);
 
     // the body on its springs: squat, dive, lean
     const sp = this.spring;
-    const pitchT = THREE.MathUtils.clamp(-v.ax * 0.0045, -0.05, 0.05), rollT = THREE.MathUtils.clamp(v.ay * 0.0055, -0.06, 0.06);
+    // the body leans with the steering, as the original's does (4 degrees + 0.05 per km/h at full lock, times `lean`)
+    const pitchT = THREE.MathUtils.clamp(-v.ax * 0.0045, -0.05, 0.05);
+    const rollT = v.knocked > 0 ? THREE.MathUtils.clamp(v.ay * 0.0055, -0.06, 0.06) : v.steer * THREE.MathUtils.degToRad(4 + 0.05 * kmh) * FEEL.lean;
     sp.pitchV += ((pitchT - sp.pitch) * 120 - sp.pitchV * 11) * dt; sp.pitch += sp.pitchV * dt;
     sp.rollV += ((rollT - sp.roll) * 110 - sp.rollV * 10) * dt; sp.roll += sp.rollV * dt;
 
@@ -253,7 +259,7 @@ export class Run {
     pose.x = this.prev.x * b + v.x * a; pose.z = this.prev.z * b + v.z * a; pose.yaw = this.prev.yaw * b + v.yaw * a;
     pose.u = v.u; pose.ax = v.ax; pose.delta = v.delta;
     p.root.position.set(pose.x, 0, pose.z);
-    p.root.rotation.y = pose.yaw;
+    p.root.rotation.y = pose.yaw * FEEL.yaw;
     p.body.rotation.set(this.spring.pitch, 0, -this.spring.roll);
     for (const w of p.wheels) { w.spin.rotation.x = v.wheelSpin; if (w.front) w.pivot.rotation.y = v.delta; }
     lamps(p, this.world.night, v.braking > 0.1);

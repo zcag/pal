@@ -10,7 +10,7 @@ import { Chase, VIEWS } from "./camera.ts";
 import { Car } from "./car.ts";
 import { Sound } from "./audio.ts";
 import { ONE_WAY, TWO_WAY, laneX } from "./road.ts";
-import { CARS, LOCATIONS, MODES, PAINTS, PAINT_PRICE, UPGRADE_MAX, upgradeCost, stats, type Upgrades } from "../game/content.ts";
+import { CARS, LOCATIONS, MODES, PAINTS, PAINT_PRICE, UPGRADE_MAX, FEEL, upgradeCost, stats, type Upgrades } from "../game/content.ts";
 import { load, fresh, carOf, buyCar, buyUpgrade, paint, buyLocation, finish, type Save, type Scene } from "../game/meta.ts";
 import type { Miss } from "../game/score.ts";
 import type { Input } from "../game/vehicle.ts";
@@ -58,7 +58,7 @@ async function road(demo: boolean) {
   const owned = save.owned[car.id];
   const player = await Car.load(car.id, owned?.paint ?? car.paint);
   run = new Run(world, layout, player, car, owned?.upgrades ?? NO_UP, events, loc.density);
-  if (demo) run.veh.launch(105 / 3.6);
+  if (demo) run.veh.launch((105 / 3.6) * FEEL.pace);
   run.settle();
   chase.reset(run.pose);
   veil(false);
@@ -271,6 +271,7 @@ async function drive() {
   crashInfo = null;
   await road(false);
   chase.view = save.settings.camera;
+  if (q.has("launch")) { run!.veh.launch((+q.get("launch")! / 3.6) * FEEL.pace); run!.settle(); } // ?launch=<km/h>: start a run at a speed, for trying the feel
   chase.reset(run!.pose);
   sound.setEngine(car.engine);
   if (!musicOn) { musicOn = true; sound.playMusic(); }
@@ -350,7 +351,7 @@ function veil(on: boolean, msg?: string) {
 const rateOf = (k: number) => (k ** 3 * 1e-6 + (k >= 100 ? (k * k) / 3000 : 0)) * 25;
 function hud() {
   if (!run) return;
-  const s = run.score, v = run.veh, k = v.kmh;
+  const s = run.score, v = run.veh, k = v.kmh / FEEL.pace;
   $("score").querySelector("b")!.textContent = Math.round(s.points).toLocaleString("en-US");
   $("rate").textContent = k >= 60 ? `+${Math.round(rateOf(k))} a second` : "Faster for points";
   $("speed").textContent = String(Math.round(kmh(k)));
@@ -374,9 +375,12 @@ function autopilot(target = 108): Input {
   const rn = run!, v = rn.veh, L = rn.layout;
   const room = (l: number) => Math.min(400, ...rn.traffic.cars.filter((n) => !n.oncoming && (n.lane === l || n.from === l) && n.z > v.z - 6).map((n) => n.z - v.z));
   if (room(autoLane) < 70) for (const l of [autoLane - 1, autoLane + 1]) if (l >= 0 && l < L.lanes && room(l) > room(autoLane) + 10) autoLane = l;
-  const want = THREE.MathUtils.clamp((laneX(L, autoLane) - v.x) * 0.05, -0.12, 0.12);
-  const st = (want - v.yaw) * 9 - v.r * 2.5;
-  return { throttle: v.kmh < target && room(autoLane) > 40 ? (target > 120 ? 1 : 0.6) : 0, brake: room(autoLane) < 25 ? 0.5 : 0, steer: Math.abs(st) < 0.04 ? 0 : THREE.MathUtils.clamp(st, -1, 1) };
+  // the key sets how fast the car crosses: ask for a gentle sideways speed that shrinks as the lane's
+  // centre comes near, so it eases in and settles instead of weaving
+  const dx = laneX(L, autoLane) - v.x;
+  const across = 5.5 * FEEL.pace + 0.07 * v.u; // what full steering gives at this speed (game/vehicle.ts)
+  const steer = THREE.MathUtils.clamp(THREE.MathUtils.clamp(dx * 1.4, -4, 4) / across, -1, 1);
+  return { throttle: v.kmh / FEEL.pace < target && room(autoLane) > 40 ? (target > 120 ? 1 : 0.6) : 0, brake: room(autoLane) < 25 ? 0.5 : 0, steer };
 }
 
 function frame() {
@@ -400,7 +404,7 @@ function frame() {
   const t3 = performance.now();
   if (state === "garage") {
     // a car-advert orbit around your car as it drives
-    const a = t * 0.1 + 2.4, d = 7.6;
+    const a = t * 0.1 + 2.4, d = 8.6;
     r.camera.position.set(pose.x + Math.sin(a) * d, 1.5 + Math.sin(t * 0.21) * 0.25, pose.z + Math.cos(a) * d);
     // aim to the car's left on screen, so it stands clear of the sign
     const right = new THREE.Vector3(Math.cos(a), 0, -Math.sin(a));
@@ -442,7 +446,7 @@ async function stage(sc: Scene) {
   if (sc.show === "garage") return garage();
   await drive();
   // the run, played forward by the driver, then shown live
-  run!.veh.launch((sc.speed ?? 170) / 3.6 * 0.9);
+  run!.veh.launch(((sc.speed ?? 170) / 3.6) * 0.9 * FEEL.pace);
   run!.director.time = 160; // a few minutes in: the traffic is up to strength
   for (let i = 0; i < (sc.warm ?? 6) * 120; i++) { run!.step(1 / 120, autopilot(sc.speed ?? 170)); if (i % 60 === 0) run!.draw(1 / 2); }
   run!.settle();
