@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.13.0 · 2026-10-05
+
+- **A pal account, if you want one**: Settings › Account signs in with your email and a code, no password. Your settings and installed extensions follow you to a new Mac, so there is no setup step, and every earlier version is kept: History puts back any day's settings. Hotkeys, folders and where the bar draws stay on each Mac; a key from your keychain is asked for once.
+- **Game progress on every Mac, never lost**: two Macs that both played are merged, keeping the best score, every unlock and both machines' play counts, never one overwriting the other. The games on play.cagdas.io share the same progress.
+- **Leaderboards**: every game has its own, by mode, level or map, many with a daily run: a daily deal in Solitaire, a daily board in Minesweeper, daily dice in Yahtzee, each Wordle puzzle, Vortex's daily. Pick a name to show; signed out, your scores still count, marked anonymous, and every board can hide those. The Games shelf shows each game's boards (⌘L on a game).
+- **Wordle's streak counts the daily puzzle only**, as in the original, so a streak kept on two Macs adds up.
+- **play.cagdas.io** is the new home of the games in the browser, with the same account, progress and boards; progress saved on palplay.cagdas.io comes along.
+
 ## 0.12.1 · 2026-10-04
 
 - **Fixed: a palette opened from the menu bar's popover drew its full-size layout** in the narrow popover. Battery & Power, opened by a click on the battery, showed an empty card with the rest one letter wide; it now stacks the level over the tabs. Displays, the Apple TV, the Samsung TV and Spaces lay out for the popover the same way.
