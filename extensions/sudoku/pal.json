@@ -19,6 +19,34 @@
     "logic",
     "grid"
   ],
+  "sync": {
+    "counts": { "fields": {
+      "easy": {"fields": {"solved": "sum", "clean": "sum", "flawless": "sum", "ms": "sum"}},
+      "medium": {"fields": {"solved": "sum", "clean": "sum", "flawless": "sum", "ms": "sum"}},
+      "hard": {"fields": {"solved": "sum", "clean": "sum", "flawless": "sum", "ms": "sum"}},
+      "expert": {"fields": {"solved": "sum", "clean": "sum", "flawless": "sum", "ms": "sum"}}
+    } },
+    "best": { "fields": {
+      "easy": "min",
+      "medium": "min",
+      "hard": "min",
+      "expert": "min"
+    } },
+    "days": { "fields": {
+      "easy": "union",
+      "medium": "union",
+      "hard": "union",
+      "expert": "union"
+    } },
+    "seeded": "local"
+  },
+  "leaderboards": [
+    {"id": "fastest/easy", "title": "Fastest easy", "order": "asc", "format": "time", "min": 10, "max": 36000},
+    {"id": "fastest/medium", "title": "Fastest medium", "order": "asc", "format": "time", "min": 10, "max": 36000},
+    {"id": "fastest/hard", "title": "Fastest hard", "order": "asc", "format": "time", "min": 10, "max": 36000},
+    {"id": "fastest/expert", "title": "Fastest expert", "order": "asc", "format": "time", "min": 10, "max": 36000},
+    {"id": "daily/*/*", "title": "Daily {1}, {2}", "order": "asc", "format": "time", "min": 10, "max": 36000}
+  ],
   "settings": [
     {
       "kind": "select",
@@ -70,7 +98,8 @@
       "Notes without an extra step: type a second digit into a cell and it keeps both as notes; auto notes on `c`",
       "Hints in three steps: where to look, why in plain words, then the move",
       "A digit-first mode on `d`, undo and redo, and clashes or mistakes marked as you play",
-      "A clock you can hide, streaks, best and average times per difficulty, and every past daily by month"
+      "A clock you can hide, streaks, best and average times per difficulty, and every past daily by month",
+      "Clean solves go on leaderboards, the fastest per difficulty and each daily's own; signed in to a pal account, the stats and streaks follow you to every machine"
     ],
     "permissions": [],
     "platforms": [

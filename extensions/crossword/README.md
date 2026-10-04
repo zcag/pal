@@ -150,6 +150,25 @@ row in the root's Now section opens it (only once you have solved a
 puzzle, so it never nags someone who does not play; never for Sabah, an
 archive; `suggest` turns it off).
 
+## Leaderboards and your record
+
+A dated puzzle solved without a reveal, the first time, goes on that
+puzzle's own leaderboard (`Crosshare, 2026-10-04`, `HaberTürk, …`): the
+same grid for everyone, fastest first. The Games shelf shows them.
+
+`progress.json` (below, `store.ts`) holds this machine's solves as they
+stand, each puzzle's name and the log of every solve: the history and the
+chart read it, and it never leaves the machine. Signed in to a pal
+account, the record follows you to every machine: per source the number
+solved (and solved clean), the clean solves' total time (for the
+average), the fastest, and the dailies solved on their day (the streak).
+They are kept in the extension's storage in shapes that merge, so two
+machines that both played add up rather than one replacing the other
+(`sync` in `pal.json`: sums, the smaller best, the days of both). The
+first time this version runs, the machine's own log is added to what the
+account already has, once. A daily solved on another machine shows solved
+in the calendar and takes the Now row away.
+
 ## The page's arrangements
 
 The page picks whichever arrangement gives the squares the most room:

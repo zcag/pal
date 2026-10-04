@@ -1,7 +1,7 @@
 {
   "name": "2048",
   "title": "2048",
-  "description": "The sliding-tile game in the panel, played from the keyboard. The board and your best score are kept across restarts.",
+  "description": "The sliding-tile game in the panel, played from the keyboard. The board and your best score are kept across restarts, and on every machine you sign in on.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -22,6 +22,30 @@
       "default": true
     }
   ],
+  "sync": {
+    "game": "latest",
+    "best": "max",
+    "top": "max",
+    "games": "sum"
+  },
+  "leaderboards": [
+    {
+      "id": "score",
+      "title": "Best score",
+      "order": "desc",
+      "format": "points",
+      "min": 0,
+      "max": 4000000
+    },
+    {
+      "id": "tile",
+      "title": "Highest tile",
+      "order": "desc",
+      "format": "points",
+      "min": 2,
+      "max": 131072
+    }
+  ],
   "store": {
     "tagline": "2048 in the panel, keyboard only; the board persists",
     "category": "fun",
@@ -31,7 +55,8 @@
       "Tiles slide, merge and pop in, coloured by value",
       "`U` takes a move back (a setting); `N` starts over, asking first mid-game",
       "Keep going past 2048, or start a new game",
-      "Leave with `escape` any time; the board, score and best score are there when you come back"
+      "Leave with `escape` any time; the board, score and best score are there when you come back",
+      "Signed in to a pal account, the board and your best follow you to every machine; each finished game's score and highest tile go on the leaderboards"
     ],
     "permissions": [],
     "platforms": [
@@ -72,6 +97,11 @@
         "title": "Keep going",
         "description": "After the first 2048, play on for a higher tile.",
         "keys": "enter"
+      },
+      {
+        "title": "Sign in",
+        "description": "At game over while signed out: opens Settings › Account, so your scores are kept with your account.",
+        "keys": "s"
       }
     ]
   },

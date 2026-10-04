@@ -23,6 +23,11 @@ lands a beat after the rest.
 - Escape leaves at any point; the board, the score, the move count and
   the best score persist in the extension's storage after every move, so
   the game is as you left it next time, across restarts too.
+- **Leaderboards**: when a game ends (no move left, or New game over a
+  game with a score) its score goes on the **Best score** board and its
+  highest tile on **Highest tile**; the Games shelf shows both. Signed
+  out, game over offers `s` to sign in, so the scores are kept with your
+  account.
 
 The header has the score, the best score across games and the move count;
 the score is the title while playing.
@@ -55,6 +60,12 @@ Enter loses nothing.
 Nothing to install and no permission. The game state lives in the
 extension's storage (`<data dir>/pal/storage/2048.json`), shared by every
 config profile; New game clears the board and keeps the best score.
+
+Signed in to a pal account, the storage syncs (`sync` in pal.json): the
+board in play (`game`, the newest wins), the best score and the highest
+tile (`best`, `top`, the larger wins) and the games started (`games`,
+added up across machines). A store from before keeps everything: its one
+`state` key is split into these on the first open.
 
 Settings, `[extensions.2048]`:
 

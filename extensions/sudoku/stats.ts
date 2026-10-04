@@ -1,5 +1,8 @@
-// The numbers the stats page shows, pure, from the log of solves, one
-// difficulty at a time.
+// The numbers the stats page shows, pure, one difficulty at a time: the
+// counts, the best, the average and the streak from what the account keeps
+// (`Kept`, the synced summary; on a machine without an account, this one's
+// log tallied), the recent average, the chart and the history from this
+// machine's log of solves.
 //
 // A solve with a hint in it counts as solved, and for the streak, but never
 // as a best or in the average; a replay (a puzzle solved before) is left
@@ -33,8 +36,10 @@ const clean = (s: Solve) => !s.hints && !s.replay;
 /** The dailies solved on their own day. */
 export const onTheDay = (solves: Solve[]) => new Set(solves.flatMap((s) => (s.date && !s.replay && localDay(s.at) === s.date ? [s.date] : [])));
 
-export function streaks(solves: Solve[], now: number): { streak: number; best: number } {
-  const days = onTheDay(solves);
+export const streaks = (solves: Solve[], now: number) => streakOf(onTheDay(solves), now);
+
+/** The streak from the days a daily was solved on its day: back from today (or yesterday), and the longest run. */
+export function streakOf(days: Set<string>, now: number): { streak: number; best: number } {
   let d = localDay(now);
   if (!days.has(d)) d = dayBefore(d);
   let streak = 0;
@@ -46,6 +51,33 @@ export function streaks(solves: Solve[], now: number): { streak: number; best: n
     prev = day;
   }
   return { streak, best: Math.max(best, streak) };
+}
+
+/**
+ * A difficulty's record as it syncs (index.ts: the `counts`, `best` and
+ * `days` keys, merged by sum, min and union): first solves, clean ones,
+ * flawless ones, the clean ones' total time, the fastest, and the dailies
+ * solved on their day. Two machines' records add up with `plus`.
+ */
+export type Kept = { solved: number; clean: number; flawless: number; ms: number; best?: number; days: string[] };
+
+/** A log's record. */
+export function tally(solves: Solve[]): Kept {
+  const good = solves.filter(clean);
+  const ms = good.map((s) => s.ms);
+  return {
+    solved: solves.filter((s) => !s.replay).length, clean: good.length, flawless: good.filter((s) => !s.mistakes).length,
+    ms: ms.reduce((a, b) => a + b, 0), ...(ms.length > 0 && { best: Math.min(...ms) }), days: [...onTheDay(solves)],
+  };
+}
+
+/** Two records as one: counts added, the faster best, the days of both. */
+export function plus(a: Kept, b: Kept): Kept {
+  const best = [a.best, b.best].filter((x): x is number => x !== undefined);
+  return {
+    solved: a.solved + b.solved, clean: a.clean + b.clean, flawless: a.flawless + b.flawless, ms: a.ms + b.ms,
+    ...(best.length > 0 && { best: Math.min(...best) }), days: [...new Set([...a.days, ...b.days])],
+  };
 }
 
 export type Summary = {
@@ -68,27 +100,25 @@ export type Summary = {
 
 const avg = (xs: number[]) => (xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : undefined);
 
-export function summary(solves: Solve[], now: number, chart = 24): Summary {
-  const firsts = solves.filter((s) => !s.replay);
-  const good = firsts.filter(clean).sort((a, b) => a.at - b.at);
+/** The page's numbers: the record's (`kept`, the log's own by default), and the recent average and the chart from the log. */
+export function summary(solves: Solve[], now: number, kept: Kept = tally(solves), chart = 24): Summary {
+  const good = solves.filter(clean).sort((a, b) => a.at - b.at);
   const ms = good.map((s) => s.ms);
-  const { streak, best } = streaks(solves, now);
+  const days = new Set(kept.days);
+  const { streak, best } = streakOf(days, now);
   return {
-    solved: firsts.length,
-    clean: good.length,
-    flawless: good.filter((s) => !s.mistakes).length,
-    best: ms.length ? Math.min(...ms) : undefined,
-    average: avg(ms),
+    solved: kept.solved,
+    clean: kept.clean,
+    flawless: kept.flawless,
+    best: kept.best,
+    average: kept.clean ? Math.round(kept.ms / kept.clean) : undefined,
     recent: good.length >= 3 ? avg(ms.slice(-10)) : undefined,
     streak,
     bestStreak: best,
-    today: onTheDay(solves).has(localDay(now)),
+    today: days.has(localDay(now)),
     times: good.slice(-chart).map((s) => ({ ms: s.ms, at: s.at })),
   };
 }
 
-/** Is this solve's time a new best (the fastest clean first solve so far, itself included)? */
-export function isBest(solves: Solve[], s: Solve): boolean {
-  if (!clean(s)) return false;
-  return solves.every((o) => o === s || !clean(o) || o.ms > s.ms);
-}
+/** Is this solve a new best: a clean first solve faster than the record's best before it (on any machine of the account)? */
+export const beats = (s: Solve, best: number | undefined): boolean => clean(s) && (best === undefined || s.ms < best);

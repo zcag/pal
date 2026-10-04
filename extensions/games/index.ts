@@ -5,13 +5,16 @@
 // from the registries' listings (`extensions.available()`), under Not
 // installed after the installed ones. Enter opens an installed game; on
 // one not installed it installs it, waits for it to load, then opens it.
-// An install that fails stays as a row saying why.
+// An install that fails stays as a row saying why. An installed game that
+// declares leaderboards has a second action on its row, Leaderboards
+// (cmd+L), the view in boards.ts; the root's Leaderboards row opens it too.
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { errorMessage, extensions, hint, type AvailableExtension, type Effect, type Extension, type InstalledExtension, type Item, type OwnIcon } from "@zcag/pal";
+import { PALETTE as BOARDS, boardsPick, boardsView } from "./boards.ts";
 
-type Manifest = { title?: string; icon?: OwnIcon; store?: { category?: string; tagline?: string }; palettes?: Record<string, { kind?: string; title?: string; icon?: OwnIcon }> };
-export type Game = { extension: string; palette: string; title: string; tagline: string; icon?: OwnIcon; installed: boolean; registry?: string };
+type Manifest = { title?: string; icon?: OwnIcon; store?: { category?: string; tagline?: string }; palettes?: Record<string, { kind?: string; title?: string; icon?: OwnIcon }>; leaderboards?: unknown[] };
+export type Game = { extension: string; palette: string; title: string; tagline: string; icon?: OwnIcon; installed: boolean; registry?: string; boards?: boolean };
 
 /** This machine as a listing's `platforms` names it. */
 const PLATFORM = process.platform === "darwin" ? "macos" : process.platform;
@@ -20,13 +23,14 @@ async function manifest(e: InstalledExtension): Promise<Manifest> {
   try { return JSON.parse(await readFile(join(e.root, e.name, "pal.json"), "utf8")); } catch { return {}; }
 }
 
-/** Installed games: each view palette of a loaded `fun` extension. */
+/** Installed games: each view palette of a loaded `fun` extension (not this one's own Leaderboards). */
 async function installed(): Promise<Game[]> {
-  const found = await Promise.all((await extensions.list()).filter((e) => e.loaded).map(async (e) => {
+  const found = await Promise.all((await extensions.list()).filter((e) => e.loaded && e.name !== "games").map(async (e) => {
     const m = await manifest(e);
     if (m.store?.category !== "fun") return [];
     return Object.entries(m.palettes ?? {}).filter(([, p]) => p.kind === "view").map(([palette, p]) => ({
       extension: e.name, palette, title: p.title ?? m.title ?? e.name, tagline: m.store?.tagline ?? "", icon: p.icon ?? m.icon, installed: true,
+      ...(Array.isArray(m.leaderboards) && m.leaderboards.length && { boards: true }),
     }));
   }));
   return found.flat();
@@ -66,13 +70,14 @@ export default {
           id: `${g.extension}/${g.palette}`, name: g.title, subtitle: g.tagline, icon: g.icon,
           ...(offer && { section: g.installed ? "Installed" : "Not installed" }),
           ...(installing.has(g.extension) && { accessories: [{ tag: "Installing…", color: "blue" }] }),
-          actions: [g.installed ? { id: "play", title: "Play" } : { id: "install", title: "Install and play" }],
+          actions: [g.installed ? { id: "play", title: "Play" } : { id: "install", title: "Install and play" }, ...(g.boards ? [{ id: "boards", title: "Leaderboards", shortcut: "cmd+l" }] : [])],
         });
         return rows;
       },
       pick: async (id, action): Promise<Effect | void> => {
         const [extension, palette] = id.split("/");
         if (!extension || !palette) return;
+        if (action === "boards") return { push: { extension: "games", palette: BOARDS, args: { game: extension } } };
         if (action !== "install") return { push: { extension, palette } };
         const g = (await games()).find((x) => x.extension === extension && x.palette === palette);
         installing.add(extension);
@@ -88,6 +93,11 @@ export default {
           installing.delete(extension);
         }
       },
+    },
+    [BOARDS]: {
+      title: "Leaderboards",
+      view: (ctx) => boardsView(ctx?.args),
+      pick: (id, action) => boardsPick(id, action),
     },
   },
 } satisfies Extension;

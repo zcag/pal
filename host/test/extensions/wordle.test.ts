@@ -1,10 +1,12 @@
 // Wordle: the rules (game.ts, pure) on rigged games, the word lists and
 // the daily pick (words.ts), the tree (render.ts), and the extension over
 // the wire: a view palette's meta, its opening tree, picks that type,
-// submit and persist the game and the stats, the settings.
+// submit and persist the game and the stats, the settings; the streak
+// counted from the days (so two machines' streaks merge), stats from before
+// moved over, a won daily posted to its board, the sign-in hint.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { tile } from "../../../sdk/src/icon.ts";
-import { COLS, DEFAULTS, ROWS, actions, apply, hardModeError, isState, isValid, keyMarks, mark, share, stats0, sync, type Game, type State } from "../../../extensions/wordle/game.ts";
+import { COLS, DEFAULTS, ROWS, actions, apply, days0, fromStore, hardModeError, isState, isValid, keyMarks, mark, share, stats0, streakOf, sync, toStore, type Days, type Game, type State } from "../../../extensions/wordle/game.ts";
 import { render } from "../../../extensions/wordle/render.ts";
 import { ALLOWED, ANSWERS, STRIDE, dailyAnswer, dayOf } from "../../../extensions/wordle/words.ts";
 import type { View, ViewNode } from "../../../sdk/src/protocol.ts";
@@ -15,7 +17,9 @@ const TODAY = 100;
 /** The host's clock for the tests over the wire: a daily puzzle is a function of the day. */
 const CLOCK = "2026-09-30T12:00:00";
 const game = (answer: string, extra: Partial<Game> = {}): Game => ({ answer, guesses: [], day: TODAY, hard: false, input: "", status: "play", ...extra });
-const state = (g: Game, stats = stats0()): State => ({ game: g, stats });
+const state = (g: Game, stats = stats0(), days: Days = days0()): State => ({ game: g, stats, days });
+/** The dailies up to yesterday won, `n` of them: a streak of `n`. */
+const run = (n: number, end = TODAY - 1): Days => ({ won: Array.from({ length: n }, (_, i) => end - n + 1 + i), lost: [] });
 /** Types a word and submits it. */
 const guess = (st: State, word: string, s = DEFAULTS) => apply(word.split("").reduce((x, l) => apply(x, l as never, s, TODAY), st), "submit", s, TODAY);
 
@@ -120,13 +124,42 @@ describe("playing", () => {
     expect(guess(state(game("crane", { guesses: ["trace"] })), "grave", { ...DEFAULTS, hard_mode: true }).game.guesses).toEqual(["trace", "grave"]);
     expect(guess(state(g), "grave", { ...DEFAULTS, hard_mode: false }).notice!.text).toBe("Guess must contain C");
   });
-  test("the streak counts wins in a row and a skipped day breaks it", () => {
+  test("the streak counts dailies won in a row and a skipped day breaks it; a practice game leaves it", () => {
     const stats = { ...stats0(), played: 3, won: 3, streak: 3, best: 3, lastDay: TODAY - 1 };
-    expect(guess(state(game("crane"), stats), "crane").stats).toMatchObject({ streak: 4, best: 4, lastDay: TODAY });
-    const skipped = { ...stats, lastDay: TODAY - 2 };
-    expect(guess(state(game("crane"), skipped), "crane").stats).toMatchObject({ streak: 1, best: 3 });
-    const practiceWin = guess(state(game("crane", { day: null }), stats), "crane").stats;
-    expect(practiceWin).toMatchObject({ streak: 4, lastDay: TODAY - 1, played: 4 });
+    const won = guess(state(game("crane"), stats, run(3)), "crane");
+    expect(won.stats).toMatchObject({ streak: 4, best: 4, lastDay: TODAY });
+    expect(won.days).toEqual({ won: [TODAY - 3, TODAY - 2, TODAY - 1, TODAY], lost: [] });
+    const skipped = guess(state(game("crane"), { ...stats, lastDay: TODAY - 2 }, run(3, TODAY - 2)), "crane");
+    expect(skipped.stats).toMatchObject({ streak: 1, best: 3 });
+    const practice = state(game("crane", { day: null }), stats, run(3));
+    const practiceWin = guess(practice, "crane");
+    expect(practiceWin.stats).toMatchObject({ streak: 3, lastDay: TODAY - 1, played: 4 });
+    expect(practiceWin.days).toBe(practice.days);
+    let lost = state(game("crane"), stats, run(3));
+    for (const w of ["slate", "brick", "pound", "shady", "flung", "mound"]) lost = guess(lost, w);
+    expect(lost.stats).toMatchObject({ streak: 0, best: 3, lastDay: TODAY });
+    expect(lost.days.lost).toEqual([TODAY]);
+  });
+  test("two machines' days put together make the whole streak; a day won on either counts", () => {
+    // One machine played days 1 to 3, the other (not synced meanwhile) 4 and 5: the union is a run of five.
+    expect(streakOf({ won: [1, 2, 3, 4, 5], lost: [] })).toEqual({ streak: 5, longest: 5, lastDay: 5 });
+    expect(streakOf({ won: [1, 2, 4], lost: [3, 4] })).toEqual({ streak: 1, longest: 2, lastDay: 4 });
+    expect(streakOf({ won: [1, 2], lost: [3] })).toEqual({ streak: 0, longest: 2, lastDay: 3 });
+    expect(streakOf(days0())).toEqual({ streak: 0, longest: 0, lastDay: null });
+  });
+  test("stats from before sync become days, keeping the streak; the stored stats are counts that add up", () => {
+    const old = { played: 20, won: 18, streak: 4, best: 9, dist: [0, 3, 6, 5, 3, 1], lastDay: TODAY - 1 };
+    const moved = fromStore(old, null, null);
+    expect(moved.legacy).toBe(true);
+    expect(moved.days).toEqual(run(4));
+    expect(moved.stats).toEqual({ ...old, streak: 4, lastDay: TODAY - 1 });
+    expect(fromStore({ ...old, streak: 0 }, null, null).days).toEqual({ won: [], lost: [TODAY - 1] });
+    const stored = toStore(moved.stats);
+    expect(stored).toEqual({ played: 20, won: 18, best: 9, dist: { 1: 0, 2: 3, 3: 6, 4: 5, 5: 3, 6: 1 } });
+    const back = fromStore(JSON.parse(JSON.stringify(stored)), moved.days.won, []);
+    expect(back.legacy).toBe(false);
+    expect(back.stats).toEqual(moved.stats);
+    expect(fromStore(null, null, null)).toEqual({ stats: stats0(), days: days0(), legacy: false });
   });
   test("New game: today's daily when it is unplayed, else a practice word; not offered mid-daily", () => {
     const mid = state(game("crane", { guesses: ["slate"] }));
@@ -216,7 +249,7 @@ describe("render", () => {
   });
   test("the result view: the praise, the stats with the distribution, copy on Enter and C, a practice game on N", () => {
     const stats = { played: 9, won: 8, streak: 2, best: 5, dist: [0, 2, 3, 2, 1, 0], lastDay: TODAY - 1 };
-    const won = guess(guess(state(game("crane"), stats), "slate"), "crane");
+    const won = guess(guess(state(game("crane"), stats, run(2)), "slate"), "crane");
     const v = checkView(render(won, DEFAULTS, TODAY));
     expect(v.title).toBe("Magnificent! 2/6");
     expect(v.actions).toEqual([{ id: "copy", title: "Copy the result", shortcut: "c" }, { id: "new", title: "Practice game", shortcut: "n" }]);
@@ -238,7 +271,13 @@ describe("over the wire", () => {
   let host: Host;
   // The host's clock pinned here, not inherited: bun runs several files in one worker, and a file that set PAL_NOW
   // before this one (calc, theater, ...) would otherwise give the host another day than this file's own clock.
-  beforeAll(async () => { process.env.PAL_NOW = CLOCK; stored.clear(); host = await Host.bundled(); });
+  let signedIn = true;
+  const posts = () => host.coreCalls.filter((c) => c.method === "leaderboard.post").map((c) => c.params);
+  beforeAll(async () => {
+    process.env.PAL_NOW = CLOCK;
+    stored.clear();
+    host = await Host.bundled({ only: ["wordle"], core: { "account.get": () => ({ signedIn, handle: null }), "account.signIn": () => null } });
+  });
   afterAll(() => host.kill());
 
   test("a view palette is input on the wire with view: view", async () => {
@@ -252,7 +291,7 @@ describe("over the wire", () => {
     expect(v.title).toBe(`Daily #${today + 1}`);
     const g = stored.get("wordle\0game") as Game;
     expect(g).toMatchObject({ day: today, answer: dailyAnswer(today), guesses: [], status: "play" });
-    expect(stored.get("wordle\0stats")).toEqual(stats0());
+    expect(stored.has("wordle\0stats")).toBe(false);
   });
   test("picks type, submit and persist the game; the win updates the stats; copy answers the share text", async () => {
     const today = dayOf(new Date(CLOCK));
@@ -265,7 +304,12 @@ describe("over the wire", () => {
     for (const l of "crane") await host.pick("wordle", "wordle", "view", l);
     const won = await host.pick("wordle", "wordle", "view", "submit");
     expect((won.view as View).title).toBe("Magnificent! 2/6");
-    expect(stored.get("wordle\0stats")).toMatchObject({ played: 1, won: 1, streak: 1, lastDay: today });
+    expect(stored.get("wordle\0stats")).toEqual({ played: 1, won: 1, best: 1, dist: { 1: 0, 2: 1, 3: 0, 4: 0, 5: 0, 6: 0 } });
+    expect(stored.get("wordle\0daily_won")).toEqual([today]);
+    expect(stored.has("wordle\0daily_lost")).toBe(false);
+    await host.until(() => posts().length === 2, 3000, "the posts");
+    expect(posts()).toEqual([{ extension: "wordle", board: `daily/${today + 1}`, value: 2 }, { extension: "wordle", board: "streak", value: 1 }]);
+    expect((won.view as View).actions.some((a) => a.id === "signin")).toBe(false);
     const copy = await host.pick("wordle", "wordle", "view", "copy");
     expect(copy.copy).toBe(`pal wordle #${today + 1} 2/6\n\n⬜⬜🟩⬜🟩\n🟩🟩🟩🟩🟩`);
     expect(copy.toast).toMatchObject({ title: "Copied" });
@@ -284,5 +328,41 @@ describe("over the wire", () => {
     expect(v.actions.find((a) => a.id === "new")).toEqual({ id: "new", title: "Practice game", shortcut: "cmd+n" });
     const fresh = await host.pick("wordle", "wordle", "view", "new");
     expect(fresh.view && (stored.get("wordle\0game") as Game)).toMatchObject({ day: null, hard: true });
+    host.changeSettings("wordle", { settings: { daily: true, hard_mode: false } });
+  });
+  test("days another machine won, brought in by sync, carry the streak on; a practice win posts nothing", async () => {
+    const today = dayOf(new Date(CLOCK));
+    // This machine won today; the other had won the three days before.
+    stored.set("wordle\0daily_won", [today, today - 3, today - 2, today - 1]);
+    const v = await host.request<View>("view", { extension: "wordle", palette: "wordle" });
+    expect(find(v.tree, (n) => n.type === "text" && n.value === "streak 4")).toHaveLength(1);
+    const from = posts().length;
+    stored.set("wordle\0game", game("crane", { day: null }));
+    for (const l of "crane") await host.pick("wordle", "wordle", "view", l);
+    expect(((await host.pick("wordle", "wordle", "view", "submit")).view as View).title).toBe("Genius! 1/6");
+    expect(posts()).toHaveLength(from);
+  });
+  test("stats from before are moved over on the first open", async () => {
+    const today = dayOf(new Date(CLOCK));
+    for (const k of ["daily_won", "daily_lost"]) stored.delete(`wordle\0${k}`);
+    stored.set("wordle\0stats", { played: 30, won: 29, streak: 7, best: 11, dist: [1, 2, 3, 4, 5, 14], lastDay: today - 1 });
+    const v = await host.request<View>("view", { extension: "wordle", palette: "wordle" });
+    expect(find(v.tree, (n) => n.type === "text" && n.value === "streak 7")).toHaveLength(1);
+    expect(stored.get("wordle\0stats")).toEqual({ played: 30, won: 29, best: 11, dist: { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 14 } });
+    expect(stored.get("wordle\0daily_won")).toEqual(Array.from({ length: 7 }, (_, i) => today - 7 + i));
+  });
+  test("signed out, a finished daily offers to sign in, and s opens it", async () => {
+    const today = dayOf(new Date(CLOCK));
+    signedIn = false;
+    try {
+      stored.set("wordle\0game", game("crane", { day: today, guesses: ["crane"], status: "won" }));
+      const v = await host.request<View>("view", { extension: "wordle", palette: "wordle" });
+      expect(v.actions.find((a) => a.id === "signin")).toEqual({ id: "signin", title: "Sign in to keep your scores", shortcut: "s" });
+      checkView(v);
+      await host.pick("wordle", "wordle", "view", "signin");
+      expect(host.coreCalls.some((c) => c.method === "account.signIn")).toBe(true);
+      stored.set("wordle\0game", game("crane", { day: null, guesses: ["crane"], status: "won" }));
+      expect((await host.request<View>("view", { extension: "wordle", palette: "wordle" })).actions.some((a) => a.id === "signin")).toBe(false);
+    } finally { signedIn = true; }
   });
 });

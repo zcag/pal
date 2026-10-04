@@ -5,7 +5,7 @@
 // (PAL_NOW); games go to a temp dir (PAL_SUDOKU_DIR). The page (surface/) is
 // browser code and is not run here.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -13,12 +13,12 @@ import {
 } from "../../../extensions/sudoku/game.ts";
 import type { Entry, MonthView, Opened, SolvedReply, StatsView, TodayView } from "../../../extensions/sudoku/index.ts";
 import type { View } from "../../../sdk/src/protocol.ts";
-import { isBest, streaks, summary, type Solve } from "../../../extensions/sudoku/stats.ts";
+import { beats, plus, streaks, summary, tally, type Solve } from "../../../extensions/sudoku/stats.ts";
 import type { Data } from "../../../extensions/sudoku/store.ts";
 import {
   ALL, DIFFS, PEERS, UNITS, apply, bit, candidates, conflicts, countSolutions, findStep, fromText, generate, grade, rng, solve, toText, type Diff,
 } from "../../../extensions/sudoku/sudoku.ts";
-import { Host } from "../harness.ts";
+import { Host, stored } from "../harness.ts";
 
 // A classic puzzle and its answer.
 const P = fromText("530070000600195000098000060800060003400803001700020006060000280000419005000080079");
@@ -305,8 +305,19 @@ describe("the stats", () => {
     const xs = [s("2026-09-23", 200_000, { hints: 1 }), s("2026-09-24", 250_000), s("2026-09-25", 240_000, { at: T })];
     const sum = summary(xs, T);
     expect(sum).toMatchObject({ solved: 3, clean: 2, best: 240_000, average: 245_000, today: true });
-    expect(isBest(xs, xs[2])).toBe(true);
-    expect(isBest(xs, xs[0])).toBe(false);
+    expect(beats(xs[2], 250_000)).toBe(true);
+    expect(beats(xs[2], 240_000)).toBe(false);
+    expect(beats(xs[0], 250_000)).toBe(false);
+    expect(beats({ ...xs[1], replay: true }, undefined)).toBe(false);
+  });
+  test("the record two machines keep adds up: counts summed, the faster best, the days of both", () => {
+    const a = tally([s("2026-09-23", 200_000, { mistakes: 1 }), s("2026-09-24", 300_000, { hints: 1 })]);
+    expect(a).toEqual({ solved: 2, clean: 1, flawless: 0, ms: 200_000, best: 200_000, days: ["2026-09-23", "2026-09-24"] });
+    const both = plus(a, tally([s("2026-09-24", 150_000), s("2026-09-25", 250_000, { at: T })]));
+    expect(both).toMatchObject({ solved: 4, clean: 3, flawless: 2, ms: 600_000, best: 150_000 });
+    expect(both.days.sort()).toEqual(["2026-09-23", "2026-09-24", "2026-09-25"]);
+    // The page's numbers come from the record; the chart from this machine's log.
+    expect(summary([], T, both)).toMatchObject({ solved: 4, clean: 3, average: 200_000, best: 150_000, streak: 3, bestStreak: 3, today: true, times: [] });
   });
 });
 
@@ -426,5 +437,85 @@ describe("the extension", () => {
     expect(autoAction(u.spec as View)?.shortcut).toBe("c");
     expect(await send<{ auto: boolean }>({ op: "auto", on: false })).toEqual({ auto: false });
     expect(host.written.get("sudoku")?.auto_notes).toBeUndefined();
+  });
+});
+
+// The record as it syncs (index.ts): this machine's log folded once into
+// what the storage already holds (another machine's record), a solve
+// added to it, the stats read from it, and a clean first solve posted to
+// the boards.
+describe("the record, synced", () => {
+  let host: Host;
+  let dir: string;
+  const env = { PAL_NOW: process.env.PAL_NOW, PAL_SUDOKU_DIR: process.env.PAL_SUDOKU_DIR };
+  const key = (k: string) => stored.get(`sudoku\0${k}`) as any;
+  const posts = () => host.coreCalls.filter((c) => c.method === "leaderboard.post").map((c) => c.params);
+  const send = <T>(msg: unknown) => host.surfaceSend("sudoku", "sudoku", msg) as Promise<T>;
+  const done = (o: Opened, ms: number, extra: object = {}) => ({ v: solve(fromText(o.givens))!.join(""), n: "", ms, ...extra, done: { ms, at: Date.now() } });
+  beforeAll(async () => {
+    dir = mkdtempSync(join(tmpdir(), "pal-sudoku-"));
+    // This machine: yesterday's medium daily on its day, and a new easy one with a hint.
+    const log: Solve[] = [
+      { id: "daily:2026-09-24:medium", diff: "medium", date: "2026-09-24", at: Date.parse("2026-09-24T20:00:00"), ms: 300_000 },
+      { id: "new:x:easy", diff: "easy", at: Date.parse("2026-09-24T21:00:00"), ms: 100_000, hints: 1 },
+    ];
+    writeFileSync(join(dir, "progress.json"), JSON.stringify({ v: 1, progress: {}, solves: log, meta: {} }));
+    for (const k of [...stored.keys()]) if (k.startsWith("sudoku\0")) stored.delete(k);
+    // The account: two medium solves from another machine, the day before yesterday's daily among them.
+    stored.set("sudoku\0counts", { medium: { solved: 2, clean: 2, flawless: 1, ms: 400_000 } });
+    stored.set("sudoku\0best", { medium: 150_000 });
+    stored.set("sudoku\0days", { medium: ["2026-09-23"] });
+    Object.assign(process.env, { PAL_NOW: "2026-09-25T10:00:00", PAL_SUDOKU_DIR: dir });
+    host = await Host.bundled({ only: ["sudoku"] });
+  });
+  afterAll(async () => {
+    await host?.close();
+    for (const [k, v] of Object.entries(env)) if (v === undefined) delete process.env[k]; else process.env[k] = v;
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  test("this machine's log is folded into the account's record once, never replacing it", async () => {
+    const st = await send<StatsView>({ op: "stats", diff: "medium" });
+    expect(st).toMatchObject({ solved: 3, clean: 3, flawless: 2, best: 150_000, average: 233_333, streak: 2, bestStreak: 2, today: false });
+    expect(st.history.map((h) => h.id)).toEqual(["daily:2026-09-24:medium"]);
+    expect(key("counts")).toEqual({
+      easy: { solved: 1, clean: 0, flawless: 0, ms: 0 }, medium: { solved: 3, clean: 3, flawless: 2, ms: 700_000 },
+      hard: { solved: 0, clean: 0, flawless: 0, ms: 0 }, expert: { solved: 0, clean: 0, flawless: 0, ms: 0 },
+    });
+    expect(key("best")).toEqual({ medium: 150_000 });
+    expect([...key("days").medium].sort()).toEqual(["2026-09-23", "2026-09-24"]);
+    expect(key("seeded")).toBe(true);
+    expect((await send<StatsView>({ op: "stats", diff: "medium" })).solved).toBe(3);
+  });
+
+  test("a daily solved on its day on another machine shows solved in the month", async () => {
+    const m = await send<MonthView>({ op: "month", diff: "medium" });
+    expect(m.days.find((d) => d.date === "2026-09-23")?.state).toBe("solved");
+    expect(m.days.find((d) => d.date === "2026-09-22")?.state).toBe("new");
+  });
+
+  test("a clean first solve adds to the record, beats the account's best and goes on the boards", async () => {
+    const o = await send<Opened>({ op: "open", id: "daily:2026-09-25:medium" });
+    const r = await send<SolvedReply>({ op: "solved", id: o.id, play: done(o, 140_123) });
+    expect(r).toMatchObject({ best: true, first: true, stats: { solved: 4, best: 140_123, streak: 3, today: true } });
+    expect(key("counts").medium).toEqual({ solved: 4, clean: 4, flawless: 3, ms: 840_123 });
+    expect(key("best").medium).toBe(140_123);
+    expect(key("days").medium).toContain("2026-09-25");
+    await host.until(() => posts().length === 2);
+    expect(posts()).toEqual([
+      { extension: "sudoku", board: "fastest/medium", value: 140.12 },
+      { extension: "sudoku", board: "daily/medium/2026-09-25", value: 140.12 },
+    ]);
+  });
+
+  test("a replay and a solve with a hint post nothing; the hint still counts as solved", async () => {
+    const o = await send<Opened>({ op: "open", id: "daily:2026-09-25:medium" });
+    const again = await send<SolvedReply>({ op: "solved", id: o.id, play: done(o, 60_000) });
+    expect(again).toMatchObject({ best: false, first: false, stats: { solved: 4, best: 140_123 } });
+    const h = await send<Opened>({ op: "open", date: "2026-09-25", diff: "hard" });
+    await send<SolvedReply>({ op: "solved", id: h.id, play: done(h, 90_000, { hints: 2 }) });
+    expect(key("counts").hard).toEqual({ solved: 1, clean: 0, flawless: 0, ms: 0 });
+    expect(key("counts").medium.solved).toBe(4);
+    expect(posts()).toHaveLength(2);
   });
 });

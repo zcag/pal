@@ -7,7 +7,7 @@
 // to a temp dir (PAL_CROSSWORD_DIR). The page (surface/) is browser code
 // and is not run here.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseMonth, parseTag } from "../../../extensions/crossword/crosshare.ts";
@@ -18,10 +18,10 @@ import {
 import { fromIpuz } from "../../../extensions/crossword/ipuz.ts";
 import type { Entry, MonthView, NewestView, Offline, Opened, SolvedReply, StatsView } from "../../../extensions/crossword/index.ts";
 import type { View } from "../../../sdk/src/protocol.ts";
-import { isBest, streaks, summary, type Solve } from "../../../extensions/crossword/stats.ts";
+import { beats, plus, streaks, summary, tally, type Solve } from "../../../extensions/crossword/stats.ts";
 import type { Data } from "../../../extensions/crossword/store.ts";
 import { CART, DUMP, TALL, fakeCrosshare, ipuz, monthPage, tagPage } from "./crossword-fixtures.ts";
-import { Host } from "../harness.ts";
+import { Host, stored } from "../harness.ts";
 
 //  # T A L L       1 across TALL, 5 BELIE, 6 OPINE, 7 SEVER, 8 SEED
 //  B E L I E       1 down TEPEE, 2 ALIVE, 3 LINED, 4 LEER, 5 BOSS
@@ -251,9 +251,17 @@ describe("stats", () => {
     const sum = summary([a, b, c, d], T);
     expect(sum).toMatchObject({ solved: 3, clean: 2, best: 60_000, average: 75_000, streak: 2, today: false });
     expect(sum.times.map((x) => x.ms)).toEqual([60_000, 90_000]);
-    expect(isBest([a, b], b)).toBe(true);
-    expect(isBest([a, b], a)).toBe(false);
-    expect(isBest([c], c)).toBe(false);
+    expect(beats(b, 90_000)).toBe(true);
+    expect(beats(a, 60_000)).toBe(false);
+    expect(beats(c, undefined)).toBe(false);
+    expect(beats(d, undefined)).toBe(false);
+  });
+  test("the record two machines keep adds up: counts summed, the faster best, the days of both", () => {
+    const one = tally([on("2026-09-23", 90_000), on("2026-09-24", 30_000, { helped: true })]);
+    expect(one).toEqual({ solved: 2, clean: 1, ms: 90_000, best: 90_000, days: ["2026-09-23"] });
+    const both = plus(one, tally([on("2026-09-24", 50_000), on("2026-09-25", 70_000)]));
+    expect(both).toMatchObject({ solved: 4, clean: 3, ms: 210_000, best: 50_000 });
+    expect(summary([], T, undefined, both)).toMatchObject({ solved: 4, clean: 3, average: 70_000, best: 50_000, streak: 3, today: true, times: [] });
   });
 });
 
@@ -422,6 +430,8 @@ describe("the extension", () => {
     data.solves = data.solves.map((s) => ({ ...s, date: "2026-09-01" }));
     data.progress.tall = { ...data.progress.tall, fill: `#TA${".".repeat(21)}#`, done: undefined, touched: 1 };
     await Bun.write(join(dir, "progress.json"), JSON.stringify(data));
+    // And out of the synced record (folded in again from the log on the next run).
+    for (const k of ["days", "seeded"]) stored.delete(`crossword\0${k}`);
     await host.close();
     host = await Host.bundled({ only: ["crossword"] });
     const rows = await suggestions();
@@ -449,5 +459,75 @@ describe("the extension", () => {
     expect(o.saved?.fill).toBe(`#TA${".".repeat(21)}#`);
     expect(saved().skipped.tall).toBeUndefined();
     expect(await suggestions()).toHaveLength(1);
+  });
+});
+
+// The record as it syncs (index.ts): this machine's log folded once into
+// what the storage already holds (another machine's record), a solve
+// added to it, the stats read from it, and a clean first solve of a dated
+// puzzle posted to that puzzle's board.
+describe("the record, synced", () => {
+  let host: Host;
+  let dir: string;
+  let site: ReturnType<typeof fakeCrosshare>;
+  const env = { PAL_NOW: process.env.PAL_NOW, PAL_CROSSWORD_DIR: process.env.PAL_CROSSWORD_DIR, PAL_CROSSWORD_URL: process.env.PAL_CROSSWORD_URL };
+  const key = (k: string) => stored.get(`crossword\0${k}`) as any;
+  const posts = () => host.coreCalls.filter((c) => c.method === "leaderboard.post").map((c) => c.params);
+  const send = <T>(msg: unknown) => host.surfaceSend("crossword", "crossword", msg) as Promise<T>;
+  const done = (fill: string, ms: number, helped = false) => ({ fill, mark: "0".repeat(25), at: 0, dir: "a", ms, helped, done: { ms, at: 1 } });
+  beforeAll(async () => {
+    dir = mkdtempSync(join(tmpdir(), "pal-crossword-"));
+    site = fakeCrosshare({
+      months: { "2026-09": [{ day: 25, id: "tall", title: "Standing Tall", author: "Pat Quill", w: 5, h: 5 }, { day: 24, id: "dump", title: "Kitchen Table", author: "Robin Vale", w: 5, h: 5 }] },
+      tags: [[]],
+      puzzles: { tall: TALL, dump: DUMP },
+    });
+    // This machine: yesterday's mini on its day, and a Sabah one with a reveal.
+    const log: Solve[] = [
+      { id: "old", title: "Old", author: "A", date: "2026-09-24", at: Date.parse("2026-09-24T12:00:00Z"), ms: 80_000 },
+      { id: "sabah-2026-09-20", source: "sabah", title: "S", author: "B", date: "2026-09-20", at: Date.parse("2026-09-20T12:00:00Z"), ms: 200_000, helped: true },
+    ];
+    writeFileSync(join(dir, "progress.json"), JSON.stringify({ v: 1, progress: {}, solves: log, meta: {}, skipped: {} }));
+    for (const k of [...stored.keys()]) if (k.startsWith("crossword\0")) stored.delete(k);
+    // The account: three minis from another machine, the day before yesterday's among them.
+    stored.set("crossword\0counts", { crosshare: { solved: 3, clean: 3, ms: 180_000 } });
+    stored.set("crossword\0best", { crosshare: 45_000 });
+    stored.set("crossword\0days", { crosshare: ["2026-09-23"] });
+    Object.assign(process.env, { PAL_NOW: "2026-09-25T10:00:00Z", PAL_CROSSWORD_DIR: dir, PAL_CROSSWORD_URL: site.url });
+    host = await Host.bundled({ only: ["crossword"] });
+  });
+  afterAll(async () => {
+    await host?.close();
+    for (const [k, v] of Object.entries(env)) if (v === undefined) delete process.env[k]; else process.env[k] = v;
+    site.stop();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  test("this machine's log is folded into the account's record once, never replacing it", async () => {
+    const st = await send<StatsView>({ op: "stats", source: "crosshare" });
+    expect(st).toMatchObject({ solved: 4, clean: 4, best: 45_000, average: 65_000, streak: 2, bestStreak: 2, today: false });
+    expect(key("counts")).toEqual({
+      crosshare: { solved: 4, clean: 4, ms: 260_000 }, haberturk: { solved: 0, clean: 0, ms: 0 },
+      cumhuriyet: { solved: 0, clean: 0, ms: 0 }, sabah: { solved: 1, clean: 0, ms: 0 },
+    });
+    expect([...key("days").crosshare].sort()).toEqual(["2026-09-23", "2026-09-24"]);
+    expect(key("days").sabah).toEqual([]);
+    expect(key("seeded")).toBe(true);
+    expect((await send<StatsView>({ op: "stats", source: "crosshare" })).solved).toBe(4);
+  });
+
+  test("a clean first solve of a dated puzzle adds to the record and goes on that puzzle's board; a replay and a reveal do not", async () => {
+    expect((await send<Opened>({ op: "open" })).puzzle).toMatchObject({ id: "tall", date: "2026-09-25" });
+    const r = await send<SolvedReply>({ op: "solved", id: "tall", play: done("#TALLBELIEOPINESEVERSEED#", 41_234) });
+    expect(r).toMatchObject({ best: true, first: true, stats: { solved: 5, best: 41_234, streak: 3, today: true } });
+    expect(key("counts").crosshare).toEqual({ solved: 5, clean: 5, ms: 301_234 });
+    expect(key("best").crosshare).toBe(41_234);
+    await host.until(() => posts().length === 1);
+    expect(posts()).toEqual([{ extension: "crossword", board: "crosshare/2026-09-25", value: 41.23 }]);
+    expect(await send<SolvedReply>({ op: "solved", id: "tall", play: done("#TALLBELIEOPINESEVERSEED#", 20_000) })).toMatchObject({ best: false, first: false });
+    await send<Opened>({ op: "open", id: "dump" });
+    await send<SolvedReply>({ op: "solved", id: "dump", play: done("#DUMPBEVELABUSESALSATRAY#", 30_000, true) });
+    expect(key("counts").crosshare).toEqual({ solved: 6, clean: 5, ms: 301_234 });
+    expect(posts()).toHaveLength(1);
   });
 });

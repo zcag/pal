@@ -1,7 +1,7 @@
 {
   "name": "wordle",
   "title": "Wordle",
-  "description": "The five-letter word game in the panel, keyboard only: a daily puzzle, the same everywhere, and practice words once it is done. Your streak and stats are kept.",
+  "description": "The five-letter word game in the panel, keyboard only: a daily puzzle, the same everywhere, and practice words once it is done. Your streak and stats are kept, and follow you to every machine you sign in on.",
   "version": "0.1.0",
   "icon": {
     "tile": {
@@ -30,6 +30,46 @@
       "default": false
     }
   ],
+  "sync": {
+    "game": "latest",
+    "stats": {
+      "fields": {
+        "played": "sum",
+        "won": "sum",
+        "best": "max",
+        "dist": {
+          "fields": {
+            "1": "sum",
+            "2": "sum",
+            "3": "sum",
+            "4": "sum",
+            "5": "sum",
+            "6": "sum"
+          }
+        }
+      }
+    },
+    "daily_won": "union",
+    "daily_lost": "union"
+  },
+  "leaderboards": [
+    {
+      "id": "daily/*",
+      "title": "Wordle #{1}",
+      "order": "asc",
+      "format": "moves",
+      "min": 1,
+      "max": 6
+    },
+    {
+      "id": "streak",
+      "title": "Longest streak",
+      "order": "desc",
+      "format": "points",
+      "min": 1,
+      "max": 100000
+    }
+  ],
   "store": {
     "tagline": "Wordle in the panel: a daily puzzle, practice words, stats",
     "category": "fun",
@@ -39,7 +79,8 @@
       "Hard mode keeps greens in place and makes ambers count; an unknown word is flagged over the board",
       "Stats: played, win %, streak and the guess distribution; `c` copies the emoji grid to share",
       "Leave any time and come back to the same game, even after a restart",
-      "The word lists ship with it; nothing is fetched"
+      "The word lists ship with it; nothing is fetched",
+      "Each daily's guesses go on that puzzle's leaderboard, your longest streak on another; signed in to a pal account, the game, the stats and the streak follow you to every machine"
     ],
     "permissions": [],
     "platforms": [
@@ -85,6 +126,11 @@
         "title": "Today's puzzle / Practice game",
         "description": "New game: today's puzzle if it is unplayed, else a practice word. `n` once the game is over, `cmd+n` while a practice game is on.",
         "keys": "n, cmd+n"
+      },
+      {
+        "title": "Sign in",
+        "description": "After a daily while signed out: opens Settings › Account, so your scores are kept with your account.",
+        "keys": "s"
       }
     ]
   },

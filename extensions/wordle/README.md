@@ -47,9 +47,14 @@ nodes drawn by the app with its tokens, so the board follows the theme.
   extension's storage, so the board is as you left it next time, across
   restarts too.
 
-Stats count every finished game. The streak is wins in a row; a daily
-after a skipped day starts it over. Six guesses, five letters, like the
-original.
+- **Leaderboards**: a daily won goes on that puzzle's board (**Wordle
+  #259**, fewest guesses first), and your longest streak on **Longest
+  streak**; the Games shelf shows them. Signed out, a finished daily
+  offers `s` to sign in, so the scores are kept with your account.
+
+Stats count every finished game. The streak is the dailies won in a row,
+as in the original: a lost or skipped day starts it over, practice games
+leave it alone. Six guesses, five letters, like the original.
 
 ## Keyboard
 
@@ -88,6 +93,15 @@ both.
 Nothing to install and no permission. The game and the stats live in the
 extension's storage (`<data dir>/pal/storage/wordle.json`), shared by every
 config profile.
+
+Signed in to a pal account, the storage syncs (`sync` in pal.json), each
+key merged so two machines that both played keep everything: the game in
+play (`game`, the newest wins), the stats (`stats`: played, won and the
+guess counts added up, the longest streak the larger) and the dailies won
+and lost (`daily_won`, `daily_lost`, put together). The streak is counted
+from those days rather than stored, so a streak kept up on two machines
+is the whole run on both. Stats from before keep their streak: it becomes
+the days it covers on the first open.
 
 Settings, `[extensions.wordle]`:
 

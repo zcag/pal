@@ -13,14 +13,25 @@
 // The first open lands on the puzzle left half-done, else today's puzzle of
 // the `source` setting.
 //
+// The record syncs with the user's pal account (docs/extensions.md,
+// "Syncing storage"); the log in store.ts does not, it outgrows the 256 KB
+// a synced space holds. What syncs is each source's summary in the SDK's
+// storage, in shapes that merge without a loss: `counts` (first and clean
+// solves, the clean ones' total time: each a sum), `best` (the fastest
+// clean solve: min) and `days` (the dailies solved on their day, the
+// streak's: union). `seeded` (local) says this machine's log was folded in
+// once. They are read fresh on every use, never held here, so a value
+// another machine sent is simply what the next read sees. A clean first
+// solve of a dated puzzle goes on that puzzle's leaderboard.
+//
 // While that source's puzzle of the day is unsolved, and only for someone
 // who has solved one before, a quiet row in the root's Now section is the
 // way back in.
-import { effects, now, settings, view, type Action, type Effect, type Extension, type Item as Row, type View, type ViewPalette } from "@zcag/pal";
+import { effects, leaderboard, now, settings, storage, view, type Action, type Effect, type Extension, type Item as Row, type View, type ViewPalette } from "@zcag/pal";
 import * as crosshare from "./crosshare.ts";
 import { progressOf, type Puzzle, type Saved } from "./game.ts";
 import { ORDER, SOURCES, next, sourceId, sourceOf, today, type Listed, type Source, type SourceId } from "./sources.ts";
-import { isBest, ofSource, summary, type Solve, type Summary } from "./stats.ts";
+import { beats, ofSource, plus, summary, tally, type Kept, type Solve, type Summary } from "./stats.ts";
 import { load, save, type Data, type Meta } from "./store.ts";
 
 const EXT = "crossword";
@@ -136,7 +147,44 @@ async function nextAfter(d: Data, from?: string, source?: SourceId): Promise<Lis
 
 // ---- the record -------------------------------------------------------------------------
 
-const statsOf = (d: Data, source: SourceId) => summary(ofSource(d.solves, source), now(), SOURCES[source].day);
+type Synced = { counts: Record<string, Partial<Kept>>; best: Record<string, number>; days: Record<string, string[]> };
+const obj = <T>(v: unknown): Record<string, T> => (v && typeof v === "object" && !Array.isArray(v) ? v as Record<string, T> : {});
+const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+
+async function readSynced(): Promise<Synced> {
+  const [counts, best, days] = await Promise.all([storage.get("counts", EXT), storage.get("best", EXT), storage.get("days", EXT)]);
+  return { counts: obj(counts), best: obj(best), days: obj(days) };
+}
+/** A source's record out of the synced keys. */
+function keptOf(s: Synced, source: SourceId): Kept {
+  const c = obj<unknown>(s.counts[source]), b = s.best[source], days = s.days[source];
+  return { solved: num(c.solved), clean: num(c.clean), ms: num(c.ms), ...(typeof b === "number" && { best: b }), days: Array.isArray(days) ? days.filter((x) => typeof x === "string") : [] };
+}
+/** Writes the record of the sources given, the others as they are. */
+async function writeSynced(s: Synced, kept: Partial<Record<SourceId, Kept>>) {
+  const counts = { ...s.counts }, best = { ...s.best }, days = { ...s.days };
+  for (const [source, k] of Object.entries(kept)) {
+    counts[source] = { solved: k.solved, clean: k.clean, ms: k.ms };
+    if (k.best !== undefined) best[source] = k.best;
+    days[source] = k.days;
+  }
+  await Promise.all([storage.set("counts", counts, EXT), storage.set("best", best, EXT), storage.set("days", days, EXT)]);
+}
+
+/** Once a run: this machine's log folded into what the storage holds (another machine's record, synced), never replacing it. */
+let seeding: Promise<void> | null = null;
+async function seed(d: Data) {
+  if ((await storage.get("seeded", EXT)) === true) return;
+  const s = await readSynced();
+  await writeSynced(s, Object.fromEntries(ORDER.map((id) => [id, plus(keptOf(s, id), tally(ofSource(d.solves, id), SOURCES[id].day))])));
+  await storage.set("seeded", true, EXT);
+}
+async function synced(d: Data): Promise<Synced> {
+  await (seeding ??= seed(d).catch((e) => { seeding = null; throw e; }));
+  return readSynced();
+}
+
+const statsOf = async (d: Data, source: SourceId) => summary(ofSource(d.solves, source), now(), SOURCES[source].day, keptOf(await synced(d), source));
 
 async function record(d: Data, id: string, s: Saved): Promise<SolvedReply> {
   const m = d.meta[id], source = sourceOf(id).id;
@@ -145,14 +193,19 @@ async function record(d: Data, id: string, s: Saved): Promise<SolvedReply> {
     id, title: m?.title ?? "", author: m?.author ?? "", at: now(), ms: s.done?.ms ?? s.ms,
     ...(source !== "crosshare" && { source }), ...(m?.date && { date: m.date }), ...(s.helped && { helped: true }), ...(s.checked && { checked: true }), ...(!firstTime && { replay: true }), ...(m && { size: `${m.w}×${m.h}` }),
   };
+  const before = await synced(d);
+  const prev = keptOf(before, source);
   d.solves.push(solve);
   await save();
-  return { best: isBest(ofSource(d.solves, source), solve), first: firstTime, stats: statsOf(d, source) };
+  if (firstTime) await writeSynced(before, { [source]: plus(prev, tally([solve], SOURCES[source].day)) });
+  // The puzzle's own board, sent without waiting: the page's answer never holds on the network, and a refused or queued score changes nothing here.
+  if (firstTime && !solve.helped && solve.date) void leaderboard.post(`${source}/${solve.date}`, Math.round(solve.ms / 10) / 100, EXT).catch(() => {});
+  return { best: beats(solve, prev.best), first: firstTime, stats: await statsOf(d, source) };
 }
 
-function statsView(d: Data, source: SourceId): StatsView {
+async function statsView(d: Data, source: SourceId): Promise<StatsView> {
   const history = ofSource(d.solves, source).slice(-60).reverse().map((s) => ({ ...s, state: (s.helped ? "helped" : "solved") as State }));
-  return { ...statsOf(d, source), source, history };
+  return { ...(await statsOf(d, source)), source, history };
 }
 
 // ---- the page's calls --------------------------------------------------------------------
@@ -234,7 +287,10 @@ export async function message(raw: unknown, ctx?: { args?: unknown }): Promise<u
       const latest = src.last && src.last < t.slice(0, 7) ? src.last : t.slice(0, 7);
       const year = Number(m.year) || Number(latest.slice(0, 4)), month = Number(m.month) || Number(latest.slice(5, 7));
       const base = { source: src.id, year, month, today: t, first: src.first, last: src.last ?? t.slice(0, 7) };
-      try { return { ...base, days: (await src.month(year, month, now())).map((l) => entry(d, l)) } satisfies MonthView; }
+      // A daily solved on its day on another machine of the account shows solved here too.
+      const elsewhere = new Set(keptOf(await synced(d), src.id).days);
+      const mark = (e: Entry): Entry => (e.state === "new" && e.date && elsewhere.has(e.date) ? { ...e, state: "solved" } : e);
+      try { return { ...base, days: (await src.month(year, month, now())).map((l) => mark(entry(d, l))) } satisfies MonthView; }
       catch (e) { return { ...base, days: [], error: (e as Error).message } satisfies MonthView; }
     }
     case "newest": {
@@ -303,7 +359,8 @@ async function suggest(): Promise<Row[]> {
   const id = Object.keys(d.meta).find((k) => d.meta[k].date === t && sourceOf(k).id === src.id);
   if (id && (d.progress[id]?.done || d.skipped[id])) return [];
   const started = id && d.progress[id] && progressOf(d.progress[id]).filled > 0;
-  const { streak } = statsOf(d, src.id);
+  const { streak, today: elsewhere } = await statsOf(d, src.id);
+  if (elsewhere) return []; // solved on another machine of the account
   return [{
     id: "today", name: src.id === "crosshare" ? "Today's mini crossword" : `Today's ${src.title} kare bulmaca`,
     subtitle: [started ? "In progress" : "Not solved yet", streak ? `${streak}-day streak` : ""].filter(Boolean).join(" · "),

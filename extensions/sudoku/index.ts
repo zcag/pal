@@ -10,9 +10,21 @@
 // month, every half-done game, a difficulty's stats. The first open lands
 // on the game left half-done, else today's daily of the `difficulty`
 // setting.
-import { isoDay, now, settings, view, type Action, type Extension, type View, type ViewPalette } from "@zcag/pal";
+//
+// The record syncs with the user's pal account (docs/extensions.md,
+// "Syncing storage"); the log in store.ts does not, it outgrows the 256 KB
+// a synced space holds. What syncs is each difficulty's summary in the
+// SDK's storage, in shapes that merge without a loss: `counts` (first,
+// clean and flawless solves, the clean ones' total time: each a sum),
+// `best` (the fastest clean solve: min) and `days` (the dailies solved on
+// their day, the streak's: union). `seeded` (local) says this machine's
+// log was folded in once. They are read fresh on every use, never held
+// here, so a value another machine sent is simply what the next read
+// sees. A clean first solve goes on the leaderboards: the difficulty's
+// fastest, and that day's daily's own board.
+import { isoDay, leaderboard, now, settings, storage, view, type Action, type Extension, type View, type ViewPalette } from "@zcag/pal";
 import { progressOf, type Saved } from "./game.ts";
-import { isBest, ofDiff, summary, type Solve, type Summary } from "./stats.ts";
+import { beats, ofDiff, plus, summary, tally, type Kept, type Solve, type Summary } from "./stats.ts";
 import { load, save, type Data, type Meta } from "./store.ts";
 import { DIFFS, generate, isDiff, toText, type Diff } from "./sudoku.ts";
 
@@ -113,7 +125,47 @@ function prune(d: Data) {
 
 // ---- the record --------------------------------------------------------------------------
 
-const statsOf = (d: Data, diff: Diff) => summary(ofDiff(d.solves, diff), now());
+type Synced = { counts: Record<string, Partial<Kept>>; best: Record<string, number>; days: Record<string, string[]> };
+const obj = <T>(v: unknown): Record<string, T> => (v && typeof v === "object" && !Array.isArray(v) ? v as Record<string, T> : {});
+const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+
+async function readSynced(): Promise<Synced> {
+  const [counts, best, days] = await Promise.all([storage.get("counts", EXT), storage.get("best", EXT), storage.get("days", EXT)]);
+  return { counts: obj(counts), best: obj(best), days: obj(days) };
+}
+/** A difficulty's record out of the synced keys. */
+function keptOf(s: Synced, diff: Diff): Kept {
+  const c = obj<unknown>(s.counts[diff]), b = s.best[diff], days = s.days[diff];
+  return { solved: num(c.solved), clean: num(c.clean), flawless: num(c.flawless), ms: num(c.ms), ...(typeof b === "number" && { best: b }), days: Array.isArray(days) ? days.filter((x) => typeof x === "string") : [] };
+}
+/** Writes the record of the difficulties given, the others as they are. */
+async function writeSynced(s: Synced, kept: Partial<Record<Diff, Kept>>) {
+  const counts = { ...s.counts }, best = { ...s.best }, days = { ...s.days };
+  for (const [diff, k] of Object.entries(kept)) {
+    counts[diff] = { solved: k.solved, clean: k.clean, flawless: k.flawless, ms: k.ms };
+    if (k.best !== undefined) best[diff] = k.best;
+    days[diff] = k.days;
+  }
+  await Promise.all([storage.set("counts", counts, EXT), storage.set("best", best, EXT), storage.set("days", days, EXT)]);
+}
+
+/** Once a run: this machine's log folded into what the storage holds (another machine's record, synced), never replacing it. */
+let seeding: Promise<void> | null = null;
+async function seed(d: Data) {
+  if ((await storage.get("seeded", EXT)) === true) return;
+  const s = await readSynced();
+  await writeSynced(s, Object.fromEntries(DIFFS.map((diff) => [diff, plus(keptOf(s, diff), tally(ofDiff(d.solves, diff)))])));
+  await storage.set("seeded", true, EXT);
+}
+async function synced(d: Data): Promise<Synced> {
+  await (seeding ??= seed(d).catch((e) => { seeding = null; throw e; }));
+  return readSynced();
+}
+
+const statsOf = async (d: Data, diff: Diff) => summary(ofDiff(d.solves, diff), now(), keptOf(await synced(d), diff));
+
+/** A score on a board, sent without waiting: the page's answer never holds on the network, and a refused or queued one changes nothing here. */
+const post = (board: string, ms: number) => void leaderboard.post(board, Math.round(ms / 10) / 100, EXT).catch(() => {});
 
 async function record(d: Data, id: string, s: Saved): Promise<SolvedReply> {
   const m = d.meta[id];
@@ -122,17 +174,25 @@ async function record(d: Data, id: string, s: Saved): Promise<SolvedReply> {
     id, diff: m.diff, at: now(), ms: s.done?.ms ?? s.ms,
     ...(m.date && { date: m.date }), ...(s.hints && { hints: s.hints }), ...(s.mistakes && { mistakes: s.mistakes }), ...(!firstTime && { replay: true }),
   };
+  const before = await synced(d);
+  const prev = keptOf(before, m.diff);
   d.solves.push(solve);
   await save();
+  if (firstTime) await writeSynced(before, { [m.diff]: plus(prev, tally([solve])) });
+  const best = beats(solve, prev.best);
+  if (firstTime && !solve.hints) {
+    post(`fastest/${m.diff}`, solve.ms);
+    if (m.date) post(`daily/${m.diff}/${m.date}`, solve.ms);
+  }
   // What to play next: today's next unsolved daily, the harder ones first.
   const t = todayView(d), at = DIFFS.indexOf(m.diff);
   const next = [...DIFFS.slice(at + 1), ...DIFFS.slice(0, at)].find((x) => t.days[x] !== "solved" && t.days[x] !== "helped");
-  return { best: isBest(ofDiff(d.solves, m.diff), solve), first: firstTime, stats: statsOf(d, m.diff), ...(next && { next }) };
+  return { best, first: firstTime, stats: await statsOf(d, m.diff), ...(next && { next }) };
 }
 
-function statsView(d: Data, diff: Diff): StatsView {
+async function statsView(d: Data, diff: Diff): Promise<StatsView> {
   const history = ofDiff(d.solves, diff).slice(-60).reverse().map((s) => ({ ...s, state: (s.hints ? "helped" : "solved") as State }));
-  return { ...statsOf(d, diff), diff, history };
+  return { ...(await statsOf(d, diff)), diff, history };
 }
 
 // ---- the page's calls ------------------------------------------------------------------------
@@ -182,10 +242,13 @@ export async function message(raw: unknown, ctx?: { args?: unknown }): Promise<u
       const diff = diffOr(m.diff), t = today();
       const year = Number(m.year) || Number(t.slice(0, 4)), month = Number(m.month) || Number(t.slice(5, 7));
       const days: Entry[] = [];
+      // A daily solved on its day on another machine of the account shows solved here too.
+      const elsewhere = new Set(keptOf(await synced(d), diff).days);
       for (let day = 1; day <= new Date(Date.UTC(year, month, 0)).getUTCDate(); day++) {
         const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
         if (date > t) break;
-        days.push(entry(d, dailyId(date, diff), { diff, date }));
+        const e = entry(d, dailyId(date, diff), { diff, date });
+        days.push(e.state === "new" && elsewhere.has(date) ? { ...e, state: "solved" } : e);
       }
       return { diff, year, month, today: t, first: FIRST, days } satisfies MonthView;
     }
