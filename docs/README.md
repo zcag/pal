@@ -21,6 +21,8 @@
   with an example, the extensions' own routes, what asks first.
 - [Extensions](extensions.md): writing a palette in TypeScript: the
   manifest, the code, views, forms, bar items, links, the `@zcag/pal` API.
+- [Accounts](accounts.md): signing in, what syncs and how nothing is
+  lost, leaderboards, and the account API.
 - [Troubleshooting](troubleshooting.md): the log, diagnostics,
   permissions, the hotkey, PATH, the extension host, a palette that lists
   nothing, Gatekeeper.
