@@ -11,6 +11,7 @@ import { Worker, isMainThread, parentPort } from "node:worker_threads";
 import { Drive } from "../game/drive.ts";
 import { Bot, SKILLS } from "../game/bot.ts";
 import * as content from "../game/content.ts";
+import { UNLOCKS } from "../game/progress.ts";
 import * as meta from "../game/meta.ts";
 import { Score } from "../game/score.ts";
 import { ONE_WAY, TWO_WAY } from "../game/layout.ts";
@@ -102,7 +103,7 @@ type Buy = { t: number; run: number; what: string; cost: number };
 
 /** One player from a fresh save: runs drawn from the pools, paid through meta.finish, spending as it goes. */
 function career(pools: Map<string, Run[]>, profile: string, modes: string[], levels: number[], cost: (c: content.PlayerCar, l: number) => number, o: { hours: number; day: number; spend: number; rnd: () => number }) {
-  const s = meta.fresh(), buys: Buy[] = [], income = { run: 0, other: 0 };
+  const s = meta.fresh(), buys: Buy[] = [], income = { run: 0, other: 0 }, levelAt: number[] = [0, 0]; // play time each driver level was reached
   let t = 0, runs = 0, day = 0, dayT = 0;
   const rate = (car: number, level: number, mode: string) => { const p = pools.get(`${car}|${level}|${profile}|${mode}`) ?? []; return p.reduce((a, r) => a + r.cash, 0) / Math.max(1, p.reduce((a, r) => a + r.time, 0)); };
   while (t < o.hours * 3600 && runs < 20000) {
@@ -125,6 +126,7 @@ function career(pools: Map<string, Run[]>, profile: string, modes: string[], lev
     const paid = typeof res === "object" ? res.cash : 0;
     income.run += paid; income.other += s.cash - before - paid;
     t += r.time; dayT += r.time; runs++;
+    while (levelAt.length <= s.level) levelAt.push(t);
     // spending: the next car the moment it is affordable, else the cheapest upgrade if it doesn't set the car back much
     for (;;) {
       const owned = CARS.findIndex((c) => c.id === s.car), next = CARS[owned + 1];
@@ -139,7 +141,7 @@ function career(pools: Map<string, Run[]>, profile: string, modes: string[], lev
     }
     if (!CARS[CARS.findIndex((c) => c.id === s.car) + 1] && KINDS.every((k) => s.owned[s.car].upgrades[k] >= content.UPGRADE_MAX)) break;
   }
-  return { buys, runs, t, level: s.level, income };
+  return { buys, runs, t, level: s.level, income, levelAt };
 }
 
 const med = (a: number[]) => { const b = [...a].sort((x, y) => x - y); return b.length ? b[Math.floor(b.length / 2)] : NaN; };
@@ -208,6 +210,11 @@ async function main() {
         for (const x of cs) { let last = { t: 0, run: 0 }; for (const y of x.buys) { if (y.t > a && y.t <= b && y.run > last.run) { gaps.push(y.run - last.run); mins.push(y.t - last.t); } if (y.run > last.run) last = y; } }
         if (gaps.length) console.log(`  ${label.padEnd(13)} a purchase every ${med(gaps)} runs (p90 ${pct(gaps, 0.9)}), ${hm(med(mins))} (p90 ${hm(pct(mins, 0.9))})`);
       }
+      // driver levels: where play time leaves you, and when each unlock lands
+      const at = (l: number) => med(cs.map((x) => x.levelAt[l] ?? Infinity));
+      const lvAt = (secs: number) => med(cs.map((x) => x.levelAt.filter((tt) => tt <= secs).length - 1));
+      console.log(`  driver level  at 30m ${lvAt(1800)}, 1h ${lvAt(3600)}, 3h ${lvAt(3 * 3600)}, 8h ${lvAt(8 * 3600)}, 15h ${lvAt(15 * 3600)}, 30h ${lvAt(30 * 3600)}`);
+      console.log(`  unlocks       ${Object.entries(UNLOCKS).map(([l, u]) => `${u.map((x) => x.name).join("+")} ${hm(at(+l))}`).join(", ")}`);
       (out.careers as Record<string, unknown>)[`${name}/${p}`] = { firstRun: med(cs.map((x) => x.buys[0]?.run ?? Infinity)), cars: CARS.map((c, i) => ({ id: c.id, price: c.price, medianS: med(carAt[i]), p10: pct(carAt[i], 0.1), p90: pct(carAt[i], 0.9), runs: med(runAt[i]) })) };
     }
   }

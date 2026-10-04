@@ -15,7 +15,7 @@ import { load, fresh, carOf, buyCar, buyUpgrade, paint, finish, places, modes, p
 import { xpFor, nextUnlock, progressOf, statsOf, MAX_LEVEL } from "../game/progress.ts";
 import type { Miss } from "../game/score.ts";
 import type { End, Packed } from "../game/drive.ts";
-import type { Input } from "../game/vehicle.ts";
+import { acrossAt, type Input } from "../game/vehicle.ts";
 
 declare const pal: SurfaceKit;
 const $ = (id: string) => document.getElementById(id)!;
@@ -540,7 +540,7 @@ function autopilot(target = 108, bold = false): Input {
   // the key sets how fast the car crosses: a sideways speed that shrinks as the lane's centre comes
   // near, so it moves over decisively and settles instead of weaving
   const dx = laneX(L, autoLane) - v.x;
-  const across = 5.5 * FEEL.pace + 0.07 * v.u; // what full steering gives at this speed (game/vehicle.ts)
+  const across = acrossAt(v.spec, v.u); // what full steering gives at this speed
   const steer = THREE.MathUtils.clamp(THREE.MathUtils.clamp(dx * 2.2, -9, 9) / across, -1, 1);
   const boxed = !bold && ttc(autoLane) < 1.3;
   return { throttle: !boxed && v.kmh / FEEL.pace < target ? 1 : 0, brake: boxed ? 1 : 0, steer };

@@ -5,8 +5,9 @@ import type { Score } from "./score.ts";
 
 export const MAX_LEVEL = 40;
 
-/** XP from one level to the next: 300 at first (a run or two), 14% more each level. */
-export const xpFor = (level: number) => Math.round((300 * Math.pow(1.14, level - 1)) / 50) * 50;
+/** XP from one level to the next: 300 for the first (a run), then a curve fitted in scripts/economy.ts so
+ *  a regular player reaches level 5 in about 20 minutes, 10 in 1.5 h, 15 in 4 h, 25 in 16 h; 40 is the long tail. */
+export const xpFor = (level: number) => Math.round((2000 * Math.pow(1.135, level - 1) * (1 - 0.85 * Math.pow(0.65, level - 1))) / 50) * 50;
 /** XP a run's score is worth: a good first run (about 25,000 points) is most of level 2. */
 export const xpOfPoints = (points: number) => Math.round(points / 80);
 

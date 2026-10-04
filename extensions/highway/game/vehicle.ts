@@ -49,6 +49,13 @@ const G = 9.81, RHO = 1.2, CRR = 0.012, SHIFT_TIME = 0.16;
 // real car's shape (it yaws in, leans, settles); it is the speed of it that is a game's.
 const SIDE_GRIP = 1.6;
 
+/** Handling, 0 (a city car, stock) to 1 (the best car, fully upgraded). */
+export const handlingOf = (s: Spec) => Math.max(0, Math.min(1, ((s.agility ?? 1.2) - 0.95) / 0.75));
+/** What full steering crosses the road at, m/s, at a forward speed (world m/s). */
+export const acrossAt = (s: Spec, u: number) => (5.5 + (u / FEEL.pace) * 0.07) * (0.85 + 0.6 * handlingOf(s)) * FEEL.across * FEEL.pace;
+/** How hard the sideways speed may change, m/s² (twice that checking a slide). */
+export const turnOf = (s: Spec) => 26 + 50 * handlingOf(s);
+
 export class Vehicle {
   // pose and motion in the road's frame
   x = 0; z = 0; yaw = 0; // yaw 0 = along +z, + turns left
@@ -162,16 +169,16 @@ export class Vehicle {
     if (this.knocked <= 0 && speed > 3) {
       // handling, 0 (a city car, stock) to 1 (the best car, fully upgraded): how fast it crosses, how hard
       // it may change direction, and how quickly the wheel answers
-      const h = Math.max(0, Math.min(1, ((s.agility ?? 1.2) - 0.95) / 0.75));
+      const h = handlingOf(s);
       const ramp = dt / Math.max(0.01, FEEL.ramp * (1.2 - 0.5 * h));
       // flicking the other way goes straight through the middle, as hands on a wheel would
       if (input.steer * this.steer < 0) this.steer = 0;
       this.steer += Math.max(-ramp, Math.min(ramp, input.steer - this.steer));
       const lat = speed * Math.sin(this.yaw) + this.v * Math.cos(this.yaw); // sideways speed on the road
-      const across = (5.5 + (speed / FEEL.pace) * 0.07) * (0.85 + 0.6 * h) * FEEL.across * FEEL.pace;
+      const across = acrossAt(s, speed);
       // checking a slide the other way is twice as quick as building one
       const want = this.steer * across, reverse = (want - lat) * lat < 0;
-      const aMax = (26 + 50 * h) * (reverse ? 1.9 : 1);
+      const aMax = turnOf(s) * (reverse ? 1.9 : 1);
       const next = lat + Math.max(-aMax * dt, Math.min(aMax * dt, want - lat));
       // nitro pushes on past the top speed, to a fifth over it
       const du = Flong / s.mass + (this.boost && this.u < (s.top ?? 99) * 1.2 ? this.boost : 0);

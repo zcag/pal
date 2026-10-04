@@ -77,8 +77,10 @@ more, and the end of a run counts it up line by line.
   peak of your best combo, time above 150 km/h, time in the oncoming lane, and
   threading a gap; the place and the mode multiply it. The first run of each
   day pays double.
-- **XP** is the score divided by 80, plus whatever missions you finish; level 2
-  takes 300, each level after 14% more. A level pays 150 times its number.
+- **XP** is the score divided by 80, plus whatever missions you finish. Level 2
+  takes 300 (a run); after that the curve is fitted to play time in
+  `scripts/economy.ts`: a regular player reaches level 5 in about 20 minutes, 10
+  in 1.5 h, 15 in 4 h and 25 in 16 h. A level pays 150 times its number.
 
 ### Driver level
 
@@ -139,23 +141,37 @@ with yours, so every car meets the same road): a faster car truly outruns it,
 passes more cars a minute, and near misses pay more the faster you pass (×2 at
 300 km/h). A better car is worth more money, not only more points.
 
-Prices come from `scripts/economy.ts`, which plays thousands of real runs with
-a bot of four skills (`game/bot.ts`) and pays careers through `meta.finish`.
-Cars run $2,500 to $76,000, and upgrades cost 6% of the car's price, half again
-each level. Simulated at 40 minutes a day (the bot drives about 70 km/h in any
-car, so it misses what a faster car earns; real play reaches the top sooner):
+Prices and the XP curve come from `scripts/economy.ts`, which plays thousands of
+real runs with a bot of four skills (`game/bot.ts`) and pays careers through
+`meta.finish`. The bot drives as a player does: it dodges by lanes, brakes only
+when boxed in, and dares a speed over the traffic that grows with how quickly
+its car changes lanes. It is a careful player (about 80 to 110 km/h on
+average), so real play runs ahead of these numbers. What a minute pays in
+Endless, measured:
+
+| | Compact | Asti (Sport) | Saba (Super) |
+| --- | --- | --- | --- |
+| a good player | $436 | $637 | $754 |
+| near misses a minute | 7.5 | 11.5 | 12.7 |
+
+Cars run $2,500 to $56,000; upgrades cost 6% of the car's price, half again a
+level. Simulated at 40 minutes a day:
 
 | | regular | good |
 | --- | --- | --- |
 | First purchase | after run 1 | after run 1 |
-| A new car, middle of the ladder | every 20 to 40 min | every 10 to 20 min |
-| The top car | about 18 h | about 7 h |
+| Something to buy | every 1 to 2 runs in the first 3 h, 3 to 5 after | the same |
+| Into Sport / Muscle / GT / Super | 0.5 / 2.7 / 7.4 / 13 h | 0.4 / 1.5 / 4 / 7 h |
+| The top car | about 18 h | about 9 h |
+| Two-Way, Time Attack, Speed Trap, Night Run | 4 min, 14 min, 1.1 h, 1.8 h | 10 min, 15 min, 40 min, 53 min |
+| Paint collections (levels 15, 20, 25) | 3, 7, 14 h | 1.4, 3, 6 h |
 
 What it found and changed: a combo paid its square (12·c²), so short, wild
 Two-Way runs out-earned everything; it now pays 30 per step. Near misses on
 oncoming cars paid double cash on top of triple points; they pay triple
-points only. A better car does not raise cash a minute in Endless (traffic
-keeps pace with your top speed); it raises points, so XP, so levels.
+points only. Every car once earned about the same a minute (traffic kept pace
+with your top speed, and cars barely differed); the classes, traffic that
+falls behind a faster car, and near misses that pay with speed fixed that.
 
 ### Modes
 
