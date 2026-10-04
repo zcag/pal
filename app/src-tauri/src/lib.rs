@@ -160,11 +160,15 @@ pub(crate) fn place(app: &AppHandle) {
     if position == Position::Last && PLACED.load(Ordering::Relaxed) {
         return;
     }
-    let (Some(m), Ok(size)) = (monitor(app, &w), w.outer_size()) else { return };
+    let Some(m) = monitor(app, &w) else { return };
     let area = m.work_area();
-    let x = area.position.x + (area.size.width as i32 - size.width as i32) / 2;
+    // The size the panel is going to, not the one it has: back from a game's big panel the resize to
+    // normal has not landed yet, and centring the old size put the panel near the top-left corner.
+    let (lw, lh) = compact::normal(app);
+    let (width, height) = ((lw * m.scale_factor()) as i32, (lh * m.scale_factor()) as i32);
+    let x = area.position.x + (area.size.width as i32 - width) / 2;
     let y = match position {
-        Position::Centre => area.position.y + (area.size.height as i32 - size.height as i32) / 2,
+        Position::Centre => area.position.y + (area.size.height as i32 - height) / 2,
         Position::Top | Position::Last => area.position.y + (area.size.height as f64 * 0.2) as i32,
     };
     let _ = w.set_position(PhysicalPosition::new(x, y));

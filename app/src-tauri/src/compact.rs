@@ -136,9 +136,14 @@ fn set(app: &AppHandle, mode: PanelMode) {
     }
 }
 
+/// The panel's logical size in normal mode.
+pub fn normal(app: &AppHandle) -> (f64, f64) {
+    size(settings::config(app).general.compact, configured(app))
+}
+
 fn normal_size(app: &AppHandle) {
     let Some(w) = app.get_webview_window(WINDOW) else { return };
-    let (width, height) = size(settings::config(app).general.compact, configured(app));
+    let (width, height) = normal(app);
     if let Err(e) = panel::resize(&w, LogicalSize::new(width, height)) {
         eprintln!("compact\tresize failed\t{e}");
     }
