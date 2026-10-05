@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.14.0 · 2026-10-05
+
+- **Two new games in the store**: **Ramparts**, a tower defense roguelike on a floating island diorama: three acts on a branching map, twelve towers that combine (frost then shatter, oil then fire), relics, commanders and ascensions. **Seedfall**, a mining game: dig through seven biomes to a sleeping Seed at the planet's core, haul ore home, upgrade, build rigs that mine while you're away, then launch the Seed and start on a new planet with permanent perks.
+- **Game stats kept per enemy, tower or level now add up across your Macs** like the rest of your progress, however much a game adds later.
+
 ## 0.13.1 · 2026-10-05
 
 - **Fixed: back from a game's large panel (⌘⇧F), pal opened near the top-left corner** instead of in the middle of the screen.
