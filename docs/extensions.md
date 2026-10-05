@@ -1557,6 +1557,7 @@ one rule per storage key:
 "sync": {
   "best": "max", "unlocks": "union", "plays": "sum",
   "stats": { "fields": { "wins": "sum", "streak": "latest", "longest": "max" } },
+  "kills": { "each": "sum" },
   "settings": "latest", "hand": "local"
 }
 ```
@@ -1571,6 +1572,7 @@ other:
 | `union` | arrays: every element of both, first seen first, no duplicates |
 | `sum` | counters: the other device's count plus what this one added since it last synced |
 | `{ "fields": {...} }` | objects: field by field, each by its rule (recursively), unlisted fields `latest` |
+| `{ "each": rule }` | objects keyed by something open-ended (an enemy, a level, a card): every field by the one rule; beside `fields`, the rule for the fields it does not list (protocol 6) |
 | `latest` | the one written last; the other is kept in the account's history |
 | `local` | never synced: stays on this machine |
 
@@ -1579,7 +1581,7 @@ other:
   longer streak replaced by today's shorter one, the levels one machine
   opened gone on the other. A best is `max` (`min` for a time), what was
   opened or collected is `union`, a count is `sum`, a stats object is
-  `fields`.
+  `fields`, and stats per enemy or per level are `each`.
 - **`local`** for what belongs to one sitting on one machine: a hand of
   cards in progress, a cursor. A credential never goes in synced storage:
   without `sync` nothing leaves the machine, which is why it is opt-in.

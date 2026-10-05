@@ -24,8 +24,8 @@
 // direction. An extension never sees these three envelopes; they are here
 // for a host or a test harness.
 
-/** The protocol a package is built for; bumped by a change that breaks extensions built before it, or that extensions built after it rely on (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. 2: `preview`, `ignoreStore`, `Effect.show.actions`. 3: the detail header (`Detail.caption`, `title`, `chips`, `stats`). 4: controls (`controls`, `Extension.controls`, `Manifest.controls`, the control view components). 5: accounts (`leaderboard`, `account`, `storage.onChange`, the kit's `score`, `leaderboard`, `account`, `signIn`, `storage.onChange`, `Manifest.sync` and `leaderboards`). */
-export const PROTOCOL: number = 5;
+/** The protocol a package is built for; bumped by a change that breaks extensions built before it, or that extensions built after it rely on (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. 2: `preview`, `ignoreStore`, `Effect.show.actions`. 3: the detail header (`Detail.caption`, `title`, `chips`, `stats`). 4: controls (`controls`, `Extension.controls`, `Manifest.controls`, the control view components). 5: accounts (`leaderboard`, `account`, `storage.onChange`, the kit's `score`, `leaderboard`, `account`, `signIn`, `storage.onChange`, `Manifest.sync` and `leaderboards`). 6: `each` in a sync object rule (`SyncObjectRule`). */
+export const PROTOCOL: number = 6;
 /** The oldest package protocol this SDK and host still run. Equal to `pal_core::registry::PROTOCOL_MIN`. */
 export const PROTOCOL_MIN: number = 1;
 
@@ -1249,8 +1249,12 @@ export type Manifest = {
 
 /** How a synced storage key merges two devices' values (docs/extensions.md, "Syncing storage"). */
 export type SyncMerge = "max" | "min" | "union" | "sum" | "latest";
-/** A key's rule in `Manifest.sync`: a merge, `fields` for an object merged key by key (unlisted fields `latest`), or `local` (never synced). */
-export type SyncRule = SyncMerge | "local" | { fields: Record<string, SyncMerge | { fields: Record<string, unknown> }> };
+/** A field's rule inside an object rule: a merge, or another object rule. */
+export type SyncFieldRule = SyncMerge | SyncObjectRule;
+/** An object merged key by key: the `fields` listed by their rules, every other one by `each` (`latest` without it); at least one of the two. */
+export type SyncObjectRule = { fields: Record<string, SyncFieldRule>; each?: SyncFieldRule } | { fields?: Record<string, SyncFieldRule>; each: SyncFieldRule };
+/** A key's rule in `Manifest.sync`: a merge, an object rule, or `local` (never synced). */
+export type SyncRule = SyncMerge | "local" | SyncObjectRule;
 
 /**
  * One board in `Manifest.leaderboards`. `id` is `[a-z0-9_-]` segments

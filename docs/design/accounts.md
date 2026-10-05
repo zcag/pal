@@ -110,7 +110,7 @@ A rule is per key, declared by the extension (below) or the core (config):
 | `max`, `min` | the larger, the smaller (numbers) |
 | `union` | arrays: every element of both, in first-seen order, no duplicates by JSON value |
 | `sum` | counters: theirs + (mine − `base_value`), the client sends the value it last synced |
-| `fields` | objects: key by key, recursively, each field by the `fields` map's rule or `latest` |
+| `fields`, `each` | objects: key by key, recursively, each field by the `fields` map's rule, else by `each`, else `latest` |
 | `latest` | the one written last; the other stays in history |
 
 A key with no rule is `latest`. For game progress that is a loss the user

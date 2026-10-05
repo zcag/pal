@@ -369,10 +369,11 @@ export const isBoardId = (v: unknown): v is string => typeof v === "string" && v
 
 /**
  * `sync` in pal.json (docs/design/accounts.md): an object of storage keys,
- * each a merge (`SYNC_MERGES`), `local`, or `{ fields: { <field>: <rule> } }`
- * for an object merged field by field, recursively (a field is a merge or
- * another `fields`, never `local`). One problem per line; none when it is
- * absent or right. pal-pack refuses a package with any.
+ * each a merge (`SYNC_MERGES`), `local`, or `{ fields: { <field>: <rule> },
+ * each: <rule> }` (either or both) for an object merged field by field,
+ * recursively: the listed fields by theirs, every other by `each` (a field
+ * is a merge or another object rule, never `local`). One problem per line;
+ * none when it is absent or right. pal-pack refuses a package with any.
  */
 export function checkSync(manifest: { sync?: unknown }): string[] {
   const v = manifest.sync;
@@ -381,15 +382,18 @@ export function checkSync(manifest: { sync?: unknown }): string[] {
   const out: string[] = [];
   const rule = (r: unknown, where: string, local: boolean) => {
     if (typeof r === "string") {
-      if (!(SYNC_MERGES as readonly string[]).includes(r) && !(local && r === "local")) out.push(`${where}: ${JSON.stringify(r)} is not a rule (${[...SYNC_MERGES, ...(local ? ["local"] : [])].join(", ")}, or { "fields": {...} })`);
+      if (!(SYNC_MERGES as readonly string[]).includes(r) && !(local && r === "local")) out.push(`${where}: ${JSON.stringify(r)} is not a rule (${[...SYNC_MERGES, ...(local ? ["local"] : [])].join(", ")}, or { "fields": {...}, "each": ... })`);
       return;
     }
-    const f = (r as { fields?: unknown } | null)?.fields;
-    if (!r || typeof r !== "object" || Array.isArray(r) || Object.keys(r).length !== 1 || !f || typeof f !== "object" || Array.isArray(f)) {
-      out.push(`${where}: a rule is a string or { "fields": { <field>: <rule> } }`);
+    const o = r as { fields?: unknown; each?: unknown } | null;
+    const keys = o && typeof o === "object" && !Array.isArray(o) ? Object.keys(o) : [];
+    const f = o?.fields;
+    if (!keys.length || keys.some((k) => k !== "fields" && k !== "each") || (f !== undefined && (!f || typeof f !== "object" || Array.isArray(f)))) {
+      out.push(`${where}: a rule is a string or { "fields": { <field>: <rule> }, "each": <rule> } (either or both)`);
       return;
     }
-    for (const [k, fr] of Object.entries(f)) rule(fr, `${where}.fields.${k}`, false);
+    for (const [k, fr] of Object.entries((f ?? {}) as object)) rule(fr, `${where}.fields.${k}`, false);
+    if (o!.each !== undefined) rule(o!.each, `${where}.each`, false);
   };
   for (const [k, r] of Object.entries(v)) rule(r, `sync.${k}`, true);
   return out;

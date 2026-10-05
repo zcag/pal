@@ -10,16 +10,20 @@ import type { Manifest } from "../../sdk/src/protocol.ts";
 import { API, Host, Root, manifest } from "./harness.ts";
 
 describe("manifest: sync", () => {
-  test("each key a merge, local, or fields of merges (recursively, never local)", () => {
+  test("each key a merge, local, or an object rule of fields and each (recursively, never local)", () => {
     expect(checkSync({})).toEqual([]);
     expect(checkSync({ sync: { best: "max", low: "min", unlocks: "union", plays: "sum", run: "latest", hand: "local", stats: { fields: { wins: "sum", streak: "latest", deep: { fields: { n: "max" } } } } } })).toEqual([]);
+    expect(checkSync({ sync: { kills: { each: "sum" }, codex: { fields: { seen: "union" }, each: { each: { fields: { n: "sum" } } } } } })).toEqual([]);
     expect(checkSync({ sync: ["best"] })).toEqual(["sync: not an object of storage keys and their rules"]);
-    expect(checkSync({ sync: { a: "add", b: 1, c: { fields: { x: "local" } }, d: { fields: [] }, e: { fields: {}, extra: 1 } } })).toEqual([
-      `sync.a: "add" is not a rule (max, min, union, sum, latest, local, or { "fields": {...} })`,
-      `sync.b: a rule is a string or { "fields": { <field>: <rule> } }`,
-      `sync.c.fields.x: "local" is not a rule (max, min, union, sum, latest, or { "fields": {...} })`,
-      `sync.d: a rule is a string or { "fields": { <field>: <rule> } }`,
-      `sync.e: a rule is a string or { "fields": { <field>: <rule> } }`,
+    const shape = `a rule is a string or { "fields": { <field>: <rule> }, "each": <rule> } (either or both)`;
+    expect(checkSync({ sync: { a: "add", b: 1, c: { fields: { x: "local" } }, d: { fields: [] }, e: { fields: {}, extra: 1 }, f: {}, g: { each: "local" } } })).toEqual([
+      `sync.a: "add" is not a rule (max, min, union, sum, latest, local, or { "fields": {...}, "each": ... })`,
+      `sync.b: ${shape}`,
+      `sync.c.fields.x: "local" is not a rule (max, min, union, sum, latest, or { "fields": {...}, "each": ... })`,
+      `sync.d: ${shape}`,
+      `sync.e: ${shape}`,
+      `sync.f: ${shape}`,
+      `sync.g.each: "local" is not a rule (max, min, union, sum, latest, or { "fields": {...}, "each": ... })`,
     ]);
   });
 });
@@ -59,7 +63,7 @@ describe("manifest: leaderboards", () => {
     const root = new Root({ bad: { "index.ts": `export default { palettes: { p: { list: () => [], pick: () => {} } } };`, "pal.json": manifest("bad", { sync: { best: "most" }, leaderboards: [{ id: "x", title: "X", order: "desc", format: "laps" }] } as unknown as Partial<Manifest>) } });
     const host = await Host.start({ roots: [root.dir] });
     try {
-      expect(host.loaded().find((l) => l.extension === "bad")?.warnings).toEqual([`sync.best: "most" is not a rule (max, min, union, sum, latest, local, or { "fields": {...} })`, `leaderboards.x: format is "points", "time" or "moves"`]);
+      expect(host.loaded().find((l) => l.extension === "bad")?.warnings).toEqual([`sync.best: "most" is not a rule (max, min, union, sum, latest, local, or { "fields": {...}, "each": ... })`, `leaderboards.x: format is "points", "time" or "moves"`]);
     } finally { host.kill(); root.rm(); }
   });
 });

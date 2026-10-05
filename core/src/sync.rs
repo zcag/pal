@@ -72,12 +72,14 @@ pub enum Rule {
     Latest,
     /// Never synced.
     Local,
-    /// An object, field by field; a field not listed is `latest`.
-    Fields(BTreeMap<String, Rule>),
+    /// An object, field by field; a field not listed merges by `each`, or
+    /// as `latest` without one.
+    Fields { fields: BTreeMap<String, Rule>, each: Option<Box<Rule>> },
 }
 
 impl Rule {
-    /// `"max"`, ..., `"local"`, or `{"fields": {...}}` (no `local` inside).
+    /// `"max"`, ..., `"local"`, or `{"fields": {...}, "each": rule}` with
+    /// either or both (no `local` inside).
     pub fn parse(v: &Value) -> std::result::Result<Rule, String> {
         Rule::parse_in(v, false)
     }
@@ -92,11 +94,12 @@ impl Rule {
                 "latest" => Ok(Rule::Latest),
                 "local" if !nested => Ok(Rule::Local),
                 "local" => Err("local is for a whole key, not a field".into()),
-                other => Err(format!("{other:?} is not a rule (max, min, union, sum, latest, local, or {{\"fields\": ...}})")),
+                other => Err(format!("{other:?} is not a rule (max, min, union, sum, latest, local, or {{\"fields\": ..., \"each\": ...}})")),
             },
-            Value::Object(o) if o.len() == 1 && o.get("fields").is_some_and(Value::is_object) => {
-                let fields = o["fields"].as_object().into_iter().flatten().map(|(k, v)| Rule::parse_in(v, true).map(|r| (k.clone(), r)).map_err(|e| format!("{k}: {e}"))).collect::<std::result::Result<_, _>>()?;
-                Ok(Rule::Fields(fields))
+            Value::Object(o) if !o.is_empty() && o.keys().all(|k| k == "fields" || k == "each") && o.get("fields").is_none_or(Value::is_object) => {
+                let fields = o.get("fields").and_then(Value::as_object).into_iter().flatten().map(|(k, v)| Rule::parse_in(v, true).map(|r| (k.clone(), r)).map_err(|e| format!("{k}: {e}"))).collect::<std::result::Result<_, _>>()?;
+                let each = o.get("each").map(|v| Rule::parse_in(v, true).map(Box::new).map_err(|e| format!("each: {e}"))).transpose()?;
+                Ok(Rule::Fields { fields, each })
             }
             other => Err(format!("{other} is not a rule")),
         }
@@ -110,7 +113,16 @@ impl Rule {
             Rule::Union => json!("union"),
             Rule::Sum => json!("sum"),
             Rule::Latest | Rule::Local => json!("latest"),
-            Rule::Fields(f) => json!({ "fields": f.iter().map(|(k, r)| (k.clone(), r.wire())).collect::<serde_json::Map<_, _>>() }),
+            Rule::Fields { fields, each } => {
+                let mut o = serde_json::Map::new();
+                if !fields.is_empty() || each.is_none() {
+                    o.insert("fields".into(), json!(fields.iter().map(|(k, r)| (k.clone(), r.wire())).collect::<serde_json::Map<_, _>>()));
+                }
+                if let Some(e) = each {
+                    o.insert("each".into(), e.wire());
+                }
+                Value::Object(o)
+            }
         }
     }
 
@@ -118,7 +130,7 @@ impl Rule {
     fn counts(&self) -> bool {
         match self {
             Rule::Sum => true,
-            Rule::Fields(f) => f.values().any(Rule::counts),
+            Rule::Fields { fields, each } => fields.values().any(Rule::counts) || each.as_deref().is_some_and(Rule::counts),
             _ => false,
         }
     }
@@ -774,7 +786,13 @@ mod tests {
         assert_eq!(d.rule("stats").wire(), json!({ "fields": { "wins": "sum", "streak": "latest" } }));
         assert!(d.rule("stats").counts());
         assert_eq!(Decl::from_manifest(&json!({})).unwrap(), None);
-        for bad in [json!("max"), json!({ "a": "most" }), json!({ "a": { "fields": { "b": "local" } } }), json!({ "a": { "fields": 1 } }), json!({ "a": 3 })] {
+        // `each`: the rule for every field not listed, alone or beside `fields`.
+        let d = Decl::from_manifest(&json!({ "sync": { "kills": { "each": "sum" }, "codex": { "fields": { "seen": "union" }, "each": { "each": "max" } } } })).unwrap().unwrap();
+        assert_eq!(d.rule("kills").wire(), json!({ "each": "sum" }));
+        assert!(d.rule("kills").counts());
+        assert_eq!(d.rule("codex").wire(), json!({ "fields": { "seen": "union" }, "each": { "each": "max" } }));
+        assert!(!d.rule("codex").counts());
+        for bad in [json!("max"), json!({ "a": "most" }), json!({ "a": { "fields": { "b": "local" } } }), json!({ "a": { "fields": 1 } }), json!({ "a": 3 }), json!({ "a": {} }), json!({ "a": { "each": "local" } }), json!({ "a": { "each": "sum", "other": 1 } })] {
             assert!(Decl::from_manifest(&json!({ "sync": bad })).is_err(), "{bad}");
         }
     }
