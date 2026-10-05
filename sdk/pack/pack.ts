@@ -128,29 +128,36 @@ async function copyTree(from: string, to: string) {
 
 /** A module's relative imports of TypeScript: `from "../x.ts"`, `import "./y.ts"`, `import("./z.ts")`. */
 const IMPORTS = /(?:\bfrom\s*|\bimport\s*\(?\s*)["'](\.{1,2}\/[^"']+\.ts)["']/g;
+/** Comment lines (`//`, and `/*`, ` *` of a block), dropped before the scan: an example import in one is not an import. */
+const COMMENT_LINES = /^\s*(?:\/\/|\/\*|\*).*$/gm;
 
 /**
- * Every source the given modules import, followed to any depth, copied into
- * the package at the same path. An import that leaves the extension's folder
- * is an error: the page could never load it by URL.
+ * What a game's page loads by URL (`ext://`, surface.rs) beyond `surface/`
+ * itself: the sources beside index.ts (`../game.ts`) and every source those
+ * and the page import, followed to any depth (`../game/sim/core.ts`). Never
+ * index.ts, which the host would load over index.js, the screenshot fixture
+ * or a test. An import that leaves the extension's folder, or names a file
+ * that is not there, is an error: the page could never load it.
  */
-async function copyImports(dir: string, pkg: string, start: string[]) {
-  const seen = new Set(start), queue = [...start];
+export async function pageSources(dir: string): Promise<string[]> {
+  const beside = (await readdir(dir)).filter((f) => f.endsWith(".ts") && !["index.ts", "fixture.ts"].includes(f) && !f.endsWith(".test.ts") && !f.startsWith("."));
+  const surface = (await walk(join(dir, "surface"))).files.filter((f) => f.path.endsWith(".ts")).map((f) => `surface/${f.path}`);
+  const seen = new Set([...surface, ...beside]), queue = [...seen];
+  const found = [...beside];
   while (queue.length) {
     const rel = queue.shift()!;
-    const text = await readFile(join(dir, rel), "utf8");
+    const text = (await readFile(join(dir, rel), "utf8")).replace(COMMENT_LINES, "");
     for (const m of text.matchAll(IMPORTS)) {
       const target = normalize(join(dirname(rel), m[1]));
       if (target.startsWith("..") || isAbsolute(target)) throw new Error(`${basename(dir)}: ${rel} imports ${m[1]}, outside the extension`);
-      // Never the extension's own index.ts (the host would load it over index.js; a page imports it for types), its fixture or a test.
       if (seen.has(target) || target === "index.ts" || target === "fixture.ts" || target.endsWith(".test.ts")) continue;
+      if (!(await exists(join(dir, target)))) throw new Error(`${basename(dir)}: ${rel} imports ${m[1]}, which is not there`);
       seen.add(target);
       queue.push(target);
-      await mkdir(dirname(join(pkg, target)), { recursive: true });
-      await copyFile(join(dir, target), join(pkg, target));
-      await chmod(join(pkg, target), 0o644);
+      found.push(target);
     }
   }
+  return found;
 }
 
 /**
@@ -194,23 +201,14 @@ export async function build(dir: string, o: BuildOptions): Promise<Entry> {
   if (code !== 0) throw new Error(`${name}: bun build failed\n${(stderr || stdout).trim()}`);
   for (const f of (await walk(pkg)).files) await chmod(f.abs, 0o644);
   await writeFile(join(pkg, "pal.json"), json({ ...manifest, protocol: PROTOCOL }));
-  // A game surface's page loads its files by URL (`ext://`, surface.rs): the
-  // page as is, the sources beside index.ts (`../game.ts`), and whatever those
-  // import in folders of their own (`../game/sim/core.ts`). Never index.ts,
-  // which the host would load over index.js; never the screenshot fixture,
-  // which no page imports.
+  // A game surface's page as is, and the sources it loads beside it.
   if (await exists(join(dir, "surface", "."))) {
     await copyTree(join(dir, "surface"), join(pkg, "surface"));
-    const copied: string[] = [];
-    for (const f of await readdir(dir)) {
-      if (f.endsWith(".ts") && !["index.ts", "fixture.ts"].includes(f) && !f.endsWith(".test.ts") && !f.startsWith(".")) {
-        await copyFile(join(dir, f), join(pkg, f));
-        await chmod(join(pkg, f), 0o644);
-        copied.push(f);
-      }
+    for (const f of await pageSources(dir)) {
+      await mkdir(dirname(join(pkg, f)), { recursive: true });
+      await copyFile(join(dir, f), join(pkg, f));
+      await chmod(join(pkg, f), 0o644);
     }
-    const surface = (await walk(join(dir, "surface"))).files.filter((f) => f.path.endsWith(".ts")).map((f) => `surface/${f.path}`);
-    await copyImports(dir, pkg, [...surface, ...copied]);
   }
   const info: BuildInfo = { hash: await treeHash(pkg), seq, protocol: PROTOCOL, commit };
   if (o.dirOnly) {

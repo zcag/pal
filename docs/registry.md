@@ -41,6 +41,10 @@ weather/
                   they import in folders of their own (game/sim/core.ts)
 ```
 
+The imports followed are the relative `.ts` ones (`from "../x.ts"`,
+`import("./y.ts")`) outside comment lines; one that leaves the extension's
+folder or names a file that is not there fails the build.
+
 Nothing else: no `node_modules` (dependencies are inlined by `bun build`), no
 dotfiles, no symlinks. `@zcag/pal` is external and resolves to the app's own
 SDK at run time.

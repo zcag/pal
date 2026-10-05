@@ -8,7 +8,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, 
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { gunzipSync } from "node:zlib";
-import { addBuild, build, finish, listingOf, promote, readIndex, retain, statement, writeIndex, writeStatements, type Entry, type Index, type IndexBuild } from "../../sdk/pack/pack.ts";
+import { addBuild, build, finish, listingOf, pageSources, promote, readIndex, retain, statement, writeIndex, writeStatements, type Entry, type Index, type IndexBuild } from "../../sdk/pack/pack.ts";
 import { tar } from "../../sdk/pack/tar.ts";
 import { treeHash } from "../../sdk/pack/treehash.ts";
 import { PROTOCOL, type Manifest } from "../../sdk/src/protocol.ts";
@@ -84,6 +84,14 @@ describe("build", () => {
     expect(readdirSync(join(out, "deep", "game", "content"))).toEqual(["data.ts"]);
     writeFileSync(join(d, "game", "content", "data.ts"), `export { DATA } from "../../../outside.ts";\n`);
     await expect(build(d, { out, cwd: dir, seq: 1790000000, commit: "abc", dirOnly: true })).rejects.toThrow("outside the extension");
+  });
+
+  test("an import in a comment is not followed; one that names a missing file fails the build saying so", async () => {
+    const d = source(dir, "noted");
+    writeFileSync(join(d, "surface", "page.ts"), `// Wiring:\n//   import { x } from "./gone.ts";\n/**\n * import("../also-gone.ts")\n */\nimport { rows } from "../game.ts";\nrows("x");\n`);
+    expect(await pageSources(d)).toEqual(["game.ts"]);
+    writeFileSync(join(d, "surface", "page.ts"), `import { rows } from "../gone.ts";\nrows("x");\n`);
+    await expect(build(d, { out: join(dir, "dist-noted"), cwd: dir, seq: 1790000000, commit: "abc", dirOnly: true })).rejects.toThrow("surface/page.ts imports ../gone.ts, which is not there");
   });
 
   test("a manifest whose sync rules or leaderboards are wrong is refused, naming each mistake", async () => {
@@ -296,6 +304,11 @@ describe("the bundled list", () => {
       const here = readdirSync(repo.dir, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(join(repo.dir, d.name, "pal.json"))).map((d) => d.name);
       expect(here.filter((d) => !shipped.has(d) && !registry.has(d)), "add each to pal's app/bundled.txt or the repo's registry-only.txt (CLAUDE.md)").toEqual([]);
       expect(here.filter((d) => shipped.has(d) && registry.has(d))).toEqual([]);
+    });
+    // What pal's registry would refuse at publish, found in the repo's own CI: a game page loading a source that is not there.
+    test(`${repo.dir}: every game page's imports resolve inside its extension, as pal-pack follows them`, async () => {
+      const games = readdirSync(repo.dir, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(join(repo.dir, d.name, "surface")) && existsSync(join(repo.dir, d.name, "pal.json")));
+      for (const g of games) await pageSources(join(repo.dir, g.name));
     });
   }
 });
