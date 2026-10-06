@@ -135,7 +135,10 @@ A registry is one JSON file and its detached minisign signature
   `volume`, `power`, `inputs`, `player`; design/controls.md), its store block's `tagline`, `features` (the
   "What it does" bullets), `category`, `platforms` (absent: every
   platform), `play` and `screenshots` (absolute urls with their
-  captions), and its `palettes` (`id`, `title`, `kind`). A field an
+  captions; each light picture `<n>-<what>.png` has its dark twin at the
+  same url ending `-dark.png`, which the Store shows in the dark theme
+  and Games draws its covers from), and its `palettes` (`id`, `title`,
+  `kind`). A field an
   older index lacks reads as empty.
 - `builds`: newest `seq` first. A registry keeps at least the newest build
   per `protocol` and the one before it (the rollback target).

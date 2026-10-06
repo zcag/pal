@@ -3179,16 +3179,30 @@ background into practice, ⌘Enter opens it on AnkiWeb. The first open's
 
 ## Games (`games`)
 
-Every game in one list: one row per game with its tile and tagline,
-sorted by name, and Enter opens that game as its own level (Escape comes
-back to the list). Nothing is kept here: every open reads the installed
-extensions' manifests and lists each view palette of a loaded extension
-the store shelves under Fun, then, under a **Not installed** heading,
-every game the registries list for this machine that is not installed
-(the installed ones then sit under **Installed**). Enter on one of
-those installs it from its registry, waits for it to load, then opens it
-(its row says **Installing…** meanwhile); an install that fails stays at
-the top of the list as a row saying why. No settings.
+Every game as a showcase: the game the cursor is on large, its own store
+screenshot cut to the game itself, its title, tagline and description
+beside it, and a strip of every game's cover under it that slides with
+the cursor. The installed games come first, sorted by name, then every
+game the registries list for this machine that is not installed, marked
+**Not installed** (a hairline in the strip between the two). Nothing is
+kept here: every open reads the installed extensions' manifests and lists
+each view palette of a loaded extension the store shelves under Fun.
+
+- `right`, `down` or `tab` walks to the next game, `left`, `up` or
+  `shift+tab` back, round the ends; a letter or a digit jumps to the next
+  game starting with it; a click on a cover goes to it. The title line
+  says where you are ("3 of 15"), and the next open lands on the same game.
+- `enter` opens the game as its own level (Escape comes back). On one not
+  installed it installs it from its registry, waits for it to load, then
+  opens it (**Installing…** meanwhile); an install that fails says why on
+  the game until the next try.
+- `cmd+l` on a game with leaderboards opens them.
+
+The covers are each game's first store screenshot, its `-dark` twin
+(docs/registry.md), downloaded once into pal's cache folder
+(`~/Library/Caches/pal/games`, `~/.cache/pal/games` on Linux) and fetched
+again after a week; a game whose picture is not there yet shows its
+glyph until it lands. No settings.
 
 ## 2048 (`2048`)
 
