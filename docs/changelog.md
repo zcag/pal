@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.2 · 2026-10-06
+
+- **Fixed: a long row of chips squeezed its label to one letter a line**, as in Slack's "Also unread" (0.14.1's fix missed it); the chips now go on to the next line.
+
 ## 0.14.1 · 2026-10-06
 
 - **Fixed: after closing a game in its large panel, pal could still open near the top-left corner** instead of in the middle of the screen.
