@@ -126,7 +126,7 @@ fn set(app: &AppHandle, mode: PanelMode) {
         st.0 = mode;
         normal_size(app);
         if let Some(p) = before {
-            let _ = w.set_position(p);
+            panel::set_position(&w, p);
         }
         return eprintln!("compact\tmode\tnormal");
     }
@@ -160,7 +160,7 @@ fn lay(app: &AppHandle, mode: PanelMode) -> bool {
         eprintln!("compact\tresize failed\t{e}");
         return false;
     }
-    let _ = w.set_position(PhysicalPosition::new(x as i32, y as i32));
+    panel::set_position(&w, PhysicalPosition::new(x as i32, y as i32));
     eprintln!("compact\tmode\t{mode:?}\t{:.0}x{:.0}", pw / scale, ph / scale);
     true
 }

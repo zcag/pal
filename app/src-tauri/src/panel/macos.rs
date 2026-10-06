@@ -82,9 +82,32 @@ pub fn install(window: &WebviewWindow) {
     panel.show();
 }
 
-/// The panel's logical size: `set_size` is enough on AppKit.
+/// The panel's logical size, at once on the main thread. tauri's `set_size`
+/// and `set_position` are queued (tao dispatches them async), so a show right
+/// after one read the old frame: back from a game's big panel it faded in to
+/// the big frame's place, and the fitted panel then stood near the top-left.
 pub fn resize(w: &WebviewWindow, size: tauri::LogicalSize<f64>) -> tauri::Result<()> {
-    w.set_size(size)
+    use objc2_app_kit::NSWindow;
+    use objc2_foundation::{MainThreadMarker, NSSize};
+    match (w.ns_window(), MainThreadMarker::new()) {
+        (Ok(ptr), Some(_)) => unsafe { (*(ptr as *const NSWindow)).setContentSize(NSSize::new(size.width, size.height)) },
+        _ => return w.set_size(size),
+    }
+    Ok(())
+}
+
+/// The panel's top-left to `p`, at once on the main thread (`resize` says why).
+pub fn set_position(w: &WebviewWindow, p: tauri::PhysicalPosition<i32>) {
+    use objc2_app_kit::{NSScreen, NSWindow};
+    use objc2_foundation::{MainThreadMarker, NSPoint};
+    let (Ok(ptr), Some(mtm), Ok(scale)) = (w.ns_window(), MainThreadMarker::new(), w.scale_factor()) else {
+        let _ = w.set_position(p);
+        return;
+    };
+    let l = p.to_logical::<f64>(scale);
+    // AppKit's origin is the primary screen's bottom-left.
+    let hinge = NSScreen::screens(mtm).iter().next().map_or(0.0, |s| s.frame().size.height);
+    unsafe { (*(ptr as *const NSWindow)).setFrameTopLeftPoint(NSPoint::new(l.x, hinge - l.y)) };
 }
 
 /// A window to `x, y, width, height` (logical, top-left origin, as tauri

@@ -54,6 +54,10 @@ pub fn set_frame(w: &WebviewWindow, (x, y, width, height): (f64, f64, f64, f64))
     let _ = w.set_position(tauri::LogicalPosition::new(x, y));
 }
 
+pub fn set_position(w: &WebviewWindow, p: tauri::PhysicalPosition<i32>) {
+    let _ = w.set_position(p);
+}
+
 /// The panel to `size` with its top-left where it is (`compact::panel_fit`): no animation here.
 pub fn fit(w: &WebviewWindow, size: tauri::LogicalSize<f64>) {
     if let Err(e) = resize(w, size) {

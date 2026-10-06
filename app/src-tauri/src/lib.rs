@@ -171,7 +171,7 @@ pub(crate) fn place(app: &AppHandle) {
         Position::Centre => area.position.y + (area.size.height as i32 - height) / 2,
         Position::Top | Position::Last => area.position.y + (area.size.height as f64 * 0.2) as i32,
     };
-    let _ = w.set_position(PhysicalPosition::new(x, y));
+    panel::set_position(&w, PhysicalPosition::new(x, y));
     PLACED.store(true, Ordering::Relaxed);
 }
 
