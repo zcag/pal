@@ -429,8 +429,9 @@ export const clipboard = {
 
 /**
  * An image file on disk as the webview loads it (`icon://localhost/file`,
- * app/src-tauri/src/icon.rs): a thumbnail fitted into `size` px, or the
- * file itself for 0 (a PNG or a JPEG). PNG, JPEG and GIF by extension,
+ * app/src-tauri/src/icon.rs): a thumbnail fitted into `size` px (256 at
+ * most, `MAX_SIZE` there: a larger size is a 404), or the file itself for
+ * 0 (a PNG or a JPEG). PNG, JPEG and GIF by extension,
  * absolute paths only; anything else is a 404 and the row keeps its
  * glyph. A screenshot's row, a browsed folder's pictures.
  */

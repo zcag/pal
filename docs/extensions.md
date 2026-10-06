@@ -1701,8 +1701,9 @@ to the core.
   `delete(id)`, `clear()`, `copy(id)` (back onto the clipboard),
   `imageUrl(id, size)` for an image entry.
 - `thumbnailUrl(path, size)`: an image file on disk as the webview loads
-  it (`icon://localhost/file`): a thumbnail fitted into `size` px, or the
-  file itself for 0 (a PNG or a JPEG). PNG, JPEG and GIF by extension,
+  it (`icon://localhost/file`): a thumbnail fitted into `size` px (256 at
+  most: a larger size is a 404), or the file itself for 0 (a PNG or a
+  JPEG). PNG, JPEG and GIF by extension,
   absolute paths only; anything else is a 404 and the row keeps its
   glyph. A screenshot's row, a browsed folder's pictures.
 - `windows.list()` (every window, most recently used first on macOS and

@@ -3179,17 +3179,17 @@ background into practice, ⌘Enter opens it on AnkiWeb. The first open's
 
 ## Games (`games`)
 
-Every game as a showcase: the game the cursor is on large, its own store
-screenshot cut to the game itself, its title, tagline and description
-beside it, and a strip of every game's cover under it that slides with
-the cursor. The installed games come first, sorted by name, then every
+Every game as a showcase: the game the cursor is on at the top, its own
+store screenshot cut to the game itself, its title, tagline and
+description beside it, and every game's cover under it in a grid of five,
+two rows at a time, scrolling with the cursor. The installed games come first, sorted by name, then every
 game the registries list for this machine that is not installed, marked
-**Not installed** (a hairline in the strip between the two). Nothing is
+**Not installed**. Nothing is
 kept here: every open reads the installed extensions' manifests and lists
 each view palette of a loaded extension the store shelves under Fun.
 
-- `right`, `down` or `tab` walks to the next game, `left`, `up` or
-  `shift+tab` back, round the ends; a letter or a digit jumps to the next
+- `right` or `tab` walks to the next game, `left` or `shift+tab` back,
+  round the ends; `down` and `up` move a row, in the same column; a letter or a digit jumps to the next
   game starting with it; a click on a cover goes to it. The title line
   says where you are ("3 of 15"), and the next open lands on the same game.
 - `enter` opens the game as its own level (Escape comes back). On one not
