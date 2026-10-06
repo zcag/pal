@@ -25,7 +25,7 @@ const json = (file: string) => JSON.parse(readFileSync(file, "utf8"));
 function source(dir: string, name: string, extra: Record<string, unknown> = {}, list = `[{ id: "a", name: "A" }]`) {
   const d = join(dir, name);
   mkdirSync(join(d, "surface"), { recursive: true });
-  const store = { tagline: "t", features: ["Does one thing", "Does another"], category: "fun", platforms: ["macos"], play: true, screenshots: [{ file: "1-list.png", caption: "The list", kind: "panel" }] };
+  const store = { tagline: "t", features: ["Does one thing", "Does another"], category: "fun", platforms: ["macos"], play: true, screenshots: [{ file: "1-list.png", caption: "The list", kind: "panel" }, { file: "2-board.png", caption: "The board", cover: [300, 240, 600, 294] }] };
   writeFileSync(join(d, "pal.json"), manifest(name, { title: "Thing", store, palettes: { [name]: { kind: "view" }, other: { title: "Other", kind: "list" } }, ...extra } as Partial<Manifest>));
   writeFileSync(join(d, "index.ts"), `import { settings } from "@zcag/pal";\nimport { rows } from "./game.ts";\nconst s = settings.get();\nexport default { palettes: { ${name}: { title: "Thing", list: () => rows(String(s.greeting ?? "none")), pick: () => {} }, other: { title: "Other", list: () => ${list}, pick: () => {} } } };\n`);
   writeFileSync(join(d, "game.ts"), `export const rows = (g: string) => [{ id: "g", name: g }];\n`);
@@ -63,7 +63,8 @@ describe("build", () => {
     expect(e.listing).toEqual({
       title: "Thing", tagline: "t", features: ["Does one thing", "Does another"], category: "fun", keywords: [], platforms: ["macos"], play: true,
       palettes: [{ id: "thing", title: "Thing", kind: "view" }, { id: "other", title: "Other", kind: "list" }],
-      screenshots: [{ url: "https://pal.cagdas.io/extensions/thing/screenshots/1-list.png", caption: "The list" }],
+      // A cover crop goes with its shot: what Games draws the tile from.
+      screenshots: [{ url: "https://pal.cagdas.io/extensions/thing/screenshots/1-list.png", caption: "The list" }, { url: "https://pal.cagdas.io/extensions/thing/screenshots/2-board.png", caption: "The board", cover: [300, 240, 600, 294] }],
       requires: [], suggests: [], controls: [],
     });
   });

@@ -11,8 +11,8 @@ import { extensionsByName } from "./harness.ts";
 // @ts-expect-error a plain ESM module of the app's scripts, shared with shots.mjs
 import { SIZES, barFixtureOf, fixtureHash, fixtureOf } from "../../app/scripts/shots-lib.mjs";
 
-type Shot = { caption?: string; target?: string; state?: string; popover?: boolean; palette?: string };
-type Listed = { file: string; caption?: string; kind?: string; box?: number[] };
+type Shot = { caption?: string; target?: string; state?: string; popover?: boolean; palette?: string; cover?: number[] };
+type Listed = { file: string; caption?: string; kind?: string; box?: number[]; cover?: number[] };
 const read = (f: string) => JSON.parse(readFileSync(f, "utf8"));
 /** PNG width and height from its IHDR. */
 function size(file: string): [number, number] {
@@ -63,7 +63,7 @@ describe("store screenshots", () => {
 
     test(`${ext}: the pictures, both themes, at their size, listed with captions`, () => {
       const planned: Listed[] = [
-        ...Object.entries<Shot>(panel?.shots ?? {}).map(([k, s]) => ({ file: `${k}.png`, caption: s.caption })),
+        ...Object.entries<Shot>(panel?.shots ?? {}).map(([k, s]) => ({ file: `${k}.png`, caption: s.caption, ...(s.cover && { cover: s.cover }) })),
         ...Object.entries<Shot>(bar?.shots ?? {}).map(([k, s]) => ({ file: `bar-${k}.png`, caption: s.caption, kind: "bar" })),
       ];
       const listed: Listed[] = manifest.store?.screenshots ?? [];
@@ -74,6 +74,15 @@ describe("store screenshots", () => {
         if (!l.file.startsWith("bar-popover")) { expect(l.box, `${ext}/${l.file}: only a popover has a box`).toBeUndefined(); continue; }
         const [x, y, w, h] = l.box ?? [];
         expect(l.box?.length === 4 && [x, y, w, h].every(Number.isInteger) && x >= 0 && y >= 0 && w > 0 && h > 0 && x + w <= SIZES.popover[0] && y + h <= SIZES.popover[1], `${ext}/${l.file}: box is [x, y, width, height] inside the picture (make shots EXT=${ext})`).toBe(true);
+      }
+      // A game's cover (what Games draws its tile from): one panel shot at most, a crop inside the picture, no narrower than the panel's body.
+      const covers = listed.filter((l) => l.cover);
+      expect(covers.length, `${ext}: one shot at most is the cover`).toBeLessThanOrEqual(1);
+      for (const l of covers) {
+        const [x, y, w, h] = l.cover!;
+        expect(!l.kind && l.cover!.length === 4 && [x, y, w, h].every(Number.isInteger) && x >= 0 && y >= 0 && w > 0 && h > 0 && x + w <= SIZES.panel[0] && y + h <= SIZES.panel[1], `${ext}/${l.file}: cover is [x, y, width, height] inside a panel picture`).toBe(true);
+        expect(w / h, `${ext}/${l.file}: a cover is about 2:1, the shape Games draws it in`).toBeGreaterThan(1.6);
+        expect(w / h, `${ext}/${l.file}: a cover is about 2:1, the shape Games draws it in`).toBeLessThan(2.5);
       }
       const files = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".png")).sort() : [];
       const want = planned.flatMap((p) => [p.file, p.file.replace(/\.png$/, "-dark.png")]).sort();

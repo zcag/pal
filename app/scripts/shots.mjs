@@ -6,7 +6,7 @@
 // dark one as `<file>-dark.png`, into the extension's screenshots/. Then
 // the directory holds exactly those (an older picture is removed),
 // `store.screenshots` in pal.json lists the light ones with the fixtures'
-// captions (a popover with its `box`, where it sits in the picture), and `screenshots/.shots.json` stamps the fixtures' hash, which
+// captions (a popover with its `box`, where it sits in the picture; a game's shot with its `cover`), and `screenshots/.shots.json` stamps the fixtures' hash, which
 // host/test/screenshots.test.ts checks. `make shots` runs this with the
 // fixtures regenerated and a Vite server up; run by hand:
 //
@@ -154,7 +154,7 @@ for (const name of names) {
         console.log(`${name}/${png}`);
       } catch (e) { failed++; broke++; console.error(`${name}/${png}: ${e.message.split("\n")[0]}`); }
     }
-    listed.push({ file: `${file}.png`, caption: shot.caption });
+    listed.push({ file: `${file}.png`, caption: shot.caption, cover: shot.cover });
   }
   for (const [key, shot] of Object.entries(bar?.shots ?? {})) {
     let box;
@@ -172,7 +172,7 @@ for (const name of names) {
   if (outDir || broke) continue;
   // The directory is exactly what the fixtures plan: a picture no fixture makes any more goes.
   for (const f of readdirSync(dir)) if (f.endsWith(".png") && !made.has(f)) { rmSync(join(dir, f)); console.log(`${name}/${f}: removed (no fixture plans it)`); }
-  writeList(join(ext, "pal.json"), listed.map(({ file, caption, kind, box }) => ({ file, caption, ...(kind && { kind }), ...(box && { box }) })));
+  writeList(join(ext, "pal.json"), listed.map(({ file, caption, kind, box, cover }) => ({ file, caption, ...(kind && { kind }), ...(box && { box }), ...(cover && { cover }) })));
   writeFileSync(join(dir, ".shots.json"), JSON.stringify({ fixtures: fixtureHash(name) }) + "\n");
 }
 await browser.close();

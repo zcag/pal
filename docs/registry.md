@@ -137,7 +137,8 @@ A registry is one JSON file and its detached minisign signature
   platform), `play` and `screenshots` (absolute urls with their
   captions; each light picture `<n>-<what>.png` has its dark twin at the
   same url ending `-dark.png`, which the Store shows in the dark theme
-  and Games draws its covers from), and its `palettes` (`id`, `title`,
+  and Games draws its covers from; a game's cover shot carries `cover`,
+  `[x, y, w, h]`, the crop of it Games draws as its tile), and its `palettes` (`id`, `title`,
   `kind`). A field an
   older index lacks reads as empty.
 - `builds`: newest `seq` first. A registry keeps at least the newest build

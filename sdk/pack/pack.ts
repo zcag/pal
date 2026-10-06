@@ -26,7 +26,7 @@ export type Listing = {
   platforms: string[];
   play: boolean;
   palettes: { id: string; title: string; kind: string; icon?: unknown }[];
-  screenshots: { url: string; caption: string }[];
+  screenshots: { url: string; caption: string; cover?: number[] }[];
   requires: string[];
   suggests: string[];
   /** The manifest's `controls`: what it can do for a group (Settings › Groups offers it to install). */
@@ -85,6 +85,9 @@ export type BuildOptions = {
  * the code is the extension's for a palette named after it, else the
  * key), absolute screenshot urls.
  */
+/** A screenshot's `cover`, `[x, y, w, h]` in its pixels, when it is one. */
+const coverOf = (c: unknown): c is number[] => Array.isArray(c) && c.length === 4 && c.every((v) => Number.isInteger(v) && v >= 0);
+
 export function listingOf(m: Json, screenshotsBase?: string): Listing {
   const store: Json = m.store && typeof m.store === "object" ? m.store : {};
   const palettes = Object.entries((m.palettes && typeof m.palettes === "object" ? m.palettes : {}) as Record<string, Json>).map(([id, p]) => ({
@@ -108,7 +111,7 @@ export function listingOf(m: Json, screenshotsBase?: string): Listing {
     platforms: strs(store.platforms),
     play: store.play === true,
     palettes,
-    screenshots: base ? shots.filter((s) => str(s?.file)).map((s) => ({ url: `${base}/${m.name}/screenshots/${s.file}`, caption: str(s.caption) ?? "" })) : [],
+    screenshots: base ? shots.filter((s) => str(s?.file)).map((s) => ({ url: `${base}/${m.name}/screenshots/${s.file}`, caption: str(s.caption) ?? "", ...(coverOf(s.cover) && { cover: s.cover }) })) : [],
     requires: strs(m.requires),
     suggests: strs(m.suggests),
     controls: strs(m.controls),

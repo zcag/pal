@@ -551,8 +551,8 @@ export type StoreListing = {
   platforms?: string[] | null;
   play: boolean;
   palettes: { id: string; title: string; kind: string }[];
-  /** Absolute URLs, bare or with a caption. */
-  screenshots: ({ url: string; caption?: string } | string)[];
+  /** Absolute URLs, bare or with a caption; a game's cover shot has its crop, `[x, y, w, h]` in the picture's pixels. */
+  screenshots: ({ url: string; caption?: string; cover?: [number, number, number, number] } | string)[];
   requires: string[];
   suggests: string[];
   /** The manifest's `controls` (docs/design/controls.md); empty from an index older than 0.12. */

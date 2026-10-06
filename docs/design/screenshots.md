@@ -39,6 +39,11 @@ is the tallest popover's (480 pt) so every popover shot is the same size.
 caption and `kind` (`panel` or `bar`); the dark twins are not listed. A
 popover shot also has `box`, `[x, y, width, height]` in the picture's
 pixels: where the popover sits on its canvas, which the store crops to.
+A game's panel shot may have `cover`, `[x, y, width, height]` in its
+pixels, about 2:1: the part of that picture Games draws as the game's
+tile, picked by hand to show the game up close (its board, its scene),
+never the panel or the wallpaper; one shot per game at most. The fixture
+declares it on the shot (`shots["1-board"].cover`).
 `app/scripts/shots.mjs` writes that list from the fixtures, so the captions
 live in one place, the fixture.
 
