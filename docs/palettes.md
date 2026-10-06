@@ -3180,9 +3180,11 @@ background into practice, ⌘Enter opens it on AnkiWeb. The first open's
 ## Games (`games`)
 
 Every game as a showcase: the game the cursor is on at the top, its own
-store screenshot cut to the game itself, its title, tagline and
-description beside it, and every game's cover under it in a grid of five,
-two rows at a time, scrolling with the cursor. The installed games come first, sorted by name, then every
+store screenshot cut to the game itself, its title and tagline beside
+it, and every game's cover under it in a grid of five: two rows in view
+and the top of the next, sliding up a row as the cursor goes down. A cover
+is the part of a store screenshot the game picked to show itself up close
+(`cover`, docs/design/screenshots.md). The installed games come first, sorted by name, then every
 game the registries list for this machine that is not installed, marked
 **Not installed**. Nothing is
 kept here: every open reads the installed extensions' manifests and lists
@@ -3198,7 +3200,7 @@ each view palette of a loaded extension the store shelves under Fun.
   the game until the next try.
 - `cmd+l` on a game with leaderboards opens them.
 
-The covers are each game's first store screenshot, its `-dark` twin
+The pictures are each game's cover shot (else its first), its `-dark` twin
 (docs/registry.md), downloaded once into pal's cache folder
 (`~/Library/Caches/pal/games`, `~/.cache/pal/games` on Linux) and fetched
 again after a week; a game whose picture is not there yet shows its
