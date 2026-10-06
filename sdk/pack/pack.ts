@@ -383,10 +383,13 @@ export async function writeIndex(dist: string, o: IndexOptions): Promise<Index> 
   for (const e of entries) {
     const sig = await readFile(join(dist, `${e.name}.statement.minisig`), "utf8").catch(() => undefined);
     if (sig === undefined) { missing.push(e.name); continue; }
-    const pkg = join(o.out, "pkg", e.name);
-    await mkdir(pkg, { recursive: true });
-    await copyFile(join(dist, `${e.name}.tar.gz`), join(pkg, `${e.build.hash}.tar.gz`));
-    await copyFile(join(dist, e.name, "pal.json"), join(pkg, `${e.build.hash}.json`));
+    // A build the index lists already is only a newer listing (the registry's `changed` says `listing`): its package stays the one published.
+    if (!index.extensions.some((x) => x.name === e.name && x.builds.some((b) => b.hash === e.build.hash))) {
+      const pkg = join(o.out, "pkg", e.name);
+      await mkdir(pkg, { recursive: true });
+      await copyFile(join(dist, `${e.name}.tar.gz`), join(pkg, `${e.build.hash}.tar.gz`));
+      await copyFile(join(dist, e.name, "pal.json"), join(pkg, `${e.build.hash}.json`));
+    }
     const { hash, seq, protocol, commit, size } = e.build;
     addBuild(index, e.name, e.listing, { hash, seq, protocol, commit, url: `${base}/pkg/${e.name}/${hash}.tar.gz`, manifest: `${base}/pkg/${e.name}/${hash}.json`, size, sig, yanked: false });
   }

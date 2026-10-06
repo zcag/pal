@@ -210,7 +210,7 @@ jobs:
           .github/actions/registry/registry.sh fetch "$BASE/edge/index.json" "$R/edge.json"
           .github/actions/registry/registry.sh changed "$R/all" "$R/edge.json" > "$R/changed.txt"
           rm -f "$R/edge.json" "$R/edge.json.minisig"
-          awk '$2 == "new" { print "- `" $1 "`" }' "$R/changed.txt" >> "$GITHUB_STEP_SUMMARY"
+          awk '$2 == "new" { print "- `" $1 "`" } $2 == "listing" { print "- `" $1 "` (listing only)" }' "$R/changed.txt" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Plan
         id: plan
@@ -219,7 +219,8 @@ jobs:
         run: |
           R=$RUNNER_TEMP/registry
           if [ -f "$R/changed.txt" ]; then
-            awk '$2 == "new" { print $1 }' "$R/changed.txt" > "$R/new.txt"
+            # A new listing of the newest build goes through the index too (pal-pack's addBuild takes it): no new package.
+            awk '$2 == "new" || $2 == "listing" { print $1 }' "$R/changed.txt" > "$R/new.txt"
             echo "$(wc -l < "$R/new.txt") of $(wc -l < "$R/changed.txt") extensions are not edge's newest build"
           fi
           if [ -s "$R/new.txt" ] || [ -n "$ACT" ]; then echo "work=true" >> "$GITHUB_OUTPUT"; else echo "nothing to publish"; fi

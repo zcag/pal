@@ -266,6 +266,9 @@ describe("index", () => {
       expect(again.extensions.map((e) => e.name)).toEqual(["other", "thing"]);
       expect(again.extensions.find((e) => e.name === "thing")!.builds.map((x) => [x.hash, x.yanked])).toEqual([[thing.build.hash, false], ["old", true]]);
       expect([again.key, again.next_key]).toEqual(["RWQcur", null]);
+      // Builds the index has already: their listing is taken, their packages stay the published ones (none copied to upload over them).
+      expect(again.extensions.find((e) => e.name === "thing")!.listing.title).toBe("Thing");
+      expect(existsSync(join(dir, "site2", "pkg"))).toBe(false);
       // --key "" drops the field, not writes it as null: it is optional.
       const bare = await writeIndex(dist, { name: "acme", base: "b", out: join(dir, "site4"), merge: join(out, "index.json"), key: "" });
       expect("key" in json(join(dir, "site4", "index.json"))).toBe(false);

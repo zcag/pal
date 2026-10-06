@@ -27,10 +27,13 @@ case $cmd in
     for k in $PUBKEYS; do minisign -Vq -m "$out" -x "$out.minisig" -P "$k" 2> /dev/null && exit 0; done
     echo "::error::$url is not signed by any of the registry's keys"; exit 1 ;;
 
-  # changed <dist> [index]: one "<name> new|same|yanked" line per build in
-  # <dist> (pal-pack build's <name>.entry.json). `same` is the index's newest
-  # build of that name; `yanked` a hash the index yanked, which stays pulled
-  # even when the tree comes back to it. A missing index makes all of them new.
+  # changed <dist> [index]: one "<name> new|listing|same|yanked" line per
+  # build in <dist> (pal-pack build's <name>.entry.json). `same` is the
+  # index's newest build of that name; `listing` that build with a listing
+  # the index does not have yet (a field pal-pack learned to write, a
+  # screenshot's caption), which the index takes without a new build;
+  # `yanked` a hash the index yanked, which stays pulled even when the tree
+  # comes back to it. A missing index makes all of them new.
   changed)
     dist=$1 idx=${2:-/dev/null}
     [ -f "$idx" ] || idx=/dev/null
@@ -38,10 +41,12 @@ case $cmd in
       [ -e "$e" ] || continue
       n=$(basename "$e" .entry.json)
       h=$(jq -er '.hash // .build.hash' "$e")
-      jq -rs --arg n "$n" --arg h "$h" '
-        [.[0].extensions // [] | .[] | select(.name == $n) | .builds[]] as $b
+      jq -rs --arg n "$n" --arg h "$h" --argjson l "$(jq -c '.listing // null' "$e")" '
+        [.[0].extensions // [] | .[] | select(.name == $n)] as $x
+        | [$x[] | .builds[]] as $b
         | if any($b[]; .hash == $h and .yanked) then "yanked"
-          elif ($b[0].hash // "") == $h then "same" else "new" end
+          elif ($b[0].hash // "") == $h then (if $l == null or $x[0].listing == $l then "same" else "listing" end)
+          else "new" end
         | "\($n) \(.)"' "$idx"
     done ;;
 
