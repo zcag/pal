@@ -633,6 +633,8 @@ mark { background: var(--pal-match); color: inherit; border-radius: var(--pal-ra
 .pal-view__surface[data-ready] > iframe { opacity: 1; }
 .pal-view__stack { display: flex; flex-direction: column; align-items: stretch; min-width: 0; min-height: 0; }
 .pal-view__stack[data-direction="row"] { flex-direction: row; align-items: center; }
+/* A row of three badges or more is a chip list: chips that do not fit go to the next line, where a nowrap badge cannot shrink and squeezed the row's label to a letter a line. */
+.pal-view__stack[data-direction="row"]:has(> .pal-tag + .pal-tag + .pal-tag) { flex-wrap: wrap; }
 .pal-view__stack[data-align="start"] { align-items: flex-start; }
 .pal-view__stack[data-align="center"] { align-items: center; }
 .pal-view__stack[data-align="end"] { align-items: flex-end; }
