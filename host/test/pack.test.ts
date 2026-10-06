@@ -4,11 +4,12 @@
 // rules, promotion, the bundled list, and a packaged extension (SDK
 // external) loading in the host the way the app's bundled root has it.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { gunzipSync } from "node:zlib";
-import { addBuild, build, finish, listingOf, pageSources, promote, readIndex, retain, statement, writeIndex, writeStatements, type Entry, type Index, type IndexBuild } from "../../sdk/pack/pack.ts";
+import { addBuild, build, finish, listingOf, releasedAt, pageSources, promote, readIndex, retain, statement, writeIndex, writeStatements, type Entry, type Index, type IndexBuild } from "../../sdk/pack/pack.ts";
 import { tar } from "../../sdk/pack/tar.ts";
 import { treeHash } from "../../sdk/pack/treehash.ts";
 import { PROTOCOL, type Manifest } from "../../sdk/src/protocol.ts";
@@ -172,6 +173,8 @@ describe("build", () => {
 
 describe("listing", () => {
   test("absent fields are left out or empty; a palette without a title is its key", () => {
+    expect(listingOf({ name: "n" }, undefined, 1790000000).released).toBe(1790000000);
+    expect("released" in listingOf({ name: "n" })).toBe(false);
     expect(listingOf({ name: "n", palettes: { list: {}, n: {} } })).toEqual({ title: "n", features: [], keywords: [], platforms: [], play: false, palettes: [{ id: "list", title: "list", kind: "list" }, { id: "n", title: "n", kind: "list" }], screenshots: [], requires: [], suggests: [], controls: [] });
   });
 });
@@ -188,13 +191,36 @@ describe("index", () => {
     expect(hashes(retain([b("y", 1, 1, true)]))).toEqual(["y"]);
   });
 
-  test("addBuild: a listed hash is not added twice; the listing follows the newest build", () => {
+  test("releasedAt: the first commit that added the manifest, not the last; nothing outside git or in a shallow clone", () => {
+    const dir = tmp();
+    try {
+      const g = (args: string[], at?: number) => spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd: dir, env: { ...process.env, ...(at && { GIT_AUTHOR_DATE: `@${at} +0000`, GIT_COMMITTER_DATE: `@${at} +0000` }) } });
+      mkdirSync(join(dir, "game"));
+      expect(releasedAt(join(dir, "game"))).toBeUndefined();
+      g(["init", "-q"]);
+      writeFileSync(join(dir, "game", "pal.json"), "{}");
+      g(["add", "."]); g(["commit", "-qm", "add"], 1790000000);
+      writeFileSync(join(dir, "game", "pal.json"), "{ }");
+      g(["commit", "-qam", "change"], 1790500000);
+      expect(releasedAt(join(dir, "game"))).toBe(1790000000);
+      const shallow = tmp();
+      try {
+        spawnSync("git", ["clone", "-q", "--depth", "1", `file://${dir}`, shallow]);
+        expect(releasedAt(join(shallow, "game"))).toBeUndefined();
+      } finally { rmSync(shallow, { recursive: true, force: true }); }
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test("addBuild: a listed hash is not added twice; the listing follows the newest build, a rebuild of it included", () => {
     const i: Index = { format: 1, name: "r", generated_at: "", next_key: null, extensions: [] };
     const l = (title: string) => listingOf({ name: "e", title });
     addBuild(i, "e", l("two"), b("h2", 2));
     addBuild(i, "e", l("one"), b("h1", 1));
+    // The same build at a later commit (nothing in it changed): not a second build, but its listing is the newer one, so a field pal-pack learned to write reaches it.
     addBuild(i, "e", l("again"), b("h2", 9));
-    expect(i.extensions[0].listing.title).toBe("two");
+    expect(i.extensions[0].listing.title).toBe("again");
+    addBuild(i, "e", l("older"), b("h1", 1));
+    expect(i.extensions[0].listing.title).toBe("again");
     expect(i.extensions[0].builds.map((x) => [x.hash, x.seq])).toEqual([["h2", 2], ["h1", 1]]);
     expect(finish(i, new Date("2026-09-30T12:00:00.123Z")).generated_at).toBe("2026-09-30T12:00:00Z");
   });

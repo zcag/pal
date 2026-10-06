@@ -3184,9 +3184,10 @@ store screenshot cut to the game itself, its title and tagline beside
 it, and every game's cover under it in a grid of five: two rows in view
 and the top of the next, sliding up a row as the cursor goes down. A cover
 is the part of a store screenshot the game picked to show itself up close
-(`cover`, docs/design/screenshots.md). The installed games come first, sorted by name, then every
-game the registries list for this machine that is not installed, marked
-**Not installed**. Nothing is
+(`cover`, docs/design/screenshots.md). What came out in the last week comes first, newest first, marked **New**
+(the listing's `released`, docs/registry.md); then the installed games,
+then every game the registries list for this machine that is not
+installed, marked **Not installed**; each of those by name. Nothing is
 kept here: every open reads the installed extensions' manifests and lists
 each view palette of a loaded extension the store shelves under Fun.
 

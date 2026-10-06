@@ -182,6 +182,11 @@ pub struct Listing {
     /// The manifest's `controls` (docs/design/controls.md): Settings › Groups
     /// offers a device it can install. Absent in an index from before 0.12.
     pub controls: Vec<String>,
+    /// When the extension first came out, Unix seconds: the first commit
+    /// that added its pal.json (pal-pack). Games puts what came out lately
+    /// first. Absent when the registry does not know it.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub released: Option<u64>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -714,6 +719,15 @@ pub(crate) mod tests {
         };
         assert_eq!(read("PROTOCOL"), PROTOCOL);
         assert_eq!(read("PROTOCOL_MIN"), PROTOCOL_MIN);
+    }
+
+    #[test]
+    fn a_listing_reads_released_and_writes_it_only_when_known() {
+        let l: Listing = serde_json::from_str(r#"{"title":"Vortex","released":1791100000}"#).unwrap();
+        assert_eq!(l.released, Some(1791100000));
+        let old: Listing = serde_json::from_str(r#"{"title":"Vortex"}"#).unwrap();
+        assert_eq!(old.released, None, "an index from before it");
+        assert!(!serde_json::to_string(&old).unwrap().contains("released"));
     }
 
     #[test]

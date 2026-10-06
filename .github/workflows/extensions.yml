@@ -154,6 +154,8 @@ jobs:
           repository: zcag/pal-extensions
           ref: ${{ steps.todo.outputs.extensions }}
           path: src/pal-extensions
+          # The whole history: a listing's `released` is the first commit that added the extension's pal.json (pal-pack).
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/checkout@v4
         if: steps.todo.outputs.games != ''
@@ -161,6 +163,8 @@ jobs:
           repository: zcag/pal-games
           ref: ${{ steps.todo.outputs.games }}
           path: src/pal-games
+          # The whole history: a listing's `released` is the first commit that added the extension's pal.json (pal-pack).
+          fetch-depth: 0
           persist-credentials: false
 
       # The same Bun as ci.yml and the app's sidecar (fetch-bun.sh pins it).

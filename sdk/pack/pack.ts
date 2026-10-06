@@ -27,6 +27,8 @@ export type Listing = {
   play: boolean;
   palettes: { id: string; title: string; kind: string; icon?: unknown }[];
   screenshots: { url: string; caption: string; cover?: number[] }[];
+  /** When it first came out, Unix seconds (`BuildOptions.released`); absent when it is not known. */
+  released?: number;
   requires: string[];
   suggests: string[];
   /** The manifest's `controls`: what it can do for a group (Settings › Groups offers it to install). */
@@ -52,6 +54,13 @@ function git(cwd: string, ...args: string[]): string | undefined {
   return r.status === 0 ? r.stdout.trim() : undefined;
 }
 
+/** When the extension at `dir` first came out: the commit time of the first commit that added its pal.json. Unknown outside git and in a shallow clone, whose oldest commit would read as everything's first. */
+export function releasedAt(dir: string): number | undefined {
+  if (git(dir, "rev-parse", "--is-shallow-repository") !== "false") return undefined;
+  const t = Number(git(dir, "log", "--diff-filter=A", "--format=%ct", "--", "pal.json")?.split("\n").pop());
+  return Number.isInteger(t) && t > 0 ? t : undefined;
+}
+
 // ---- build -------------------------------------------------------------------
 
 export type BuildOptions = {
@@ -60,6 +69,8 @@ export type BuildOptions = {
   /** The directory `bun build` runs in, which the source-path comments in the output are relative to: the git toplevel of the extension by default. */
   cwd?: string;
   seq?: number;
+  /** When the extension first came out (Unix seconds): the first commit that added its pal.json, from git unless given; none from a shallow clone, whose oldest commit would read as everything's first. */
+  released?: number;
   commit?: string;
   /** `https://pal.cagdas.io/extensions`: screenshot urls become `<base>/<name>/screenshots/<file>`; without it the listing has none. */
   screenshotsBase?: string;
@@ -88,7 +99,7 @@ export type BuildOptions = {
 /** A screenshot's `cover`, `[x, y, w, h]` in its pixels, when it is one. */
 const coverOf = (c: unknown): c is number[] => Array.isArray(c) && c.length === 4 && c.every((v) => Number.isInteger(v) && v >= 0);
 
-export function listingOf(m: Json, screenshotsBase?: string): Listing {
+export function listingOf(m: Json, screenshotsBase?: string, released?: number): Listing {
   const store: Json = m.store && typeof m.store === "object" ? m.store : {};
   const palettes = Object.entries((m.palettes && typeof m.palettes === "object" ? m.palettes : {}) as Record<string, Json>).map(([id, p]) => ({
     id,
@@ -115,6 +126,7 @@ export function listingOf(m: Json, screenshotsBase?: string): Listing {
     requires: strs(m.requires),
     suggests: strs(m.suggests),
     controls: strs(m.controls),
+    released,
   });
 }
 
@@ -180,6 +192,7 @@ export async function build(dir: string, o: BuildOptions): Promise<Entry> {
   const seq = o.seq ?? Number(git(dir, "log", "-1", "--format=%ct"));
   if (!Number.isInteger(seq) || seq <= 0) throw new Error(`${name}: no commit time to use as seq (not in a git checkout?): pass --seq`);
   const commit = o.commit ?? git(dir, "rev-parse", "HEAD") ?? "";
+  const released = o.released ?? releasedAt(dir);
   if (o.prefix) {
     // A copy, symlinks as they are (a dependency's node_modules links stay relative to it), built from the stage's root.
     const stage = await mkdtemp(join(tmpdir(), "pal-pack-"));
@@ -188,7 +201,7 @@ export async function build(dir: string, o: BuildOptions): Promise<Entry> {
       await mkdir(dirname(at), { recursive: true });
       const cp = spawnSync("cp", ["-R", dir, at]);
       if (cp.status !== 0) throw new Error(`${name}: staging under ${o.prefix}/ failed: ${cp.stderr}`);
-      return await build(at, { ...o, prefix: undefined, cwd: stage, seq, commit });
+      return await build(at, { ...o, prefix: undefined, cwd: stage, seq, commit, released });
     } finally {
       await rm(stage, { recursive: true, force: true });
     }
@@ -217,11 +230,11 @@ export async function build(dir: string, o: BuildOptions): Promise<Entry> {
   if (o.dirOnly) {
     // Beside the manifest, a dotfile so the hash never covers it (docs/design/distribution.md, "Packages").
     await writeFile(join(pkg, ".pal-build.json"), json(info));
-    return { name, listing: listingOf(manifest, o.screenshotsBase), build: { ...info, size: 0 } };
+    return { name, listing: listingOf(manifest, o.screenshotsBase, released), build: { ...info, size: 0 } };
   }
   const gz = await tarball(pkg, name);
   await writeFile(join(out, `${name}.tar.gz`), gz);
-  const entry: Entry = { name, listing: listingOf(manifest, o.screenshotsBase), build: { ...info, size: gz.length } };
+  const entry: Entry = { name, listing: listingOf(manifest, o.screenshotsBase, released), build: { ...info, size: gz.length } };
   await writeFile(join(out, `${name}.entry.json`), json(entry));
   return entry;
 }
@@ -300,8 +313,9 @@ const normBuild = (b: IndexBuild): IndexBuild => ({ hash: b.hash, seq: b.seq, pr
 export function addBuild(index: Index, name: string, listing: Listing, build: IndexBuild): void {
   let ext = index.extensions.find((e) => e.name === name);
   if (!ext) index.extensions.push((ext = { name, listing, builds: [] }));
-  if (ext.builds.some((b) => b.hash === build.hash)) return;
   const newest = ext.builds.reduce((m, b) => Math.max(m, b.seq), -Infinity);
+  // A build already listed adds nothing, but the newest one's listing is rewritten: a field pal-pack learned to write reaches extensions that did not change.
+  if (ext.builds.some((b) => b.hash === build.hash)) { if (build.seq >= newest) ext.listing = listing; return; }
   if (build.seq >= newest) ext.listing = listing;
   ext.builds = retain([...ext.builds, build]);
 }

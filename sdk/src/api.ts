@@ -551,6 +551,8 @@ export type StoreListing = {
   platforms?: string[] | null;
   play: boolean;
   palettes: { id: string; title: string; kind: string }[];
+  /** When it first came out, Unix seconds (the first commit that added its pal.json); absent when the registry does not know it. */
+  released?: number;
   /** Absolute URLs, bare or with a caption; a game's cover shot has its crop, `[x, y, w, h]` in the picture's pixels. */
   screenshots: ({ url: string; caption?: string; cover?: [number, number, number, number] } | string)[];
   requires: string[];

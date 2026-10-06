@@ -138,7 +138,10 @@ A registry is one JSON file and its detached minisign signature
   captions; each light picture `<n>-<what>.png` has its dark twin at the
   same url ending `-dark.png`, which the Store shows in the dark theme
   and Games draws its covers from; a game's cover shot carries `cover`,
-  `[x, y, w, h]`, the crop of it Games draws as its tile), and its `palettes` (`id`, `title`,
+  `[x, y, w, h]`, the crop of it Games draws as its tile), `released`
+  (Unix seconds: the first commit that added the extension's `pal.json`,
+  which pal-pack reads from git; absent from a shallow clone or an older
+  index; Games shows what came out lately first), and its `palettes` (`id`, `title`,
   `kind`). A field an
   older index lacks reads as empty.
 - `builds`: newest `seq` first. A registry keeps at least the newest build
