@@ -285,6 +285,9 @@ function Node({ node }: { node: ViewNode }) {
       const flex = typeof node.flex === "number" && Number.isFinite(node.flex) && node.flex > 0 ? node.flex : undefined;
       const width = px(node.width), height = px(node.height);
       const box = flex !== undefined || width !== undefined || height !== undefined;
+      const kids = Array.isArray(node.children) ? node.children : [];
+      // Three badges or more in a row: a chip list, which wraps (ui.css). Marked here: keyed children sit in Presence wrappers, out of a sibling selector's reach.
+      const chips = node.direction === "row" && kids.filter((c) => c?.type === "badge").length >= 3;
       return (
         <div
           className="pal-view__node pal-view__stack"
@@ -294,12 +297,13 @@ function Node({ node }: { node: ViewNode }) {
           data-grow={node.grow || undefined}
           data-box={box || undefined}
           data-tight={node.gap === 0 || undefined}
+          data-chips={chips || undefined}
           data-surface={own ? "custom" : node.surface}
           data-radius={node.radius || undefined}
           {...motion}
           style={{ ...mstyle, ...ownStyle, gap: space(node.gap), padding: space(node.padding), minHeight: node.minHeight, ...(flex !== undefined ? { flex: `${flex} 1 0px` } : box ? { flex: "none" } : undefined), width, height }}
         >
-          <Children nodes={Array.isArray(node.children) ? node.children : []} />
+          <Children nodes={kids} />
         </div>
       );
     }

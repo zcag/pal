@@ -59,6 +59,14 @@ describe("View", () => {
     expect(html).toContain('class="pal-view__node pal-view__text" data-style="glyph" data-size="xl" data-color="muted">\u{f0369}<');
   });
 
+  it("marks a row of three badges or more as a chip list (it wraps), keyed badges in their Presence wrappers too", () => {
+    const badge = (k: string): ViewNode => ({ type: "badge", key: k, text: `#${k}` });
+    const chips = render({ type: "stack", direction: "row", key: "quiet", children: [{ type: "text", value: "Also unread" }, badge("a"), badge("b"), badge("c")] });
+    expect(chips).toMatch(/pal-view__stack" data-direction="row"[^>]*data-chips="true"/);
+    expect(render({ type: "stack", direction: "row", children: [{ type: "text", value: "Title" }, badge("a"), badge("b")] })).not.toContain("data-chips");
+    expect(render({ type: "stack", children: [badge("a"), badge("b"), badge("c")] })).not.toContain("data-chips");
+  });
+
   it("carries a transition as data-enter with a staggered delay in steps of the fast duration, capped", () => {
     const html = render({
       type: "stack",
