@@ -197,7 +197,8 @@ environment see it. The key pair's backup is
 key is also built into the app (`pal_core::registry::PAL_KEYS`).
 
 **Yanking a build.** Run the workflow with `yank: name@hash`: both indexes
-are published again with that build marked `yanked`. Apps never offer it
+are published again with that build marked `yanked` in each that lists it (a
+build only on edge is yanked there alone; one in neither fails the run). Apps never offer it
 and replace an installed copy with the newest good build. A later push that
 builds the same tree does not bring it back; fix forward with a change.
 
