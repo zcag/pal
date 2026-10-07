@@ -103,7 +103,8 @@ export function resolve(e: KeyboardEvent): Command | null {
     if (k === "i") return { type: "detail" };
     if (/^[1-9]$/.test(k)) return { type: "jumpTo", index: Number(k) - 1 };
   }
-  if ((cmd || e.altKey || (isMac && e.ctrlKey)) && k.length === 1) return { type: "shortcut", combo: comboOf(e) };
+  // A modified arrow too (`cmd+right`: a view's next track); claimed by no action it keeps its native effect (the caret to the line's end).
+  if ((cmd || e.altKey || (isMac && e.ctrlKey)) && (k.length === 1 || /^Arrow/.test(e.key))) return { type: "shortcut", combo: comboOf(e) };
   if (!cmd && !e.altKey && !e.ctrlKey && (e.key.length === 1 || e.key === " " || e.key === "Backspace" || e.key === "Delete")) return { type: "key", key: k };
   return null;
 }

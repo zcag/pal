@@ -30,6 +30,9 @@ describe("resolve and the shifted keys", () => {
     expect(resolve(ev("ArrowUp", { shiftKey: true }))).toEqual({ type: "shortcut", combo: "shift+up" });
     expect(resolve(ev("ArrowRight", { shiftKey: true }))).toEqual({ type: "shortcut", combo: "shift+right" });
     expect(resolve(ev("ArrowUp"))).toEqual({ type: "move", dir: "up" });
+    // A modified arrow is a shortcut too (Spotify's cmd+right is the next track); the primary modifier is ctrl off a Mac.
+    expect(resolve(ev("ArrowRight", { ctrlKey: true }))).toEqual({ type: "shortcut", combo: "cmd+right" });
+    expect(resolve(ev("ArrowUp", { altKey: true }))).toEqual({ type: "shortcut", combo: "alt+up" });
     expect(shiftedArrow("shift+left")).toBe("left");
     expect(shiftedArrow("cmd+shift+left")).toBeUndefined();
     expect(shiftedArrow("shift+a")).toBeUndefined();
