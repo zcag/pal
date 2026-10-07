@@ -815,6 +815,9 @@ mark { background: var(--pal-match); color: inherit; border-radius: var(--pal-ra
 @keyframes pal-pop-tile { from { opacity: 0; transform: scale(0.8); } 60% { transform: scale(1.06); } }
 /* Exits: a gone key fades fast; one that slid in goes back the way it came, a popped one shrinks. */
 .pal-view [data-exiting] > .pal-view__node { animation: none; opacity: 0; transition: opacity var(--pal-dur-fast) var(--pal-ease-in), transform var(--pal-dur-fast) var(--pal-ease-in); }
+/* A leaving `move` node (View.tsx `pinned`): out of the flow at the box it had, so its siblings slide into its place while it fades. */
+.pal-view__stack:has(> .pal-view__leaving) { position: relative; }
+.pal-view__leaving { pointer-events: none; }
 .pal-view [data-exiting] > .pal-view__node[data-enter="slide-up"] { transform: translateY(var(--pal-motion-slide)); }
 .pal-view [data-exiting] > .pal-view__node[data-enter="slide-down"] { transform: translateY(calc(-1 * var(--pal-motion-slide))); }
 .pal-view [data-exiting] > .pal-view__node[data-enter="slide-left"] { transform: translateX(var(--pal-motion-slide)); }

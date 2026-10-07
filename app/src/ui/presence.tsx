@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 type Dur = "fast" | "base" | "slow" | "hud-out";
 
@@ -13,7 +13,7 @@ const ms = (v: string) => (v.trim().endsWith("ms") ? parseFloat(v) : parseFloat(
  * absolutely positioned overlay keeps its containing block. `onExited` fires
  * once the children are gone.
  */
-export function Presence({ show, dur = "fast", className, onExited, children }: { show: boolean; dur?: Dur; className?: string; /** After an exit has run its course and the children are gone. */ onExited?: () => void; children: ReactNode }) {
+export function Presence({ show, dur = "fast", className, style, onExited, children }: { show: boolean; dur?: Dur; className?: string; /** The wrapper's own style, with `className` (a leaving view node pinned where it was). */ style?: CSSProperties; /** After an exit has run its course and the children are gone. */ onExited?: () => void; children: ReactNode }) {
   const node = useRef<HTMLDivElement>(null);
   const last = useRef(children);
   if (show) last.current = children;
@@ -41,7 +41,7 @@ export function Presence({ show, dur = "fast", className, onExited, children }: 
 
   if (!show && !exiting) return null;
   return (
-    <div ref={node} className={className} style={className ? undefined : { display: "contents" }} data-exiting={exiting || undefined} inert={exiting || undefined}>
+    <div ref={node} className={className} style={className ? style : { display: "contents" }} data-exiting={exiting || undefined} inert={exiting || undefined}>
       {show ? children : last.current}
     </div>
   );

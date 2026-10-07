@@ -400,14 +400,25 @@ function Node({ node }: { node: ViewNode }) {
   }
 }
 
-type Slot = { node: ViewNode; alive: boolean };
+type Slot = { node: ViewNode; alive: boolean; at?: CSSProperties };
+
+/** The box `el` has in its stack (read before the commit, the old tree still drawn), as the absolute place a leaving node fades out at. */
+function pinned(el: HTMLElement | undefined): CSSProperties | undefined {
+  // Under its presence wrapper (box-less), whose parent is the stack.
+  const stack = el?.parentElement?.parentElement;
+  if (!el || !stack) return undefined;
+  const r = el.getBoundingClientRect(), p = stack.getBoundingClientRect();
+  return { position: "absolute", top: r.top - p.top - stack.clientTop + stack.scrollTop, left: r.left - p.left - stack.clientLeft + stack.scrollLeft, width: r.width, height: r.height };
+}
 
 /**
  * A stack's children with exits. A keyed child whose key is in the previous
  * tree but not this one is kept at its old position, exiting, until the
  * presence wrapper says it is done (unless its `exit` is `none`, or it is a
- * `move` key still in the tree elsewhere: it moved, it did not leave); a
- * key that comes back while leaving is simply alive again. Unkeyed children
+ * `move` key still in the tree elsewhere: it moved, it did not leave). A
+ * leaving `move` node fades out of the flow, pinned to the box it had, so
+ * its siblings slide into its place at once rather than snapping there
+ * when the exit ends (the lyrics' top line). A key that comes back while leaving is simply alive again. Unkeyed children
  * are matched by position and go at once. The bookkeeping lives in refs and
  * is recomputed in render, which is idempotent for one `nodes` value, so a
  * strict-mode double render sees the same answer.
@@ -415,18 +426,18 @@ type Slot = { node: ViewNode; alive: boolean };
 function Children({ nodes }: { nodes: ViewNode[] }) {
   const moves = useContext(MoveContext);
   const last = useRef(nodes);
-  const leaving = useRef(new Map<string, { node: ViewNode; index: number }>());
+  const leaving = useRef(new Map<string, { node: ViewNode; index: number; at?: CSSProperties }>());
   const [, bump] = useReducer((n: number) => n + 1, 0);
   if (last.current !== nodes) {
     const now = new Set(nodes.map((n) => n.key).filter((k): k is string => typeof k === "string"));
     last.current.forEach((n, index) => {
-      if (n.key && !now.has(n.key) && n.transition?.exit !== "none" && !(n.transition?.move && moves?.moving.has(n.key))) leaving.current.set(n.key, { node: n, index });
+      if (n.key && !now.has(n.key) && n.transition?.exit !== "none" && !(n.transition?.move && moves?.moving.has(n.key))) leaving.current.set(n.key, { node: n, index, at: n.transition?.move ? pinned(moves?.els.get(n.key)) : undefined });
     });
     for (const k of now) leaving.current.delete(k);
     last.current = nodes;
   }
   const slots: Slot[] = nodes.map((node) => ({ node, alive: true }));
-  for (const l of [...leaving.current.values()].sort((a, b) => a.index - b.index)) slots.splice(Math.min(l.index, slots.length), 0, { node: l.node, alive: false });
+  for (const l of [...leaving.current.values()].sort((a, b) => a.index - b.index)) slots.splice(Math.min(l.index, slots.length), 0, { node: l.node, alive: false, at: l.at });
   let unkeyed = 0;
   return (
     <>
@@ -435,7 +446,7 @@ function Children({ nodes }: { nodes: ViewNode[] }) {
         if (typeof key !== "string") return <Node key={`\u0000${unkeyed++}`} node={s.node} />;
         const gone = () => { if (leaving.current.delete(key)) bump(); };
         return (
-          <Presence key={key} show={s.alive} dur="fast" onExited={gone}>
+          <Presence key={key} show={s.alive} dur="fast" onExited={gone} className={s.at && "pal-view__leaving"} style={s.at}>
             <Node node={s.node} />
           </Presence>
         );
