@@ -62,7 +62,8 @@
   };
   /** The kit's account calls over `call`: the app's host, or the play page. */
   const accountCalls = (call) => ({
-    score: (board, value) => call("score", { board: String(board), value }),
+    score: (board, value, opts = {}) => call("score", { board: String(board), value, ...(typeof opts.replay === "string" && opts.replay && { replay: opts.replay }) }),
+    replay: (board, key) => call("replay", { board: String(board), key: String(key) }),
     leaderboard: (board, opts = {}) => call("leaderboard", { board: String(board), ...(opts.period && { period: opts.period }), ...(opts.anon !== undefined && { anon: !!opts.anon }) }),
     account: () => call("account", {}),
     signIn: () => call("signIn", {}).then(() => undefined),
@@ -104,6 +105,7 @@
       ...(play ? accountCalls(callUp) : {
         score: async (board, value) => ({ best: value, rank: null, total: null }),
         leaderboard: async () => ({ board: null, rows: [], me: null }),
+        replay: async () => { throw new Error("no replays without a server"); },
         account: async () => ({ signedIn: false, handle: null }),
         signIn: async () => {},
       }),

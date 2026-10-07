@@ -161,6 +161,9 @@ struct Queued {
     /// The board's order, for the local best while it waits.
     #[serde(default)]
     order: Order,
+    /// The game's replay of the score (protocol 7), sent with it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    replay: Option<String>,
 }
 
 pub struct Account {
@@ -335,6 +338,9 @@ impl Account {
 
     fn send_score(&self, q: &Queued) -> Result<Value> {
         let mut body = json!({ "ext": q.ext, "board": q.board, "value": q.value });
+        if let Some(r) = &q.replay {
+            body["replay"] = json!(r);
+        }
         if self.signed_in() {
             let r = self.call(|c| c.post("/api/scores", &body));
             if let Err(Error::Api { status: 409, code, .. }) = &r {
@@ -351,11 +357,13 @@ impl Account {
     /// `leaderboard.post`: `{best, rank, total}`, or `{queued: true, best}`
     /// when the server cannot be reached (the best of what waits). `board`
     /// is the declaration the posted id matched.
-    pub fn post_score(&self, ext: &str, posted: &str, value: f64, board: &Board) -> Result<Value> {
+    /// A `replay` (the game's own record of the score) goes with it, queued too.
+    pub fn post_score(&self, ext: &str, posted: &str, value: f64, board: &Board, replay: Option<&str>) -> Result<Value> {
         if self.profile().is_some_and(|p| p.handle.is_none()) {
             return Err(Error::Handle);
         }
-        let q = Queued { ext: ext.into(), board: posted.into(), value, at: crate::registry::now(), order: board.order };
+        let replay = replay.filter(|r| !r.is_empty()).map(str::to_string);
+        let q = Queued { ext: ext.into(), board: posted.into(), value, at: crate::registry::now(), order: board.order, replay };
         match self.send_score(&q) {
             Err(Error::Offline(e)) => {
                 eprintln!("account\tscore queued\t{ext}/{posted}\t{e}");
@@ -404,6 +412,16 @@ impl Account {
         }
         self.write_queue(&left);
         sent
+    }
+
+    /// `leaderboard.replay`: the replay a board row's `replay` key names,
+    /// `{board, value, name, anon, at, data}`.
+    pub fn replay(&self, ext: &str, key: &str) -> Result<Value> {
+        if !key.chars().all(|c| c.is_ascii_alphanumeric()) || key.is_empty() || key.len() > 64 {
+            return Err(Error::Local(format!("not a replay key: {key}")));
+        }
+        // public, as a board is: no account needed to watch one
+        Client::new(&self.base, None).get(&format!("/api/replays/{ext}/{key}"))
     }
 
     /// `leaderboard.get`: the server's board, with this device's own row
@@ -610,7 +628,7 @@ mod tests {
         let server = Server::start();
         server.ok("/api/scores", r#"{"best":30,"rank":2,"total":9}"#);
         let (dir, a) = account(&server);
-        let r = a.post_score("vortex", "stage/3", 30.0, &board()).unwrap();
+        let r = a.post_score("vortex", "stage/3", 30.0, &board(), None).unwrap();
         assert_eq!(r, json!({ "best": 30, "rank": 2, "total": 9 }));
         let body: Value = serde_json::from_slice(&server.requests_to("/api/scores")[0].body).unwrap();
         assert_eq!(body["anon"], json!(a.anon_id(false).unwrap()), "signed out: the device's anonymous id");
@@ -618,8 +636,8 @@ mod tests {
 
         // Offline: queued, the local best answered.
         let off = Account::open_in(dir.path(), "http://127.0.0.1:1", Box::new(MemStore::default()));
-        assert_eq!(off.post_score("vortex", "stage/3", 50.0, &board()).unwrap(), json!({ "queued": true, "best": 50.0 }));
-        assert_eq!(off.post_score("vortex", "stage/3", 40.0, &board()).unwrap(), json!({ "queued": true, "best": 50.0 }));
+        assert_eq!(off.post_score("vortex", "stage/3", 50.0, &board(), None).unwrap(), json!({ "queued": true, "best": 50.0 }));
+        assert_eq!(off.post_score("vortex", "stage/3", 40.0, &board(), Some("1a,2b")).unwrap(), json!({ "queued": true, "best": 50.0 }));
         assert_eq!(off.flush_scores(), 0, "still offline");
         assert!(off.has_queued());
         // Back online, they go out in order.
@@ -627,6 +645,8 @@ mod tests {
         assert!(!a.has_queued());
         let sent: Vec<f64> = server.requests_to("/api/scores").iter().skip(1).map(|r| serde_json::from_slice::<Value>(&r.body).unwrap()["value"].as_f64().unwrap()).collect();
         assert_eq!(sent, [50.0, 40.0]);
+        let bodies: Vec<Value> = server.requests_to("/api/scores").iter().skip(1).map(|r| serde_json::from_slice(&r.body).unwrap()).collect();
+        assert_eq!((bodies[0].get("replay"), &bodies[1]["replay"]), (None, &json!("1a,2b")), "a queued score keeps its replay");
     }
 
     #[test]
@@ -637,12 +657,12 @@ mod tests {
         server.ok("/api/scores", r#"{"best":1,"rank":1,"total":1}"#);
         let (_d, a) = account(&server);
         a.verify("a@b.c", "1", "x").unwrap();
-        assert_eq!(a.post_score("g", "stage/1", 1.0, &board()), Err(Error::Handle));
+        assert_eq!(a.post_score("g", "stage/1", 1.0, &board(), None), Err(Error::Handle));
         assert_eq!(Error::Handle.to_string(), "choose a handle");
         assert!(server.requests_to("/api/scores").is_empty(), "nothing posted");
         assert_eq!(a.set_handle(" ann ").unwrap(), "ann");
         assert_eq!(a.profile().unwrap().handle.as_deref(), Some("ann"));
-        a.post_score("g", "stage/1", 1.0, &board()).unwrap();
+        a.post_score("g", "stage/1", 1.0, &board(), None).unwrap();
         assert_eq!(server.requests_to("/api/scores")[0].headers["authorization"], "Bearer t");
     }
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.15.0 · 2026-10-08
+
+- **Watch the best runs on a leaderboard**: a game can keep a replay with your best score, and anyone can watch the run behind a board's times. Highway is first: its replays panel shows the record holder's run beside yours and the 3★ run.
+- **Fixed: ⌘→ and other modified arrows did nothing in a popover or the panel**, as with Spotify's next track; they now run their action, or do what the field would do.
+- **Smoother lists when a row leaves**: the rows below slide up into its place as it fades, instead of jumping a row once it is gone.
+- **Fixed: moving the cursor in a sized box could scroll it a row too far**, as in Games' grid.
+
 ## 0.14.2 · 2026-10-06
 
 - **Fixed: a long row of chips squeezed its label to one letter a line**, as in Slack's "Also unread" (0.14.1's fix missed it); the chips now go on to the next line.

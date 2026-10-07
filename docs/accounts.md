@@ -95,13 +95,22 @@ go to history.
 
 | call | answer, errors |
 | --- | --- |
-| `POST /api/scores {ext, board, value, anon?}` | `{best, rank, total}`; 400 `board`/`range`/`anon`, 409 `handle` (signed in without one), 429 `slow` |
+| `POST /api/scores {ext, board, value, anon?, replay?}` | `{best, rank, total}`; 400 `board`/`range`/`anon`, 409 `handle` (signed in without one), 413 `replay` (over 32 KiB), 429 `slow` |
 | `POST /api/scores/claim {anon}` | `{}`: that id's scores move to the account, the better per board kept |
 | `GET /api/boards/{ext}` | `{boards: [{id, title}]}`: declared boards, and those under a `*` that have scores |
-| `GET /api/boards/{ext}/{board}?period=all\|day\|week&anon=0\|1&me=<anon>` | `{board: {id, title, order, format, period}, rows: [{rank, name, anon, value, at, me}], me}`: the top 50 and the asker's row |
+| `GET /api/boards/{ext}/{board}?period=all\|day\|week&anon=0\|1&me=<anon>` | `{board: {id, title, order, format, period}, rows: [{rank, name, anon, value, at, me, replay?}], me}`: the top 50 and the asker's row |
+| `GET /api/replays/{ext}/{key}` | `{board, value, name, anon, at, data}`: the replay a row's `replay` names; 404 `not_found` |
 
 Signed out, `anon` is required: a random id (`[A-Za-z0-9_-]{16,64}`) kept
 by the device, never the usage id. A board must be declared by the newest
 build of the extension in pal's registry. Every score counts for all time,
 its UTC day and its ISO week; the declared `period` is the default view.
 `anon=0` hides anonymous rows, and ranks count what is shown.
+
+A score may carry a `replay`: the game's own record of how it was made, a
+string of at most 32 KiB the server keeps but never reads. One is kept per
+player and board, the one that came with their all-time best (a slower run's
+is dropped, a new best's replaces it), and moves with the scores on a claim
+and goes with the account. A board row's `replay` is an opaque key, there
+when that row's score is the one the kept replay drove (a day's best that is
+not the all-time one has none); it says nothing about the player.

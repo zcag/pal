@@ -166,6 +166,11 @@ struct BoardParams {
     period: Option<Period>,
     #[serde(default)]
     anon: Option<bool>,
+    /// A post's replay (protocol 7), or a `replay` call's row key.
+    #[serde(default)]
+    replay: Option<String>,
+    #[serde(default)]
+    key: Option<String>,
 }
 
 /// `core/account.{get, signIn}`. Never the email: an extension sees
@@ -182,7 +187,7 @@ pub fn call_account(app: &AppHandle, func: &str, _params: Value) -> Result<Value
     }
 }
 
-/// `core/leaderboard.{post, get}`: a board the extension's manifest
+/// `core/leaderboard.{post, get, replay}`: a board the extension's manifest
 /// declares. A signed-in post without a handle opens Settings › Account
 /// at the handle and answers "choose a handle".
 pub fn call_leaderboard(app: &AppHandle, func: &str, params: Value) -> Result<Value, String> {
@@ -193,8 +198,9 @@ pub fn call_leaderboard(app: &AppHandle, func: &str, params: Value) -> Result<Va
     let name = pal_core::config::instance::name_of(&p.extension);
     let a = account(app);
     let r = match func {
-        "post" => a.post_score(name, &p.board, p.value.ok_or("leaderboard.post: no value")?, board),
+        "post" => a.post_score(name, &p.board, p.value.ok_or("leaderboard.post: no value")?, board, p.replay.as_deref()),
         "get" => a.board(name, &p.board, p.period, p.anon),
+        "replay" => a.replay(name, p.key.as_deref().ok_or("leaderboard.replay: no key")?),
         _ => return Err(format!("unknown leaderboard.{func}")),
     };
     if r == Err(account::Error::Handle) {

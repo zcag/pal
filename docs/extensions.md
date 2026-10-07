@@ -875,9 +875,9 @@ export default defineExtension({
   `onShown(fn)` / `onHidden(fn)` (pause the loop), `ready()` once the
   first frame is drawn (the app shows the page from then on);
   `storage.onChange(fn)` for a value sync brought in (below, "Syncing
-  storage"), `score(board, value)` and `leaderboard(board, { period,
-  anon })` for the game's boards, `account()` and `signIn()` (below,
-  "Leaderboards"). Every
+  storage"), `score(board, value, { replay })`, `leaderboard(board, {
+  period, anon })` and `replay(board, key)` for the game's boards,
+  `account()` and `signIn()` (below, "Leaderboards"). Every
   `--pal-*` token is set on `:root` and `data-theme` on `<html>`, again on
   every flip.
 - **Actions** keep their place: ⌘K lists them, the footer shows the
@@ -907,10 +907,10 @@ export default defineExtension({
   frame loaded with `?web&play=1` and the settings at their defaults; its
   page on pal.cagdas.io links there. The game page there is the kit's
   other half, as the app is: it keeps the storage (synced to the player's
-  account when they sign in) and answers `score`, `leaderboard`,
+  account when they sign in) and answers `score`, `leaderboard`, `replay`,
   `account` and `signIn`, so a game's progress and boards are the same in
   the browser and in pal. Framed with `?web` alone the kit is the stub
-  above (a score kept as is, no board, signed out). Keep the page's own
+  above (a score kept as is, no board, no replay, signed out). Keep the page's own
   keys off ⌘ combos the browser keeps (⌘T, ⌘N, ⌘W).
 
 ## Live views: push and pull
@@ -1635,15 +1635,25 @@ if (!(await account.get()).signedIn) { /* "Sign in to keep your scores" */ await
   Offline it is queued and sent later, answering `{ queued: true, best }`
   with the local best. Signed in without a handle yet, it rejects with
   "choose a handle" and the app opens Settings › Account at the handle.
+- `leaderboard.post(board, value, { replay })` (protocol 7) sends the
+  game's own record of how the score was made, a string of at most 32 KiB
+  pal never reads (Highway's: the inputs of a run, which drive it again).
+  The board keeps one per player, the one that came with their all-time
+  best; a slower run's is dropped. A queued score keeps its replay.
 - `leaderboard.get(board, { period, anon })`: the top 50 (`rows`: `rank`,
-  `name`, `anon`, `value`, `at`, `me`), the player's own row as `me` when
-  they are not among them, and the board's declaration. `anon: false`
-  hides anonymous players and ranks within what is shown.
+  `name`, `anon`, `value`, `at`, `me`, and `replay` when that score's replay
+  is kept), the player's own row as `me` when they are not among them, and
+  the board's declaration. `anon: false` hides anonymous players and ranks
+  within what is shown.
+- `leaderboard.replay(board, row.replay)` (protocol 7): that replay,
+  `{ board, value, name, anon, at, data }`, `data` as the game sent it.
 - `account.get()`: `{ signedIn, handle }`, never the email.
   `account.signIn()` opens Settings › Account (the sign-in sheet on
   play.cagdas.io).
-- A game's page: `pal.score`, `pal.leaderboard`, `pal.account`,
-  `pal.signIn`, the same calls ("Game surfaces").
+- A game's page: `pal.score` (with `{ replay }`), `pal.leaderboard`,
+  `pal.replay`, `pal.account`, `pal.signIn`, the same calls ("Game
+  surfaces"). An app older than protocol 7 has no `pal.replay` and drops a
+  score's replay: a page checks `pal.replay` before offering one.
 - No board UI is needed: the Games shelf and the game's page on
   play.cagdas.io show its boards. A game may draw its own from `get`.
 - Boards exist for pal's own registry's extensions: the server reads the

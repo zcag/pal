@@ -164,7 +164,7 @@ export function paletteMethods(lookup: Lookup, manifestOf: Manifests): Record<st
     // A game surface's page (docs/design/game-surface.md), relayed by the app with the level's extension and palette (never the page's say): `pal.send` to `onMessage`, the reply as `{ reply }` (none for undefined); the page's storage, settings and leaderboards are the extension's own.
     surface: (p) => {
       const pal = palette(p);
-      const d = (p.data ?? {}) as { msg?: unknown; key?: unknown; value?: unknown; board?: unknown; period?: unknown; anon?: unknown };
+      const d = (p.data ?? {}) as { msg?: unknown; key?: unknown; value?: unknown; board?: unknown; period?: unknown; anon?: unknown; replay?: unknown };
       return inContext(p, async () => {
         switch (p.call) {
           case "send": {
@@ -176,7 +176,8 @@ export function paletteMethods(lookup: Lookup, manifestOf: Manifests): Record<st
           case "storage.set": return storage.set(String(d.key), d.value ?? null);
           case "settings": followSettings(String(p.extension), String(p.palette)); return settings.get();
           // The kit's account calls: the extension's boards, the account as any extension sees it.
-          case "score": return leaderboard.post(String(d.board), Number(d.value));
+          case "score": return leaderboard.post(String(d.board), Number(d.value), typeof d.replay === "string" ? { replay: d.replay } : undefined);
+          case "replay": return leaderboard.replay(String(d.board), String(d.key));
           case "leaderboard": return leaderboard.get(String(d.board), { ...(typeof d.period === "string" && { period: d.period as "all" }), ...(typeof d.anon === "boolean" && { anon: d.anon }) });
           case "account": return account.get();
           case "signIn": return account.signIn();

@@ -35,7 +35,7 @@ use crate::fs::write_atomic;
 
 /// The SDK protocol this app speaks: the newest package `protocol` it runs.
 /// Equal to `PROTOCOL` in `sdk/src/protocol.ts` (a test reads it).
-pub const PROTOCOL: u32 = 6;
+pub const PROTOCOL: u32 = 7;
 /// The oldest package `protocol` this app still runs.
 pub const PROTOCOL_MIN: u32 = 1;
 /// The index `format` this reader understands; a higher one is refused.

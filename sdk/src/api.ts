@@ -3,7 +3,7 @@
 // the host's bridge, which reaches this module through `runtime.ts`. The
 // protocol's types ride along (`index.ts`), so
 // `import { settings, type Extension } from "@zcag/pal"`.
-import { CONTROL_NAMES, type AccountInfo, type BarItem, type ControlName, type ControlOp, type ControlOps, type ControlStates, type CopyText, type Effect, type InstanceInfo, type Leaderboard, type LeaderboardQuery, type ResolvedSettings, type ScoreResult, type Served, type StateEntry, type StateValue, type View, type ViewNode, type ViewPost, type ViewShown, type ViewTarget, type ViewUpdate, type WindowLayoutRequest } from "./protocol.ts";
+import { CONTROL_NAMES, type AccountInfo, type BarItem, type ControlName, type ControlOp, type ControlOps, type ControlStates, type CopyText, type Effect, type InstanceInfo, type Leaderboard, type LeaderboardQuery, type ResolvedSettings, type ReplayData, type ScoreOptions, type ScoreResult, type Served, type StateEntry, type StateValue, type View, type ViewNode, type ViewPost, type ViewShown, type ViewTarget, type ViewUpdate, type WindowLayoutRequest } from "./protocol.ts";
 import { runtime } from "./runtime.ts";
 import { checkBarItem, checkView } from "./view.ts";
 
@@ -339,6 +339,8 @@ export const storage = {
 
 /** A leaderboard call waits on the network (the core answers offline itself, queueing a post): longer than the bridge's 5 s. */
 const BOARD_MS = 15_000;
+/** The most a score's replay may hold, characters (the server's 32 KiB). */
+export const MAX_REPLAY = 32 * 1024;
 
 /**
  * The extension's leaderboards (`leaderboards` in pal.json; docs/extensions.md,
@@ -348,14 +350,23 @@ const BOARD_MS = 15_000;
  * queued and sent later (`queued`, with the local best). A board must
  * match a declared id (`stage/*` takes `stage/3`); a value outside its
  * `min`/`max` is refused. Signed in without a handle, a post rejects with
- * "choose a handle" and the app opens Settings › Account. Which extension:
- * as for `storage`.
+ * "choose a handle" and the app opens Settings › Account. `{ replay }`
+ * sends the game's record of how the score was made (at most 32 KiB, kept
+ * with the player's all-time best; protocol 7): a row with one names it,
+ * `replay(board, row.replay)` reads it. Which extension: as for `storage`.
  */
 export const leaderboard = {
-  post: (board: string, value: number, extension?: string): Promise<ScoreResult> => {
+  post: (board: string, value: number, opts?: ScoreOptions | string, extension?: string): Promise<ScoreResult> => {
     if (typeof value !== "number" || !Number.isFinite(value)) return Promise.reject(new Error(`leaderboard.post ${board}: the value must be a finite number`));
-    return call<ScoreResult>("leaderboard.post", { extension: who(extension), board, value }, { timeout: BOARD_MS });
+    // a string third is the extension, as before options came
+    if (typeof opts === "string") [extension, opts] = [opts, undefined];
+    const replay = opts?.replay;
+    if (replay !== undefined && (typeof replay !== "string" || replay.length > MAX_REPLAY)) return Promise.reject(new Error(`leaderboard.post ${board}: a replay is a string of at most ${MAX_REPLAY} characters`));
+    return call<ScoreResult>("leaderboard.post", { extension: who(extension), board, value, ...(replay && { replay }) }, { timeout: BOARD_MS });
   },
+  /** A board row's replay (`row.replay`): `data` as the game posted it, with the board, score and player. */
+  replay: (board: string, key: string, extension?: string): Promise<ReplayData> =>
+    call<ReplayData>("leaderboard.replay", { extension: who(extension), board, key }, { timeout: BOARD_MS }),
   /** The top 50 and the player's own row; `{ period }` for another than the declared one, `{ anon: false }` to hide anonymous players. */
   get: (board: string, opts: LeaderboardQuery = {}, extension?: string): Promise<Leaderboard> =>
     call<Leaderboard>("leaderboard.get", { extension: who(extension), board, ...(opts.period && { period: opts.period }), ...(opts.anon !== undefined && { anon: opts.anon }) }, { timeout: BOARD_MS }),

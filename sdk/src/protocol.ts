@@ -24,8 +24,8 @@
 // direction. An extension never sees these three envelopes; they are here
 // for a host or a test harness.
 
-/** The protocol a package is built for; bumped by a change that breaks extensions built before it, or that extensions built after it rely on (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. 2: `preview`, `ignoreStore`, `Effect.show.actions`. 3: the detail header (`Detail.caption`, `title`, `chips`, `stats`). 4: controls (`controls`, `Extension.controls`, `Manifest.controls`, the control view components). 5: accounts (`leaderboard`, `account`, `storage.onChange`, the kit's `score`, `leaderboard`, `account`, `signIn`, `storage.onChange`, `Manifest.sync` and `leaderboards`). 6: `each` in a sync object rule (`SyncObjectRule`). */
-export const PROTOCOL: number = 6;
+/** The protocol a package is built for; bumped by a change that breaks extensions built before it, or that extensions built after it rely on (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. 2: `preview`, `ignoreStore`, `Effect.show.actions`. 3: the detail header (`Detail.caption`, `title`, `chips`, `stats`). 4: controls (`controls`, `Extension.controls`, `Manifest.controls`, the control view components). 5: accounts (`leaderboard`, `account`, `storage.onChange`, the kit's `score`, `leaderboard`, `account`, `signIn`, `storage.onChange`, `Manifest.sync` and `leaderboards`). 6: `each` in a sync object rule (`SyncObjectRule`). 7: replays (`leaderboard.post`'s `replay`, `leaderboard.replay`, `LeaderboardRow.replay`, the kit's `score` with `{ replay }` and `replay`). */
+export const PROTOCOL: number = 7;
 /** The oldest package protocol this SDK and host still run. Equal to `pal_core::registry::PROTOCOL_MIN`. */
 export const PROTOCOL_MIN: number = 1;
 
@@ -470,10 +470,12 @@ export type SurfaceKit = {
   onHidden(fn: () => void): () => void;
   /** The first frame is drawn: the app reveals the page. */
   ready(): void;
-  /** Post a score to a declared board (`Manifest.leaderboards`); offline it is queued. */
-  score(board: string, value: number): Promise<ScoreResult>;
+  /** Post a score to a declared board (`Manifest.leaderboards`); offline it is queued. `{ replay }`: the game's record of it (protocol 7). */
+  score(board: string, value: number, opts?: ScoreOptions): Promise<ScoreResult>;
   /** Read a board. */
   leaderboard(board: string, opts?: LeaderboardQuery): Promise<Leaderboard>;
+  /** A board row's replay (`row.replay`; protocol 7: older apps have no `replay`). */
+  replay?(board: string, key: string): Promise<ReplayData>;
   /** Whether the user is signed in, and their handle. */
   account(): Promise<AccountInfo>;
   /** Open the sign-in (Settings › Account in the app, the sheet on play.cagdas.io). */
@@ -1278,7 +1280,11 @@ export type LeaderboardSpec = {
 /** What a posted score did (`leaderboard.post`, the kit's `pal.score`): the player's best on the board, its rank and the board's size; offline, `queued` with the local best, sent later. */
 export type ScoreResult = { best: number; rank: number | null; total: number | null; queued?: true };
 /** One row of a board: `name` is the player's handle, or a generated "Teal Fox" for an `anon` one; `me` marks the asking player's. */
-export type LeaderboardRow = { rank: number; name: string; anon: boolean; value: number; at: number; me: boolean };
+export type LeaderboardRow = { rank: number; name: string; anon: boolean; value: number; at: number; me: boolean; replay?: string };
+/** What a posted score carries besides its value: `replay`, the game's own record of how it was made (protocol 7). */
+export type ScoreOptions = { replay?: string };
+/** A board row's replay as `leaderboard.replay` reads it: `data` as the game posted it. */
+export type ReplayData = { board: string; value: number; name: string; anon: boolean; at: number; data: string };
 /** A board as `leaderboard.get` answers it: the top 50, and the asking player's own row (null when they have none). `board` is null where there is no server (the kit outside pal and play.cagdas.io). */
 export type Leaderboard = {
   board: { id: string; title: string; order: "asc" | "desc"; format: "points" | "time" | "moves"; period: "all" | "day" | "week" } | null;

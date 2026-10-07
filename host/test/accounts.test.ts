@@ -95,6 +95,7 @@ describe("leaderboards, the account and synced storage", () => {
     "leaderboard.get": (p: { board: string }) => ({ board: { id: p.board, title: "Daily", order: "desc", format: "points", period: "day" }, rows: [{ rank: 1, name: "Teal Fox", anon: true, value: 40, at: 1790000000, me: false }], me: null }),
     "account.get": () => ({ signedIn: true, handle: "ada" }),
     "account.signIn": () => null,
+    "leaderboard.replay": (p: { board: string; key: string }) => ({ board: p.board, value: 31.5, name: "ada", anon: false, at: 1790000000, data: `run:${p.key}` }),
   };
   const surface = (c: string, data: unknown) => host.request("surface", { extension: "game", palette: "game", call: c, data });
   const calls = (method: string) => host.coreCalls.filter((c) => c.method === method).map((c) => c.params);
@@ -121,6 +122,15 @@ describe("leaderboards, the account and synced storage", () => {
     expect(await surface("account", {})).toEqual({ signedIn: true, handle: "ada" });
     expect(await surface("signIn", {})).toBeNull();
     await expect(surface("score", { board: "nohandle", value: 1 })).rejects.toThrow("choose a handle");
+  });
+
+  test("a surface's score carries its replay, and a row's replay is read back", async () => {
+    await surface("score", { board: "stage/2", value: 31.5, replay: "1a,2b" });
+    expect(calls("leaderboard.post").at(-1)).toEqual({ extension: "game", board: "stage/2", value: 31.5, replay: "1a,2b" });
+    await surface("score", { board: "stage/2", value: 30, replay: 7 });
+    expect(calls("leaderboard.post").at(-1)).toEqual({ extension: "game", board: "stage/2", value: 30 });
+    expect(await surface("replay", { board: "stage/2", key: "abc123" })).toEqual({ board: "stage/2", value: 31.5, name: "ada", anon: false, at: 1790000000, data: "run:abc123" });
+    expect(calls("leaderboard.replay").at(-1)).toEqual({ extension: "game", board: "stage/2", key: "abc123" });
   });
 
   test("storage/changed reaches storage.onChange, and the open levels of that extension only", async () => {
