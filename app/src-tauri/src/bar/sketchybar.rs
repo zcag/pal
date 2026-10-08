@@ -433,13 +433,14 @@ pub fn install(app: &AppHandle) {
 /// the answer changed.
 pub fn reprobe(app: &AppHandle, why: &'static str) {
     let app = app.clone();
-    tauri::async_runtime::spawn(async move { probe(&app, why).await });
+    tauri::async_runtime::spawn(async move { probe(&app, why, false).await });
 }
 
 /// One detection; a change re-syncs every item. A wiped bar (the rc
 /// reloaded: our names gone from `--query bar`) is treated as gone then
-/// back, so everything is re-added.
-async fn probe(app: &AppHandle, why: &str) {
+/// back, so everything is re-added. `force` re-adds everything whenever
+/// the bar answers (`pal bar sync`).
+async fn probe(app: &AppHandle, why: &str, force: bool) {
     let wanted = {
         let c = settings::config(app);
         !matches!(c.bar.target, pal_core::config::BarTarget::Off | pal_core::config::BarTarget::Menubar) || c.bar.items.values().any(|i| matches!(i.target, Some(pal_core::config::BarTarget::Sketchybar | pal_core::config::BarTarget::Both)))
@@ -463,15 +464,19 @@ async fn probe(app: &AppHandle, why: &str) {
         eprintln!("bar\tsketchybar\twiped; re-adding");
         lock(&STATE).drawn.clear();
     }
-    if alive != was || wiped {
+    if alive != was || wiped || (alive && force) {
         super::sync_all(app);
     }
 }
 
-/// `pal bar sync`: probe now and re-apply.
+/// `pal bar sync`: probe now and re-add every item. Forced, since clearing
+/// what was drawn also hides a wipe from the probe's own check (it compares
+/// the bar's names against `drawn`), which is how a sync after the rc
+/// reloaded used to re-add nothing.
 pub fn resync(app: &AppHandle) {
     lock(&STATE).drawn.clear();
-    reprobe(app, "sync");
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move { probe(&app, "sync", true).await });
 }
 
 /// `--query bar`: the bar's properties and item names; `None` when no bar answers.
