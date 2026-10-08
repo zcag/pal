@@ -66,6 +66,10 @@ pub type Props = BTreeMap<String, String>;
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Rendered {
     pub position: String,
+    /// The side `--add` puts it on: the position's own, or for a
+    /// `before:`/`after:` one the reference's (sketchybar's `--move` does
+    /// not cross sides), which `update` queries; `right` until then.
+    pub side: String,
     /// Names in strip order, the main item first.
     pub order: Vec<String>,
     pub props: BTreeMap<String, Props>,
@@ -107,7 +111,7 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
     let item = &draw.item;
     let look = &draw.look;
     let main = name_of(key);
-    let mut out = Rendered { position: draw.position.clone(), order: vec![main.clone()], props: BTreeMap::new() };
+    let mut out = Rendered { position: draw.position.clone(), side: placement(&draw.position).0, order: vec![main.clone()], props: BTreeMap::new() };
     let text = palette.argb("text").unwrap_or_default();
     // Every colour the item draws is at the look's opacity; a muted one at dim of that.
     let color = |spec: Option<&str>| {
@@ -256,7 +260,8 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
 
 /// The `--add` position and the `--move` for a `before:<item>` /
 /// `after:<item>` position: sketchybar adds at a side, then the item is
-/// moved next to the reference.
+/// moved next to the reference. The side here is `right` for those; the
+/// reference's own replaces it in `update` (`Rendered::side`).
 fn placement(position: &str) -> (String, Option<(String, String)>) {
     match position.split_once(':') {
         Some((dir @ ("before" | "after"), reference)) if !reference.is_empty() => ("right".into(), Some((dir.into(), reference.into()))),
@@ -296,7 +301,7 @@ pub fn diff(prev: Option<&Rendered>, next: Option<&Rendered>, rtl: bool, placed:
             argv.extend(["--remove".into(), name.clone()]);
         }
     }
-    let (side, reference) = placement(&next.position);
+    let (side, reference) = (&next.side, placement(&next.position).1);
     let mut added = Vec::new();
     for name in &next.order {
         let Some(p) = next.props.get(name) else { continue };
@@ -530,10 +535,13 @@ impl Target for Sketchybar {
             return;
         }
         let Some(draw) = draw else { return self.remove(app, key) };
-        let next = props(key, draw, &palette(app), &pal_bin());
+        let mut next = props(key, draw, &palette(app), &pal_bin());
         let mut st = lock(&STATE);
         if let (_, Some((_, reference))) = placement(&next.position) {
-            st.sides.entry(reference.clone()).or_insert_with(|| position_of(&reference));
+            // Added on the reference's side: a `--move` across sides does nothing, so `before:<a left item>` stayed on the right.
+            if let Some(side) = st.sides.entry(reference.clone()).or_insert_with(|| position_of(&reference)).clone() {
+                next.side = side;
+            }
         }
         let rtl = is_rtl(&next.position, |r| st.sides.get(r).cloned().flatten());
         let prev = st.drawn.get(key).map(|(r, _)| r.clone());
@@ -753,6 +761,16 @@ mod tests {
         assert_eq!(glyph_item.props["pal.hue.home"]["icon.background.drawing"], "off", "a glyph turns the slot's background off again");
         let back = diff(Some(&r), Some(&glyph_item), true, None).join(" ");
         assert!(back.starts_with("--remove pal.hue.home --add item pal.hue.home right "), "image to glyph loses the image properties: added afresh: {back}");
+    }
+
+    #[test]
+    fn a_reference_on_the_left_is_added_on_the_left() {
+        let mut a = props("x/y", &draw(json!({ "title": "1" }), "before:left_edge", false), &pal(), "pal");
+        assert_eq!(a.side, "right", "until the reference's side is known");
+        a.side = "left".into();
+        let s = diff(None, Some(&a), false, None).join(" ");
+        assert!(s.starts_with("--add item pal.x.y left "), "{s}");
+        assert!(s.contains("--move pal.x.y before left_edge"), "{s}");
     }
 
     #[test]
