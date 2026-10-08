@@ -1045,30 +1045,37 @@ fn absent_secrets(config: &Config, exts: &[Ext]) -> Vec<String> {
 
 /// Off the main thread: `permissions::status` probes the OS (~85 ms on
 /// hornet), and the page re-reads every 5 s while the Overview is up.
+/// The loaded config is copied out and its lock let go at once: the rest
+/// waits on the OS and on the main thread (the display list asks the main
+/// thread for the cursor), and the main thread takes this lock too (a
+/// display change re-places the sidebar's strips by the config), so holding
+/// it across them deadlocked the app.
 #[tauri::command(async)]
 pub fn settings_get(app: AppHandle, st: State<'_, Settings>) -> View {
-    let absent = absent_secrets(&config(&app), &extensions(&app));
-    let l = lock(&st.loaded);
+    let (config, mut diagnostics, path) = {
+        let l = lock(&st.loaded);
+        (l.config.clone(), l.diagnostics.clone(), l.path.clone())
+    };
     let exts = lock(&st.extensions).clone();
-    let mut diagnostics = l.diagnostics.clone();
-    diagnostics.extend(instance_warnings(&l.config, &exts));
+    let absent = absent_secrets(&config, &exts);
+    diagnostics.extend(instance_warnings(&config, &exts));
     let perms = permissions::status();
     View {
-        config: l.config.clone(),
         diagnostics,
-        path: l.path.clone(),
+        path,
         changed: *lock(&st.changed),
         version: app.package_info().version.to_string(),
         extensions: exts,
         store: Store::locate().dir().to_path_buf(),
         hotkey: hotkey::outcome(&app),
         permissions: perms,
-        bar: bar_view(&app, &l.config),
+        bar: bar_view(&app, &config),
         checks: lock(&st.checks).clone(),
         displays: crate::bar::popover::displays(&app).0.into_iter().map(|d| d.name).collect(),
-        features: crate::features::view(&app, &l.config, &perms),
+        features: crate::features::view(&app, &config, &perms),
         local: crate::account::local_keys(&app),
         absent,
+        config,
     }
 }
 
