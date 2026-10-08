@@ -1150,8 +1150,10 @@ pub fn apply_config(app: &AppHandle, prev: &Config, next: &Config) {
 /// States changed (states.rs): every item whose `show_when`/`hide_when`
 /// reads one of `changed` (every conditioned item with `all`) is placed by
 /// its condition now, and one whose `refresh.on` lists `state:<name>`
-/// renders (`state:*`: on any change). Coming back from held-off renders
-/// too: what it last drew is as old as the hold.
+/// renders (`state:*`: on any change). Coming back from held-off is
+/// drawn at once from its last state and renders too: what it last drew
+/// is as old as the hold, and a render that answers the same would not be
+/// re-applied to targets the hold took it off.
 pub fn on_states_changed(app: &AppHandle, changed: &[String], all: bool) {
     if app.try_state::<Bar>().is_none() {
         return; // the built-ins' first values land before the registry exists
@@ -1164,7 +1166,11 @@ pub fn on_states_changed(app: &AppHandle, changed: &[String], all: bool) {
         let held = Bar::with(app, |e| e.get_mut(&key).map(|en| std::mem::replace(&mut en.held, !now)));
         match (held, now) {
             (None, _) => {}
-            (Some(true), true) => render(app, &key, "state"),
+            // Back from held-off: drawn again at once from its last state (the hold took it off every target, and a render that answers the same is not re-applied), then rendered for anything newer.
+            (Some(true), true) => {
+                sync(app, &key);
+                render(app, &key, "state");
+            }
             (Some(false), true) => sync(app, &key),
             (_, false) => {
                 schedule(app, &key);
