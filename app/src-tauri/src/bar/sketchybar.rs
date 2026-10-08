@@ -454,8 +454,12 @@ async fn probe(app: &AppHandle, why: &str, force: bool) {
     let st = app.state::<Bar>();
     let was = st.sketchybar.swap(alive, Ordering::Relaxed);
     let wiped = alive && was && {
-        let names = tauri::async_runtime::spawn_blocking(bar_items).await.unwrap_or_default();
-        lock(&STATE).drawn.values().any(|(r, _)| r.order.first().is_some_and(|n| !names.contains(n)))
+        // What was drawn before the query, against the query: wiped only when none of it is left. A reload
+        // removes every pal item; one key added or removed while the query ran (kitty's session on a Space
+        // switch) is not a wipe, and treating it as one re-added every item: the whole bar flickered.
+        let before: Vec<String> = lock(&STATE).drawn.values().filter_map(|(r, _)| r.order.first().cloned()).collect();
+        // A query that failed (the bar busy mid-switch) is no answer, not an empty bar.
+        tauri::async_runtime::spawn_blocking(bar_items).await.ok().flatten().is_some_and(|names| is_wiped(&before, &names))
     };
     if alive != was {
         eprintln!("bar\tsketchybar\t{}\t{why}", if alive { "up" } else { "gone" });
@@ -474,6 +478,12 @@ async fn probe(app: &AppHandle, why: &str, force: bool) {
     }
 }
 
+/// The bar lost pal's items (its rc reloaded): something was drawn and
+/// none of it is in the bar's `--query bar` names.
+fn is_wiped(drawn: &[String], names: &[String]) -> bool {
+    !drawn.is_empty() && !drawn.iter().any(|n| names.contains(n))
+}
+
 /// `pal bar sync`: probe now and re-add every item. Forced, since clearing
 /// what was drawn also hides a wipe from the probe's own check (it compares
 /// the bar's names against `drawn`), which is how a sync after the rc
@@ -490,10 +500,10 @@ fn query_bar() -> Option<serde_json::Value> {
     serde_json::from_slice(&out.stdout).ok()
 }
 
-/// The bar's item names (`--query bar`).
-fn bar_items() -> Vec<String> {
-    let v = query_bar().unwrap_or_default();
-    v["items"].as_array().map(|a| a.iter().filter_map(|s| s.as_str().map(str::to_string)).collect()).unwrap_or_default()
+/// The bar's item names (`--query bar`); `None` when it did not answer.
+fn bar_items() -> Option<Vec<String>> {
+    let v = query_bar()?;
+    Some(v["items"].as_array()?.iter().filter_map(|s| s.as_str().map(str::to_string)).collect())
 }
 
 /// How far down the bar reaches at the top of a display: its height plus
@@ -761,6 +771,14 @@ mod tests {
         assert_eq!(glyph_item.props["pal.hue.home"]["icon.background.drawing"], "off", "a glyph turns the slot's background off again");
         let back = diff(Some(&r), Some(&glyph_item), true, None).join(" ");
         assert!(back.starts_with("--remove pal.hue.home --add item pal.hue.home right "), "image to glyph loses the image properties: added afresh: {back}");
+    }
+
+    #[test]
+    fn a_wipe_is_every_pal_item_gone_not_one() {
+        let s = |v: &[&str]| v.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        assert!(is_wiped(&s(&["pal.a", "pal.b"]), &s(&["clock", "theme_watch"])), "an rc reload");
+        assert!(!is_wiped(&s(&["pal.a", "pal.b"]), &s(&["pal.a", "theme_watch"])), "one key coming or going while the query ran");
+        assert!(!is_wiped(&[], &s(&["clock"])), "nothing drawn, nothing lost");
     }
 
     #[test]
