@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.16.1 · 2026-10-09
+
+- **Emoji and icons stay below what you were looking for**: in search, Emoji, Icons, Unicode and the other big lists now show under every section that has the word you typed. `sync` lists your Home Assistant rows before the glyph named sync; when nothing else has the word, as with `smile`, the emoji still lead.
+
 ## 0.16.0 · 2026-10-09
 
 - **Clock, built in**: the date and time on the bar, and a popover with the time to the second, the date and week, a month to walk through with the arrows, and world clocks (z adds a city). Enter opens the day in Calendar.
