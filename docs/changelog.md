@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.0 · 2026-10-09
+
+- **Clock, built in**: the date and time on the bar, and a popover with the time to the second, the date and week, a month to walk through with the arrows, and world clocks (z adds a city). Enter opens the day in Calendar.
+- **Calculator mixes currencies**: `50 usd + 20 try` or `$1.5k - 200 eur to eur` adds them up at the day's rates, shown in your home currency (or the one you name) and in the first one.
+- **Highway tells a story**: Lina's texts along a 412 km trip home, rivals with a message of their own, and two endings. Stars are set at a person's pace, and cars open as you finish a region's stops.
+- **Fixed: pal froze with Settings open** when a display was connected or removed.
+- **Fixed: bar items flickered or went missing**: a Space switch could redraw the whole bar, an item coming back after being hidden stayed off it, an item placed next to a left-side item landed on the right, and a sync after a sketchybar reload put nothing back.
+
 ## 0.15.0 · 2026-10-08
 
 - **Watch the best runs on a leaderboard**: a game can keep a replay with your best score, and anyone can watch the run behind a board's times. Highway is first: its replays panel shows the record holder's run beside yours and the 3★ run.
