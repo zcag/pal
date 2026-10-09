@@ -5,10 +5,11 @@
 //! nucleo-matcher fields, one thread, synchronous, plus the source's own
 //! path ([`PathField`], `tod address` for a todo in Todos) as a last
 //! field that can never answer alone. On top of the match:
-//! a source's [`Tier`] (primary up, catalog down), a bonus for a row
-//! that has the typed word, the exact-name bonus, and per source a cut of
-//! the rows that only scatter the query once one has the word, then a cap,
-//! so no source crowds the top N; the ladder is under [`EXACT_BONUS`].
+//! a source's [`Tier`] (primary up, catalog down, and every catalog
+//! section after every other), a bonus for a row that has the typed word,
+//! the exact-name bonus, and per source a cut of the rows that only
+//! scatter the query once one has the word, then a cap, so no source
+//! crowds the top N; the ladder is under [`EXACT_BONUS`].
 
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -101,40 +102,20 @@ impl Tier {
             Tier::Catalog => -CATALOG_PENALTY,
         }
     }
-
-    /// What a row of this tier named what was typed gets: [`EXACT_BONUS`],
-    /// except in a catalog, where an exact name is one glyph among
-    /// thousands of short names (`git`, `c`, `chrome` are all icon names)
-    /// and [`CATALOG_EXACT_BONUS`] puts it under the primary hits that
-    /// contain the query and above the normal ones.
-    pub const fn exact_bonus(self) -> f32 {
-        match self {
-            Tier::Catalog => CATALOG_EXACT_BONUS,
-            _ => EXACT_BONUS,
-        }
-    }
 }
 
 /// [`Tier::bonus`] for a primary source.
 pub const PRIMARY_BONUS: f32 = 150.0;
-/// Taken off every catalog row, see [`Tier::bonus`].
+/// Taken off every catalog row, see [`Tier::bonus`]. Catalog sections come
+/// after every other one anyway ([`Index::query`]); the penalty orders the
+/// catalogs among themselves and keeps their rows out of a full top N first.
 pub const CATALOG_PENALTY: f32 = 150.0;
 /// Added to a row where every word of the query starts a word of the
 /// name or of a keyword (case-insensitive): the typed letters are a word
 /// the user knows, not collected across a bundle id or the middle of a
-/// long title. Equal to the tier spread (primary to catalog), so a catalog
-/// row that has the word and a primary row that only scatters it are level
-/// and the match score decides (`smile`: the emoji above `System
-/// Information`, which spells it out of `com.apple.SystemProfiler`), while
-/// a primary row that has the word is above a catalog one that does by the
-/// whole spread plus what use can add.
+/// long title. Twice a tier's bonus, so a normal row that has the word is
+/// above a primary one that only scatters it.
 pub const WORD_BONUS: f32 = 300.0;
-/// [`Tier::exact_bonus`] for a catalog row: with its tier and word
-/// bonuses the row nets 400, between a primary word hit (450) and a
-/// normal one (300), so `chrome` puts Google Chrome first and the glyph
-/// after the primary rows that have the word, `git` keeps the glyph under
-/// the GitHub palettes and GitHub Desktop and above every normal row.
-pub const CATALOG_EXACT_BONUS: f32 = 250.0;
 
 /// How many rows one source may put in a typed query's answer, by tier.
 /// The rest of its matches are counted in [`Ranked::more`], for a row that
@@ -530,7 +511,7 @@ impl Index {
                 if word {
                     score += WORD_BONUS;
                     if entry.is_exactly(&typed) {
-                        score += tier.exact_bonus();
+                        score += EXACT_BONUS;
                     }
                 }
                 // Name length only breaks ties between matches; the empty
@@ -573,14 +554,28 @@ impl Index {
         cands.sort_unstable_by(Cand::cmp);
         // Sections: a source's hits together, sources in the order of their
         // best hit (what the UI groups by; done here so the order is one
-        // rule). `first` is a bucket's place by that rule; the stable sort
-        // keeps the ranking inside a source.
-        let mut first = vec![usize::MAX; self.buckets.len()];
+        // rule), except that a catalog never sits above another source whose
+        // best hit has the typed word: a glyph named what was typed is one of
+        // thousands, and the scores alone put icons and emoji above the
+        // palettes being looked for. Below the last such source the scores
+        // decide again, so a catalog that has the word still beats rows that
+        // only collect the letters. `first` is a bucket's place by that rule;
+        // the stable sort keeps the ranking inside a source.
+        let mut catalog = vec![false; self.buckets.len()];
+        spans.iter().filter(|(_, _, t)| *t == Tier::Catalog).for_each(|(b, _, _)| catalog[*b] = true);
+        let mut first = vec![(usize::MAX, false, usize::MAX); self.buckets.len()];
+        let mut floor = 0;
         for (i, c) in cands.iter().enumerate() {
             let b = c.b as usize;
-            if first[b] == usize::MAX {
-                first[b] = i;
+            if first[b].0 == usize::MAX {
+                first[b] = (i, catalog[b], i);
+                if c.word && !catalog[b] {
+                    floor = i;
+                }
             }
+        }
+        for f in first.iter_mut().filter(|f| f.1) {
+            f.0 = f.0.max(floor);
         }
         cands.sort_by_key(|c| first[c.b as usize]);
         let mut more = Vec::new();
@@ -630,11 +625,14 @@ impl Index {
 /// | exact primary | 1450 | 1650 |
 /// | exact normal (name, or a keyword alias) | 1300 | 1500 |
 /// | primary, has the word (a palette row too) | 450 | 650 |
-/// | exact catalog | 400 | 600 |
 /// | normal, has the word | 300 | 500 |
-/// | primary, scattered; catalog, has the word | 150 | 350 |
+/// | primary, scattered | 150 | 350 |
 /// | normal, scattered | 0 | 200 |
-/// | catalog, scattered | -150 | 50 |
+///
+/// A catalog row is the same less [`CATALOG_PENALTY`], but its section
+/// comes after every other source's whatever it scores: a glyph or an
+/// emoji named what was typed is one of thousands of short names (`git`,
+/// `c`, `chrome` are all icon names), and use does not lift it either.
 ///
 /// The app adds a small ladder on top of a few primary sources it wants
 /// first among equals (`[general] root_first`: tabs, windows, pal's own
@@ -643,20 +641,14 @@ impl Index {
 ///
 /// "Has the word": every query word starts a word of the name or a
 /// keyword ([`WORD_BONUS`]). So: an exact name wins across tiers (1300
-/// against a hot primary row's 650, the closest), except a catalog's,
-/// which is one glyph among thousands of short names and sits under the
-/// primary hits that have the word; a primary hit that has the word is
-/// above every catalog hit however hot (450 against 350); a catalog row
-/// the user picks a lot climbs above the normal rows that scatter the
-/// query (350 against 300 even for the ones that have the word) but not
-/// above a primary one; and a row that has the word is above one that
-/// scatters it whatever their tiers unless the scattered one is primary
-/// and the other a catalog, where they are level and the match score
-/// decides. The match score itself spans about 26 per typed char (prefix)
-/// down to 16 with gap penalties (scattered), so a band of 150 holds for
-/// queries a launcher sees. The welcome source's 1e9 is only ever added
-/// on the empty query, where nothing is exact. Among equals the name
-/// length and then insertion order decide.
+/// against a hot primary row's 650, the closest); a primary hit that has
+/// the word is a tier above a normal one that does, which only heavy use
+/// crosses; and a normal row that has the word is above a primary one
+/// that scatters it. The match score itself spans about 26
+/// per typed char (prefix) down to 16 with gap penalties (scattered), so
+/// a band of 150 holds for queries a launcher sees. The welcome source's
+/// 1e9 is only ever added on the empty query, where nothing is exact.
+/// Among equals the name length and then insertion order decide.
 ///
 /// The word bonus is the prefix bonus notes/matching.md rejected,
 /// re-measured with tiers: nucleo scores a word-start match the same as a
@@ -867,7 +859,7 @@ mod tests {
     }
 
     #[test]
-    fn tier_bonus_orders_sections_but_exact_and_use_cross_tiers() {
+    fn tier_bonus_orders_sections_and_catalogs_come_last() {
         let mut ix = index();
         ix.extend(src("docker"), vec![item("d1", "hazel", None, &[])]);
         let opts = || QueryOpts { tier: Some(&tier), ..Default::default() };
@@ -876,14 +868,13 @@ mod tests {
         assert_eq!(sections(&hits), ["apps", "icons"]);
         assert_eq!(hits[0].id, "chrome.app");
         assert_eq!(score_of(&hits, "chrome.app") - score_of(&hits, "i1"), PRIMARY_BONUS + CATALOG_PENALTY, "same match, two tiers apart");
-        // An exact catalog name is under the primary hit that contains the
-        // query and above a normal one that does; an exact name elsewhere wins.
+        // An exact catalog name outscores a normal row that has the word,
+        // and its section still comes after it; an exact name elsewhere wins.
         ix.extend(src("docker"), vec![item("d2", "chromedriver", None, &[])]);
         let hits = ix.query("chrome", opts());
-        assert_eq!(ids(&hits)[..3], ["chrome.app", "i1", "i2"]);
-        assert_eq!(sections(&hits), ["apps", "icons", "docker"]);
-        assert_eq!(score_of(&hits, "chrome.app") - score_of(&hits, "i1"), PRIMARY_BONUS + CATALOG_PENALTY - CATALOG_EXACT_BONUS);
-        assert_eq!(score_of(&hits, "i1") - score_of(&hits, "d2"), CATALOG_EXACT_BONUS - CATALOG_PENALTY);
+        assert_eq!(ids(&hits)[..3], ["chrome.app", "d2", "i1"]);
+        assert_eq!(sections(&hits), ["apps", "docker", "icons"]);
+        assert!(score_of(&hits, "i1") > score_of(&hits, "chrome.app"), "the score alone would lead with the glyph");
         ix.extend(src("docker"), vec![item("d3", "Chrome", None, &[])]);
         let hits = ix.query("chrome", opts());
         assert_eq!(hits[0].id, "d3", "an exact normal name over the primary hit");
@@ -894,12 +885,12 @@ mod tests {
         let hits = ix.query("ha", opts());
         assert_eq!(sections(&hits), ["bookmarks", "apps", "docker", "icons"], "the exact bookmark, then the tiers");
         assert_eq!(ids(&hits), ["ha", "handler.app", "d1", "i6", "i5", "i2", "i3"]);
-        // The hottest catalog row (the frecency maximum, 200) climbs above
-        // the normal-tier fuzzy hit but not above the primary one.
+        // The hottest catalog row (the frecency maximum, 200) leads its own
+        // section and passes the normal fuzzy hit's score, but not its place.
         let hot = |_: &Source, i: &str| if i == "i5" { 200.0 } else { 0.0 };
         let hits = ix.query("ha", QueryOpts { boost: Some(&hot), ..opts() });
-        assert_eq!(ids(&hits), ["ha", "handler.app", "i5", "i6", "i2", "i3", "d1"]);
-        assert!(score_of(&hits, "i5") < score_of(&hits, "handler.app") && score_of(&hits, "i5") > score_of(&hits, "d1"));
+        assert_eq!(ids(&hits), ["ha", "handler.app", "d1", "i5", "i6", "i2", "i3"]);
+        assert!(score_of(&hits, "i5") > score_of(&hits, "d1"));
         // A live primary source keeps its tier (windows): no frecency, but the bonus.
         ix.set_live(src("apps"), true);
         let hits = ix.query("ha", QueryOpts { boost: Some(&hot), ..opts() });
@@ -911,12 +902,8 @@ mod tests {
         // The ladder the constants rely on (the table under EXACT_BONUS); the
         // frecency maximum (200) and the app's palette bonus (150) as numbers.
         let ladder = [
-            (PRIMARY_BONUS + CATALOG_PENALTY > 200.0, "a hot catalog row never passes a primary hit that has the word"),
-            (CATALOG_PENALTY < 200.0, "a hot scattered catalog row passes a normal one"),
-            (WORD_BONUS == PRIMARY_BONUS + CATALOG_PENALTY, "a catalog word hit and a primary scattered one are level"),
+            (WORD_BONUS > PRIMARY_BONUS, "a normal word hit above a primary scattered one"),
             (EXACT_BONUS > 150.0 + 200.0 + PRIMARY_BONUS + WORD_BONUS, "an exact name above a hot palette row"),
-            (-CATALOG_PENALTY + WORD_BONUS + CATALOG_EXACT_BONUS < PRIMARY_BONUS + WORD_BONUS, "an exact catalog name under a primary word hit"),
-            (-CATALOG_PENALTY + WORD_BONUS + CATALOG_EXACT_BONUS > WORD_BONUS, "and above a normal one"),
         ];
         for (holds, why) in ladder {
             assert!(std::hint::black_box(holds), "{why}");
@@ -932,7 +919,9 @@ mod tests {
         let hits = ix.query("smile", QueryOpts::default());
         assert_eq!(ids(&hits), ["i9", "sysinfo.app"]);
         assert!(score_of(&hits, "i9") > WORD_BONUS && score_of(&hits, "sysinfo.app") < WORD_BONUS);
-        // With tiers the scattered primary hit would climb 300 over the catalog one; the substring bonus holds it level, and the match decides.
+        // With tiers the scattered primary hit would climb 300 over the catalog
+        // one; the word bonus holds it level, the match decides, and a catalog
+        // that has the word stays above a source that only scatters it.
         let hits = ix.query("smile", QueryOpts { tier: Some(&tier), ..Default::default() });
         assert_eq!(ids(&hits), ["i9", "sysinfo.app"]);
         // Accents are not folded for the bonus (nucleo still matches).
@@ -1370,34 +1359,44 @@ mod tests {
         assert_eq!(chr.iter().filter(|h| h.source.palette == "iconnerd").count(), 3, "the catalog cap");
         assert!(chr.more.iter().any(|m| m.source.palette == "iconnerd" && m.count > 50), "{:?}", chr.more);
         assert_eq!(at(&ix, chrome, "apps", "Google Chrome"), Some(0), "the app above the glyph named chrome");
-        assert_eq!(name(&ix, &chrome[1]), "chrome", "the exact catalog name right after the primary rows that have the word");
+        // No catalog section above another source's section that has the word.
+        // (No boost here, and a short query's match score stays under 200,
+        // so a row has the word exactly when its tier leaves WORD_BONUS.)
+        let below = |r: &Ranked| {
+            let at = r.iter().position(|h| fixture_tier(&h.source) == Tier::Catalog).unwrap();
+            r[at..].iter().filter(|h| fixture_tier(&h.source) != Tier::Catalog).all(|h| h.score - fixture_tier(&h.source).bonus() < WORD_BONUS)
+        };
+        assert!(below(chrome), "the glyph named chrome under every row that has the word");
+        let glyph = chrome.iter().position(|h| fixture_tier(&h.source) == Tier::Catalog).unwrap();
+        assert_eq!(name(&ix, &chrome[glyph]), "chrome", "the exact name first among the catalogs");
         assert_eq!((ha[0].source.palette.as_str(), ha[0].id.as_str()), ("bookmarks", "ha"));
         assert_eq!(name(&ix, &term[0]), "Terminal");
         assert!(name(&ix, &smile[0]).contains("smil"), "{}", name(&ix, &smile[0]));
-        assert!(smile.iter().take(10).any(|h| h.source.palette == "emoji"), "an emoji in the top ten for `smile`");
-        assert!(arrow.iter().take(10).any(|h| h.source.palette == "emoji"));
-        let glyph = git.iter().position(|h| h.source.palette == "iconnerd").unwrap();
-        assert!(glyph < 10, "the glyph named git in the top ten: {glyph}");
-        assert!(git.iter().skip(glyph).all(|h| fixture_tier(&h.source) != Tier::Primary || h.score < PRIMARY_BONUS + WORD_BONUS), "only primary rows that have the word are above it");
+        assert!(smile.iter().any(|h| h.source.palette == "emoji") && arrow.iter().any(|h| h.source.palette == "emoji"), "the emoji are still in the answer");
+        assert_eq!(smile[0].source.palette, "emoji", "the emoji above the rows that only collect the letters");
+        for r in [smile, arrow, git] {
+            assert!(below(r));
+        }
         assert_eq!(name(&ix, &slack[0]), "Slack");
         assert_eq!(c[0].source.palette, "apps", "one letter: the primary section leads, no glyph named `c` above it");
         assert_eq!(a[0].source.palette, "apps");
-        assert!(c.iter().all(|h| h.score < EXACT_BONUS), "a one-letter keyword is not an alias");
+        assert!(c.iter().filter(|h| fixture_tier(&h.source) != Tier::Catalog).all(|h| h.score < EXACT_BONUS), "a one-letter keyword is not an alias (a glyph named `c` is exact)");
         for r in &r {
             for s in ["iconnerd", "emoji"] {
                 assert!(r.iter().filter(|h| h.source.palette == s).count() <= 3, "{s} over its cap");
             }
         }
-        // Use crosses tiers: the hottest glyph lands above the normal-tier rows but under the primary ones.
+        // Use does not cross into the other sections: the hottest glyph leads the catalogs, after the rest.
         let hand_id = ix.snapshot(&Source::new("fixture", "iconnerd")).into_iter().find(|i| i.name == "hand").unwrap().id;
         let hot = |s: &Source, id: &str| if s.palette == "iconnerd" && id == hand_id { 200.0 } else { 0.0 };
         let hits = ix.query("ha", QueryOpts { boost: Some(&hot), ..root() });
         let hand = hits.iter().find(|h| h.source.palette == "iconnerd" && h.id == hand_id).expect("the hot glyph is in the answer").score;
         let best = |t: Tier| hits.iter().filter(|h| fixture_tier(&h.source) == t).map(|h| h.score).fold(f32::MIN, f32::max);
-        assert!(hand < best(Tier::Primary) && hand > best(Tier::Normal), "hand {hand}, primary {}, normal {}", best(Tier::Primary), best(Tier::Normal));
+        assert!(hand > best(Tier::Normal), "hand {hand}, normal {}", best(Tier::Normal));
         let order: Vec<&str> = hits.iter().map(|h| h.source.palette.as_str()).collect();
         let at = |p: &str| order.iter().position(|s| *s == p).unwrap();
-        assert!(at("bookmarks") < at("apps") && at("apps") < at("iconnerd") && at("iconnerd") < at("cmds"), "{order:?}");
+        assert!(at("bookmarks") < at("apps") && at("apps") < at("cmds") && at("cmds") < at("iconnerd"), "{order:?}");
+        assert_eq!(hits.iter().find(|h| h.source.palette == "iconnerd").unwrap().id, hand_id);
 
         let flat = QueryOpts::default;
         let timed: [(&str, &dyn Fn() -> QueryOpts<'static>); 2] = [("flat", &flat), ("root", &root)];

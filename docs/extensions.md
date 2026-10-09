@@ -303,16 +303,19 @@ what a palette's rows are next to everyone else's:
 | --- | --- | --- |
 | `primary` | what is reached by name: apps, windows, bookmarks, quicklinks, snippets, recent files, browser tabs, system commands, SSH hosts | ranked up (+150), at most 8 rows per palette |
 | `normal` | what is browsed: containers, pull requests, devices, services, timers; the default | as matched, at most 6 rows |
-| `catalog` | a big static list where any query matches dozens of rows: emoji, unicode, icons, colours, a scripts data file of 100 rows or more | ranked down (-150), at most 3 rows; an exact name (`git` the glyph) sits under the primary rows that have the word and above the normal ones |
+| `catalog` | a big static list where any query matches dozens of rows: emoji, unicode, icons, colours, a scripts data file of 100 rows or more | ranked down (-150), at most 3 rows, and never above another palette's section that has the typed word |
 
-A row whose name or keyword has the typed word (every query word starts a
-word of it) is ranked above one that only collects the letters (`chr`
+A row whose name or keyword has the typed word (every query word starts
+a word of it) is ranked above one that only collects the letters (`chr`
 across `Clipboard History`), by two tiers' worth; a row named what was
-typed leads outright, whatever the tier (a catalog's only above the
-normal tier); what the user picks a lot climbs (`docs/config.md`, "Search
-history") by up to a tier and a third, so a much-used glyph passes the
-normal rows but never a primary one that has the word (the boost's
-ceiling is 200 points against a tier's 150). The rows a cap
+typed leads outright, whatever the tier; what the user picks a lot
+climbs (`docs/config.md`, "Search history") by up to a tier and a third.
+A catalog's section comes after every section of the other tiers that
+has the word, whatever its rows score: `sync` lists Home Assistant's
+Sync Box entities before the glyph named `sync`, and a much-used glyph leads only
+its own section. Under those sections the scores decide again, so
+`smile` still leads with the emoji over rows that only collect the
+letters. The rows a cap
 leaves out are behind a muted "12 more in Emoji" row at the end of the
 section; `Enter` on it opens the palette, where nothing is capped. One
 row for one thing: two palettes of one extension that list the same item
