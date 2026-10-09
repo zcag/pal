@@ -363,6 +363,8 @@ export type IndexOptions = {
   yank?: string[];
   /** When given, the index holds only these extensions and the ones in `dist`: an extension gone from the source leaves the index. */
   keep?: string[];
+  /** Extensions taken off the index, whatever `dist` holds: parked ones (docs/registry.md, "Our registry"). */
+  drop?: string[];
   /** The registry's current public key, which `pal registry add` shows and pins; `""` clears it. */
   key?: string;
   /** Announces the key the registry is moving to; `""` clears it. */
@@ -398,6 +400,7 @@ export async function writeIndex(dist: string, o: IndexOptions): Promise<Index> 
     const keep = new Set([...o.keep, ...entries.map((e) => e.name)]);
     index.extensions = index.extensions.filter((e) => keep.has(e.name));
   }
+  if (o.drop) index.extensions = index.extensions.filter((e) => !o.drop!.includes(e.name));
   for (const s of o.yank ?? []) yank(index, s);
   if (o.key !== undefined) index.key = o.key || undefined;
   if (o.nextKey !== undefined) index.next_key = o.nextKey || null;

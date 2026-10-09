@@ -225,7 +225,7 @@ describe("index", () => {
     expect(finish(i, new Date("2026-09-30T12:00:00.123Z")).generated_at).toBe("2026-09-30T12:00:00Z");
   });
 
-  test("statements, then the index: packages copied by hash, merged over the live index, yank, keep, key, next_key; an unsigned entry is refused", async () => {
+  test("statements, then the index: packages copied by hash, merged over the live index, yank, keep, drop, key, next_key; an unsigned entry is refused", async () => {
     const dir = tmp();
     try {
       source(dir, "thing");
@@ -269,6 +269,9 @@ describe("index", () => {
       // Builds the index has already: their listing is taken, their packages stay the published ones (none copied to upload over them).
       expect(again.extensions.find((e) => e.name === "thing")!.listing.title).toBe("Thing");
       expect(existsSync(join(dir, "site2", "pkg"))).toBe(false);
+      // --drop takes a listing off the index even when dist builds it.
+      const parked = await writeIndex(dist, { name: "acme", base: "b", out: join(dir, "site5"), merge: join(out, "index.json"), drop: ["thing", "gone"] });
+      expect(parked.extensions.map((e) => e.name)).toEqual(["other"]);
       // --key "" drops the field, not writes it as null: it is optional.
       const bare = await writeIndex(dist, { name: "acme", base: "b", out: join(dir, "site4"), merge: join(out, "index.json"), key: "" });
       expect("key" in json(join(dir, "site4", "index.json"))).toBe(false);
@@ -307,7 +310,7 @@ describe("index", () => {
   });
 });
 
-// app/bundled.txt (the names the app ships) and each extension repo's registry-only.txt (the rest of its names).
+// app/bundled.txt (the names the app ships), each extension repo's registry-only.txt (the rest of its names) and its optional parked.txt (names kept in development only, never published).
 describe("the bundled list", () => {
   const list = (file: string) => readFileSync(file, "utf8").split("\n").map((l) => l.replace(/#.*/, "").trim()).filter(Boolean);
   const bundled = list(join(REPO, "app/bundled.txt"));
@@ -322,18 +325,21 @@ describe("the bundled list", () => {
     if (bundled.some((n) => dirs.has(n))) for (const n of bundled) expect(existsSync(join(dirs.get(n) ?? "-", "index.ts")), `app/bundled.txt: ${n}`).toBe(true);
   });
   for (const repo of extensionRepos()) {
-    const file = join(repo.dir, "registry-only.txt");
-    test(`${repo.dir}: registry-only.txt is sorted, has no duplicates, and every name is an extension there`, () => {
+    const file = join(repo.dir, "registry-only.txt"), parkedFile = join(repo.dir, "parked.txt");
+    test(`${repo.dir}: registry-only.txt (and parked.txt) is sorted, has no duplicates, and every name is an extension there`, () => {
       expect(existsSync(file), `${repo.dir} has no registry-only.txt`).toBe(true);
-      const names = list(file);
-      sorted(names, file);
-      for (const n of names) expect(existsSync(join(repo.dir, n, "index.ts")), `${file}: ${n}`).toBe(true);
+      for (const f of [file, parkedFile]) {
+        if (!existsSync(f)) continue;
+        const names = list(f);
+        sorted(names, f);
+        for (const n of names) expect(existsSync(join(repo.dir, n, "index.ts")), `${f}: ${n}`).toBe(true);
+      }
     });
-    test(`${repo.dir}: every extension is decided, in exactly one of pal's app/bundled.txt and registry-only.txt`, () => {
-      const registry = new Set(existsSync(file) ? list(file) : []), shipped = new Set(bundled);
+    test(`${repo.dir}: every extension is decided, in exactly one of pal's app/bundled.txt, registry-only.txt and parked.txt`, () => {
+      const lists = [new Set(bundled), new Set(existsSync(file) ? list(file) : []), new Set(existsSync(parkedFile) ? list(parkedFile) : [])];
       const here = readdirSync(repo.dir, { withFileTypes: true }).filter((d) => d.isDirectory() && existsSync(join(repo.dir, d.name, "pal.json"))).map((d) => d.name);
-      expect(here.filter((d) => !shipped.has(d) && !registry.has(d)), "add each to pal's app/bundled.txt or the repo's registry-only.txt (CLAUDE.md)").toEqual([]);
-      expect(here.filter((d) => shipped.has(d) && registry.has(d))).toEqual([]);
+      expect(here.filter((d) => !lists.some((l) => l.has(d))), "add each to pal's app/bundled.txt or the repo's registry-only.txt (CLAUDE.md)").toEqual([]);
+      expect(here.filter((d) => lists.filter((l) => l.has(d)).length > 1)).toEqual([]);
     });
     // What pal's registry would refuse at publish, found in the repo's own CI: a game page loading a source that is not there.
     test(`${repo.dir}: every game page's imports resolve inside its extension, as pal-pack follows them`, async () => {

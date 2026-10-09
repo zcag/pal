@@ -193,14 +193,17 @@ jobs:
       # `seq` is the commit's time (docs/registry.md). Staged at
       # extensions/<name> (pal-pack --prefix), the source paths in the
       # output are the ones pal's own builds had, so an extension that did
-      # not change keeps its hash.
+      # not change keeps its hash. The names in a repo's parked.txt are not
+      # built, and drop.txt names those an index still lists, to take off.
       - name: Build
         if: steps.todo.outputs.taken != ''
         run: |
           set -euo pipefail
           R=$RUNNER_TEMP/registry
+          mkdir -p "$R" && : > "$R/parked.txt"
           for src in src/*/; do
-            dirs=(); for d in "$src"*/; do [ -f "$d/pal.json" ] && dirs+=("${d%/}"); done
+            [ ! -f "${src}parked.txt" ] || sed -E 's/#.*//; s/[[:space:]]//g; /^$/d' "${src}parked.txt" >> "$R/parked.txt"
+            dirs=(); for d in "$src"*/; do [ -f "$d/pal.json" ] && ! grep -qx "$(basename "$d")" "$R/parked.txt" && dirs+=("${d%/}"); done
             bun --no-install sdk/bin/pal-pack.ts build "${dirs[@]}" --prefix extensions --out "$R/all" \
               --seq "$(git -C "$src" show -s --format=%ct HEAD)" --commit "$(git -C "$src" rev-parse HEAD)" \
               --screenshots-base "$SITE/extensions" > /dev/null
@@ -208,8 +211,15 @@ jobs:
           done
           bun --no-install sdk/bin/pal-pack.ts statements "$R/all" > /dev/null
           .github/actions/registry/registry.sh fetch "$BASE/edge/index.json" "$R/edge.json"
+          .github/actions/registry/registry.sh fetch "$BASE/stable/index.json" "$R/stable.json"
           .github/actions/registry/registry.sh changed "$R/all" "$R/edge.json" > "$R/changed.txt"
-          rm -f "$R/edge.json" "$R/edge.json.minisig"
+          for n in $(cat "$R/parked.txt"); do
+            for ch in edge stable; do
+              if [ -f "$R/$ch.json" ] && jq -e --arg n "$n" 'any(.extensions[]; .name == $n)' "$R/$ch.json" > /dev/null; then echo "$n"; break; fi
+            done
+          done | sort -u > "$R/drop.txt"
+          rm -f "$R"/{edge,stable}.json "$R"/{edge,stable}.json.minisig
+          [ ! -s "$R/drop.txt" ] || sed 's/.*/- `&` parked: taken off the indexes/' "$R/drop.txt" >> "$GITHUB_STEP_SUMMARY"
           awk '$2 == "new" { print "- `" $1 "`" } $2 == "listing" { print "- `" $1 "` (listing only)" }' "$R/changed.txt" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Plan
@@ -223,7 +233,7 @@ jobs:
             awk '$2 == "new" || $2 == "listing" { print $1 }' "$R/changed.txt" > "$R/new.txt"
             echo "$(wc -l < "$R/new.txt") of $(wc -l < "$R/changed.txt") extensions are not edge's newest build"
           fi
-          if [ -s "$R/new.txt" ] || [ -n "$ACT" ]; then echo "work=true" >> "$GITHUB_OUTPUT"; else echo "nothing to publish"; fi
+          if [ -s "$R/new.txt" ] || [ -s "$R/drop.txt" ] || [ -n "$ACT" ]; then echo "work=true" >> "$GITHUB_OUTPUT"; else echo "nothing to publish"; fi
           if [ -f "$R/changed.txt" ]; then echo "built=true" >> "$GITHUB_OUTPUT"; fi
       - uses: actions/upload-artifact@v4
         if: steps.plan.outputs.work == 'true' && steps.plan.outputs.built == 'true'
@@ -307,6 +317,9 @@ jobs:
           # a build an index lacks.
           lists() { [ -f "$1" ] && jq -e --arg n "${YANK%@*}" --arg h "${YANK#*@}" 'any(.extensions[] | select(.name == $n) | .builds[]; .hash == $h)' "$1" > /dev/null; }
           yank() { [ -n "$YANK" ] && lists "$1" && echo --yank "$YANK" || true; }
+          # Parked extensions to take off both indexes (the build's drop.txt).
+          DROP=$(paste -sd, "$R/drop.txt" 2>/dev/null || true)
+          drop() { [ -z "$DROP" ] || echo --drop "$DROP"; }
 
           for ch in edge stable; do
             $r fetch "$BASE/$ch/index.json" "$R/$ch.json"
@@ -329,9 +342,9 @@ jobs:
           if [ -n "$YANK" ] && ! lists "$R/edge.json" && ! lists "$R/stable.json"; then
             echo "::error::$YANK: no such build on edge or stable"; exit 1
           fi
-          if [ -s "$R/new.txt" ] || [ -n "$YANK" ] || [ "$REINDEX" = true ]; then
+          if [ -s "$R/new.txt" ] || [ -n "$DROP" ] || [ -n "$YANK" ] || [ "$REINDEX" = true ]; then
             m=(); [ ! -f "$R/edge.json" ] || m=(--merge "$R/edge.json")
-            pack index "$R/dist" "${opts[@]}" $(yank "$R/edge.json") "${m[@]}" --out "$R/out/edge"
+            pack index "$R/dist" "${opts[@]}" $(yank "$R/edge.json") $(drop) "${m[@]}" --out "$R/out/edge"
             $r sign "$key" "$R/out/edge/index.json"
           fi
 
@@ -345,10 +358,10 @@ jobs:
             mv "$R/stable.promoted.json" "$R/stable.json"
           fi
           # Through pal-pack index once more, with nothing new, so stable
-          # gets the yank, next_key and generated_at the same way edge does.
-          if [ -n "$PROMOTE" ] || [ -n "$YANK" ] || [ "$REINDEX" = true ]; then
+          # gets the yank, the drop, next_key and generated_at the same way edge does.
+          if [ -n "$PROMOTE" ] || [ -n "$DROP" ] || [ -n "$YANK" ] || [ "$REINDEX" = true ]; then
             m=(); [ ! -f "$R/stable.json" ] || m=(--merge "$R/stable.json")
-            pack index "$R/empty" "${opts[@]}" $(yank "$R/stable.json") "${m[@]}" --out "$R/out/stable"
+            pack index "$R/empty" "${opts[@]}" $(yank "$R/stable.json") $(drop) "${m[@]}" --out "$R/out/stable"
             $r sign "$key" "$R/out/stable/index.json"
           fi
 

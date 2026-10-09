@@ -39,13 +39,16 @@ against a pal checkout in its `.pal/` (`make test` there is its CI).
   account or setup and a Mac user expects them on day one, or a core
   feature relies on them); each extension repo's `registry-only.txt` lists
   the rest of its own, which ship only through pal's registry. Every
-  extension must be in exactly one of the two, and a test fails otherwise
+  extension must be in exactly one list, and a test fails otherwise
   (`host/test/pack.test.ts`, run over each repo), so a new extension gets a
   deliberate call: say which list and why when adding it. An app build
   bundles each name's stable registry build (`app/scripts/build-extensions.sh`).
   Moving one is a one-line change; a name that leaves the bundle is
   installed by itself on machines that use it (the migration in
   `app/src-tauri/src/store.rs`).
+  A repo's `parked.txt` is the third list: extensions kept for
+  development only, never published, and taken off both indexes
+  (docs/registry.md, "Our registry").
 - **How a change reaches users.** `.github/workflows/extensions.yml` here,
   the only signer, polls the extension repos every 15 minutes (or at once,
   run with `publish`): a green main head it has not taken is built here

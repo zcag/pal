@@ -192,6 +192,10 @@ signed and added to edge, with that commit as their `commit` (a commit of
 the extension's repo). A head that is pending or red is left for a later
 run; only a main's head is ever built. `make ext-release [NAMES="a b"]`
 promotes edge to stable; an app release promotes everything on edge.
+A name in a repo's `parked.txt` is not built, and the run that reads it
+takes its listing off both indexes (`pal-pack index --drop`): the
+extension stays in its repo for development, and an app that has it
+installed keeps it, shown as no longer listed.
 
 Publishing talks to the site with a bearer token (`PAL_PUBLISH_TOKEN`):
 
@@ -282,7 +286,8 @@ jobs:
 - The run's summary prints the index URL, the public key and the
   `pal://registry/add?url=…&key=…` link, for a README.
 - **Yanking** a build: `pal-pack index <an empty dir> --merge index.json
-  --yank name@hash`, then sign and deploy that index as above.
+  --yank name@hash`, then sign and deploy that index as above. `--drop
+  a,b` instead takes extensions off the index altogether.
 - **Rotating the key:**
   1. Run with `next-key` set to the new public key: the index, signed by
      the old key, announces it.

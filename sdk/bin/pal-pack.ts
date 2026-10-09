@@ -12,7 +12,7 @@ const USAGE = `pal-pack build <dir>... [--out dist] [--cwd <root>] [--prefix P] 
     --prefix builds a copy staged at P/<name>, so the output's source paths read P/<name>/...
 pal-pack statements <dist>
     <dist>/<name>.statement per entry, for minisign -S -m
-pal-pack index <dist> --name <registry> --base <url> --out <dir> [--merge index.json] [--yank name@hash]... [--keep a,b] [--key KEY] [--next-key KEY]
+pal-pack index <dist> --name <registry> --base <url> --out <dir> [--merge index.json] [--yank name@hash]... [--keep a,b] [--drop a,b] [--key KEY] [--next-key KEY]
     <out>/index.json and <out>/pkg/<name>/<hash>.{tar.gz,json} from the signed entries
 pal-pack promote --from <index.json> --to <index.json> --out <index.json> [--names a,b] [--yank name@hash]...
     the newest good build of each (or each named) extension in --from added to --to
@@ -30,7 +30,7 @@ async function main(argv: string[]) {
       out: { type: "string" }, cwd: { type: "string" }, prefix: { type: "string" }, seq: { type: "string" }, commit: { type: "string" },
       "screenshots-base": { type: "string" }, "dir-only": { type: "boolean" },
       name: { type: "string" }, base: { type: "string" }, merge: { type: "string" }, yank: { type: "string", multiple: true },
-      keep: { type: "string" }, key: { type: "string" }, "next-key": { type: "string" },
+      keep: { type: "string" }, drop: { type: "string" }, key: { type: "string" }, "next-key": { type: "string" },
       from: { type: "string" }, to: { type: "string" }, names: { type: "string" },
       help: { type: "boolean", short: "h" },
     },
@@ -56,7 +56,7 @@ async function main(argv: string[]) {
       return;
     case "index": {
       if (pos.length !== 1) throw new Error(`index: one dist directory\n\n${USAGE}`);
-      const i = await writeIndex(pos[0], { name: need("name", v.name), base: need("base", v.base), out: need("out", v.out), merge: v.merge, yank: v.yank, keep: list(v.keep), key: v.key, nextKey: v["next-key"] });
+      const i = await writeIndex(pos[0], { name: need("name", v.name), base: need("base", v.base), out: need("out", v.out), merge: v.merge, yank: v.yank, keep: list(v.keep), drop: list(v.drop), key: v.key, nextKey: v["next-key"] });
       console.log(`${v.out}/index.json: ${i.extensions.length} extensions, ${i.extensions.reduce((n, e) => n + e.builds.length, 0)} builds`);
       return;
     }
