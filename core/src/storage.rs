@@ -136,7 +136,9 @@ impl Storage {
         if !changed {
             return Ok(out);
         }
-        let bytes = serde_json::to_vec_pretty(&*map).map_err(|e| Error::Io(e.to_string()))?;
+        // compact: pretty, the indentation and a line per value counted against the cap and halved it for an
+        // extension keeping arrays of numbers (Highway's ghosts filled it, and every write after was refused)
+        let bytes = serde_json::to_vec(&*map).map_err(|e| Error::Io(e.to_string()))?;
         if bytes.len() > LIMIT {
             *map = before;
             return Err(Error::Full { bytes: bytes.len(), limit: LIMIT });
@@ -323,6 +325,18 @@ mod tests {
         assert_eq!(s.keys("a").unwrap(), ["small"], "the map is as before");
         let on_disk: Map = serde_json::from_slice(&std::fs::read(dir.join("a.json")).unwrap()).unwrap();
         assert_eq!(on_disk.len(), 1, "the file is as before");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn the_cap_counts_the_data_not_its_layout() {
+        let dir = temp();
+        let s = Storage::open_in(&dir);
+        // ~150 kB of numbers compact, well over the cap pretty-printed (a line and an indent each)
+        let nums: Vec<f64> = (0..30_000).map(|i| i as f64 / 100.0).collect();
+        assert!(serde_json::to_vec_pretty(&json!({ "k": nums })).unwrap().len() > LIMIT);
+        s.set("a", "k", json!(nums)).unwrap();
+        assert!(std::fs::metadata(dir.join("a.json")).unwrap().len() as usize <= LIMIT);
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
