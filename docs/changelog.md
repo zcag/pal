@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.17.0 · 2026-10-15
+
+- **Flash games**: the Flash extension plays old Flash games in the panel through Ruffle, with saves kept in pal and synced to your account, and scores on the leaderboards. Its "Add the Flash games collection" follows a registry that asks for a password.
+- **Registries can ask for a password**: adding one asks for it, Settings keeps it in the keychain, and a machine that gets the registry through sync asks once. The password goes only to that registry's own server.
+- **Popovers grow taller**: a popover now grows to 720 px before it scrolls, up from 480.
+- **Fixed: a game's save could stop being written** once its storage looked full; the size is now counted on the compact file, which doubles the room for saves kept as lists of numbers, as Highway's ghosts are.
+
 ## 0.16.1 · 2026-10-09
 
 - **Emoji and icons stay below what you were looking for**: in search, Emoji, Icons, Unicode and the other big lists now show under every section that has the word you typed. `sync` lists your Home Assistant rows before the glyph named sync; when nothing else has the word, as with `smile`, the emoji still lead.
