@@ -324,6 +324,8 @@ export type LauncherProps = {
   onInstallMissing?: (extension: string, info: MissingInfo, from: MissingFrom) => Promise<void>;
   /** A palette was entered, by its `ext/palette` key (the usage counts, `usage_opened`). */
   onOpened?: (palette: string) => void;
+  /** The core's confirm card is up over the panel (App.tsx): the panel keeps its full height for it, as for the Launcher's own. */
+  asking?: boolean;
 };
 
 const haystack = (i: Item) => [i.name, i.subtitle, ...(i.keywords ?? [])].filter(Boolean).join(" ");
@@ -1433,7 +1435,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
 
   return (
     <Panel
-      fits={!card && !isShow && !isView && !isForm && !isGrid && !isMissing && !actionsOpen && !confirming}
+      fits={!card && !isShow && !isView && !isForm && !isGrid && !isMissing && !actionsOpen && !confirming && !props.asking}
       onFit={onPanelFit}
       place={extensionPlace ?? placeOf(levelIcon)}
       search={<Search value={query} onChange={setQuery} inputRef={input} back={back} args={argRow ? { fields: argRow.args!, values: argValues, invalid: argInvalid, onChange: setArg, firstRef: argFirst, onEscape: focus } : undefined} filter={filterSpec} listId={isShow || isView || isForm || isMissing ? undefined : LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} popup={isGrid ? "grid" : "listbox"} loading={loading} placeholder={placeholder} readOnly={isShow || isMissing} title={(isView && !viewInput) || isForm ? viewTitle : undefined} hint={compact ? primaryHint : undefined} onHint={compact ? onPrimary : undefined} count={compact ? (sel ? sel.items.length : undefined) : undefined} />}
