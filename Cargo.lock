@@ -3335,6 +3335,7 @@ dependencies = [
  "objc2-foundation",
  "pal-core",
  "percent-encoding",
+ "rpassword",
  "serde",
  "serde_json",
  "tauri",

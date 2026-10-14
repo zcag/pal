@@ -12,7 +12,7 @@ import { needsSetup, instancesOf, type SettingsExtension, type Screenshot } from
 import { relativeDate } from "./format";
 import type { Icon as IconSpec } from "./types";
 import { iconOf } from "../items";
-import type { Available, BuildInfo, Channel, LeftOver, Listing, Preview, RegistryStatus, Status, StoreState } from "../store";
+import type { Available, BuildInfo, Channel, Gate, LeftOver, Listing, Looked, Preview, RegistryStatus, Status, StoreState } from "../store";
 
 /** What the Extensions page can do with the store; Settings.tsx wires the core's commands, the gallery fakes them. Every call rejects with the reason. */
 export type ExtensionsStore = {
@@ -27,8 +27,11 @@ export type ExtensionsStore = {
   setDisabled: (name: string, disabled: boolean) => Promise<void>;
   /** Every registry fetched now. */
   refresh: () => Promise<void>;
-  previewRegistry: (url: string, key: string | null) => Promise<Preview>;
-  addRegistry: (url: string, key: string) => Promise<void>;
+  /** Looks a registry up; `password` for one that asks for it. */
+  previewRegistry: (url: string, key: string | null, password: string | null) => Promise<Looked>;
+  addRegistry: (url: string, key: string, password: string | null) => Promise<void>;
+  /** A followed registry's password, kept in the keychain; the registry is fetched again with it. */
+  setRegistryPassword: (name: string, password: string) => Promise<void>;
   removeRegistry: (name: string) => Promise<void>;
   setRegistry: (name: string, autoUpdate: boolean | null, channel: Channel | null) => Promise<void>;
   /** Drops the references and config tables of an extension that is not there. */
@@ -112,7 +115,7 @@ export function refsLine(refs: LeftOver["refs"]): string {
 
 // ---- Needs you --------------------------------------------------------------
 
-export type NeedFix = "open" | "setup" | "update" | "retry" | "install" | "forget" | "add" | "enable" | "remove" | "refresh" | "pal";
+export type NeedFix = "open" | "setup" | "update" | "retry" | "install" | "forget" | "add" | "enable" | "remove" | "refresh" | "password" | "pal";
 /** One Needs you row: whose, why in a line, and the fix (a leftover has two: Install and Forget). `open` says the row itself opens a page (the extension's, installed or listed). */
 export type Need = { id: string; name: string; title: string; icon?: IconSpec; tone: "bad" | "warn" | "update"; line: string; fixes: { kind: NeedFix; label: string }[]; registry?: string; open: boolean };
 
@@ -154,7 +157,9 @@ export function needsOf(rows: SettingsExtension[], all: SettingsExtension[], s: 
   for (const r of s.registries) {
     if (!r.last_error) continue;
     const since = r.last_ok ? `; last worked ${ago(r.last_ok)}` : "";
-    out.push({ id: `registry:${r.name}`, name: r.name, title: `${r.ours ? "pal's" : `The ${r.name}`} registry`, tone: "bad", line: `${cap(r.last_error)}${since}`, fixes: [{ kind: "refresh", label: "Retry" }], registry: r.name, open: false });
+    const title = `${r.ours ? "pal's" : `The ${r.name}`} registry`;
+    if (r.gate) out.push({ id: `registry:${r.name}`, name: r.name, title, tone: "warn", line: gateLine(r.gate), fixes: [{ kind: "password", label: "Enter password" }], registry: r.name, open: false });
+    else out.push({ id: `registry:${r.name}`, name: r.name, title, tone: "bad", line: `${cap(r.last_error)}${since}`, fixes: [{ kind: "refresh", label: "Retry" }], registry: r.name, open: false });
   }
   for (const l of s.leftovers) {
     const t = titled(l.name);
@@ -415,9 +420,13 @@ function SourceInstall({ run }: { run: (spec: string) => Promise<void> }) {
 
 const CHANNELS = [{ id: "stable", title: "Stable" }, { id: "edge", title: "Edge (every build)" }];
 
+/** A password challenge in a line: "Asks for a password. Ask Ada for it", or that the one given was not accepted. */
+export const gateLine = (g: Gate): string => `${g.refused ? "Its password was not accepted" : "Asks for a password"}${g.hint ? `. ${g.hint}` : ""}`;
+
 /** "12 extensions, checked 5 min ago", or why the last check failed and when it last worked. */
 export function registryLine(r: RegistryStatus, now = Date.now()): string {
   const count = plural(r.count, "extension");
+  if (r.gate) return gateLine(r.gate);
   if (r.last_error) return `${cap(r.last_error)}${r.last_ok ? `; last worked ${ago(r.last_ok, now)}` : ""}`;
   return r.last_checked ? `${count}, checked ${ago(r.last_checked, now)}` : `${count}, not checked yet`;
 }
@@ -445,7 +454,7 @@ export function Registries({ store }: { store: ExtensionsStore }) {
       </h2>
       <ul className="pal-xregs">
         {registries.map((r) => (
-          <li key={r.name} className="pal-xreg" data-failed={!!r.last_error || undefined} data-anchor={`extensions:registries:${r.name}`}>
+          <li key={r.name} className="pal-xreg" data-failed={(!!r.last_error && !r.gate) || undefined} data-gated={!!r.gate || undefined} data-anchor={`extensions:registries:${r.name}`}>
             <span className="pal-xreg__text">
               <b>{r.ours ? "pal" : r.name}</b>
               <code className="pal-xreg__url" title={r.url}>{r.url}</code>
@@ -457,6 +466,7 @@ export function Registries({ store }: { store: ExtensionsStore }) {
               <SettingsSwitch checked={r.auto_update} disabled={busy === r.name} onChange={(v) => run(r.name, () => store.setRegistry(r.name, v, null))} label={`Update ${r.name}'s extensions automatically`} />
             </label>
             {!r.ours && <ArmedButton label="Remove" arm="Its extensions stay, not updated. Click again" busy={busy === r.name ? "Removing…" : undefined} disabled={!!busy} onConfirm={() => run(r.name, () => store.removeRegistry(r.name))} aria-label={`Remove ${r.name}`} data-small />}
+            {!r.ours && (r.gate || r.auth) && <RegistryPassword name={r.name} asked={!!r.gate} busy={busy === r.name} onSave={(p) => run(r.name, () => store.setRegistryPassword(r.name, p))} />}
           </li>
         ))}
         {registries.length === 0 && <li className="pal-pane__none">{store.loaded ? "No registry is configured." : "Asking the core…"}</li>}
@@ -467,10 +477,27 @@ export function Registries({ store }: { store: ExtensionsStore }) {
   );
 }
 
-/** The add flow: a URL and the key, Look up fetches and verifies the index, the card says what it lists and whose key signs it, Add pins it. */
+/** A registry's password on its row: the field open when it asks for one, a Change button when it has one that works. */
+function RegistryPassword({ name, asked, busy, onSave }: { name: string; asked: boolean; busy: boolean; onSave: (password: string) => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  if (!asked && !open) return <button type="button" className="pal-button" data-small onClick={() => setOpen(true)} aria-label={`Change ${name}'s password`}>Change password</button>;
+  const save = (e: FormEvent) => { e.preventDefault(); if (!password.trim() || busy) return; onSave(password).then(() => { setPassword(""); setOpen(false); }); };
+  return (
+    <form className="pal-xreg__password" onSubmit={save} aria-label={`${name}'s password`}>
+      <input className="pal-inline" type="password" value={password} placeholder="Password" autoFocus={open} readOnly={busy} onChange={(e) => setPassword(e.target.value)} aria-label={`${name}'s password`} />
+      <button type="submit" className="pal-button" data-small data-primary disabled={busy || !password.trim()}>{busy ? "Checking…" : "Save"}</button>
+      {open && <button type="button" className="pal-button" data-small onClick={() => setOpen(false)}>Cancel</button>}
+    </form>
+  );
+}
+
+/** The add flow: a URL and the key, Look up fetches and verifies the index (asking for the password when the registry does), the card says what it lists and whose key signs it, Add pins it. */
 function AddRegistry({ store, onDone }: { store: ExtensionsStore; onDone: () => void }) {
   const [url, setUrl] = useState("");
   const [key, setKey] = useState("");
+  const [password, setPassword] = useState("");
+  const [gate, setGate] = useState<Gate | undefined>(undefined);
   const [preview, setPreview] = useState<Preview | undefined>(undefined);
   const [state, setState] = useState<{ kind: "idle" } | { kind: "busy" } | { kind: "error"; message: string }>({ kind: "idle" });
   const busy = state.kind === "busy";
@@ -478,12 +505,24 @@ function AddRegistry({ store, onDone }: { store: ExtensionsStore; onDone: () => 
     setState({ kind: "busy" });
     try { await f(); setState({ kind: "idle" }); } catch (e) { setState({ kind: "error", message: String(e) }); }
   };
-  const look = (e: FormEvent) => { e.preventDefault(); if (!url.trim() || busy) return; attempt(async () => setPreview(await store.previewRegistry(url.trim(), key.trim() || null))); };
-  const add = () => preview && attempt(async () => { await store.addRegistry(preview.url, preview.key); onDone(); });
+  const look = (e: FormEvent) => {
+    e.preventDefault();
+    if (!url.trim() || busy) return;
+    attempt(async () => {
+      const r = await store.previewRegistry(url.trim(), key.trim() || null, gate ? password : null);
+      if (r.kind === "password") { setGate(r); return; }
+      const { kind: _, ...found } = r;
+      setPreview(found);
+    });
+  };
+  const add = () => preview && attempt(async () => { await store.addRegistry(preview.url, preview.key, gate ? password : null); onDone(); });
+  const edited = () => { setPreview(undefined); setGate(undefined); setPassword(""); };
   return (
     <form className="pal-xregs__form" onSubmit={look} aria-label="Add a registry" aria-busy={busy}>
-      <label className="pal-instances__field"><span>URL</span><input className="pal-inline" type="url" autoFocus value={url} placeholder="https://example.github.io/pal/index.json" spellCheck={false} readOnly={busy} onChange={(e) => { setUrl(e.target.value); setPreview(undefined); }} /></label>
+      <label className="pal-instances__field"><span>URL</span><input className="pal-inline" type="url" autoFocus value={url} placeholder="https://example.github.io/pal/index.json" spellCheck={false} readOnly={busy} onChange={(e) => { setUrl(e.target.value); edited(); }} /></label>
       <label className="pal-instances__field"><span>Key</span><input className="pal-inline" type="text" value={key} placeholder="RWQ… (the public key on the registry's page)" spellCheck={false} readOnly={busy} onChange={(e) => { setKey(e.target.value); setPreview(undefined); }} /></label>
+      {gate && <label className="pal-instances__field"><span>Password</span><input className="pal-inline" type="password" autoFocus value={password} placeholder="This registry asks for one" readOnly={busy} onChange={(e) => { setPassword(e.target.value); setPreview(undefined); }} /></label>}
+      {gate && !preview && <p className="pal-instances__note" role="status">{gateLine(gate)}</p>}
       {preview && (
         <div className="pal-xregs__preview" role="status">
           <b>{preview.name}</b> lists {plural(preview.count, "extension")}, signed with key <code>{preview.key_id}</code>. Adding it trusts that key: its extensions update by themselves unless you turn that off for it here.
@@ -491,7 +530,7 @@ function AddRegistry({ store, onDone }: { store: ExtensionsStore; onDone: () => 
       )}
       {state.kind === "error" && <p className="pal-instances__note" data-error>{state.message}</p>}
       <div className="pal-button-row">
-        {preview ? <button type="button" className="pal-button" data-small data-primary disabled={busy} onClick={add}>{busy ? "Adding…" : `Add ${preview.name}`}</button> : <button type="submit" className="pal-button" data-small data-primary disabled={busy || !url.trim()}>{busy ? "Looking…" : "Look up"}</button>}
+        {preview ? <button type="button" className="pal-button" data-small data-primary disabled={busy} onClick={add}>{busy ? "Adding…" : `Add ${preview.name}`}</button> : <button type="submit" className="pal-button" data-small data-primary disabled={busy || !url.trim() || (!!gate && !password.trim())}>{busy ? "Looking…" : "Look up"}</button>}
         <button type="button" className="pal-button" data-small onClick={onDone}>Cancel</button>
       </div>
     </form>

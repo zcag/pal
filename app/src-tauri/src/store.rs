@@ -248,6 +248,21 @@ pub struct PreviewView {
     pub key_id: String,
 }
 
+impl std::convert::From<registry::Preview> for PreviewView {
+    fn from(p: registry::Preview) -> Self {
+        PreviewView { name: p.name, url: p.url, count: p.count, key_id: p.key_id.unwrap_or_default(), key: p.key }
+    }
+}
+
+/// What looking a registry up found: its index, or that it asks for a
+/// password first (docs/registry.md "A registry behind a password").
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum Looked {
+    Found(PreviewView),
+    Password(registry::Gate),
+}
+
 pub struct Service {
     /// Rebuilt when `[store]` or `extension_dirs` change (`apply_config`).
     manager: Mutex<Arc<Manager>>,
@@ -1289,30 +1304,38 @@ pub async fn store_set_disabled(app: AppHandle, name: String, disabled: bool) ->
     set_disabled(&app, &name, disabled, From::Settings).await
 }
 
+fn given(s: &Option<String>) -> Option<&str> {
+    s.as_deref().map(str::trim).filter(|k| !k.is_empty())
+}
+
 /// A registry fetched and checked before it is added: `key` pins it, else
-/// the key its index announces.
+/// the key its index announces; `password` for one that asks.
 #[tauri::command]
-pub async fn store_registry_preview(app: AppHandle, url: String, key: Option<String>) -> Result<PreviewView, String> {
-    preview(&app, url, key).await
+pub async fn store_registry_preview(app: AppHandle, url: String, key: Option<String>, password: Option<String>) -> Result<Looked, String> {
+    preview(&app, url, key, password).await
 }
 
-pub async fn preview(app: &AppHandle, url: String, key: Option<String>) -> Result<PreviewView, String> {
-    let p = blocking(app, move |_| registry::preview(url.trim(), key.as_deref().map(str::trim).filter(|k| !k.is_empty())).map_err(|e| e.to_string())).await?;
-    Ok(PreviewView { name: p.name, url: p.url, count: p.count, key_id: p.key_id.unwrap_or_default(), key: p.key })
+pub async fn preview(app: &AppHandle, url: String, key: Option<String>, password: Option<String>) -> Result<Looked, String> {
+    blocking(app, move |_| match registry::preview(url.trim(), given(&key), given(&password)) {
+        Ok(p) => Ok(Looked::Found(p.into())),
+        Err(registry::Error::Password { gate, .. }) => Ok(Looked::Password(gate)),
+        Err(e) => Err(e.to_string()),
+    })
+    .await
 }
 
 #[tauri::command]
-pub async fn store_registry_add(app: AppHandle, url: String, key: String) -> Result<(), String> {
-    registry_add(&app, url, Some(key)).await.map(|_| ())
+pub async fn store_registry_add(app: AppHandle, url: String, key: String, password: Option<String>) -> Result<(), String> {
+    registry_add(&app, url, Some(key), password).await.map(|_| ())
 }
 
 /// Follows the registry at `url`, its key pinned (`key`, else its index's),
-/// and fetches it.
-pub async fn registry_add(app: &AppHandle, url: String, key: Option<String>) -> Result<PreviewView, String> {
+/// its `password` kept when it asked for one, and fetches it.
+pub async fn registry_add(app: &AppHandle, url: String, key: Option<String>, password: Option<String>) -> Result<PreviewView, String> {
     let (u, k) = (url.clone(), key.clone());
     let p = blocking(app, move |m| {
-        let p = registry::preview(u.trim(), k.as_deref().map(str::trim).filter(|k| !k.is_empty())).map_err(|e| e.to_string())?;
-        m.add_registry(&p).map_err(text)?;
+        let p = registry::preview(u.trim(), given(&k), given(&password)).map_err(|e| e.to_string())?;
+        m.add_registry(&p, given(&password)).map_err(text)?;
         Ok(p)
     })
     .await?;
@@ -1320,7 +1343,33 @@ pub async fn registry_add(app: &AppHandle, url: String, key: Option<String>) -> 
     // The manager follows it from here (`apply_config`).
     settings::reload_now(app);
     refresh(app, ON_OPEN).await;
-    Ok(PreviewView { name: p.name, url: p.url, count: p.count, key_id: p.key_id.unwrap_or_default(), key: p.key })
+    Ok(p.into())
+}
+
+/// Follows a registry that asks for a password before it shows its index
+/// (a link's): named by its challenge's `realm`, `key` pinned, checked
+/// once the password is entered on its row in Settings.
+pub async fn registry_follow_gated(app: &AppHandle, url: String, key: String, realm: String) -> Result<(), String> {
+    let p = registry::Preview { name: realm, url: url.trim().to_string(), count: 0, key_id: registry::key_id(&key), key };
+    let name = p.name.clone();
+    blocking(app, move |m| m.add_registry(&p, None).map_err(text)).await?;
+    eprintln!("store\tregistry added\t{name}\twaits for its password");
+    settings::reload_now(app);
+    // Its challenge recorded, which is what puts the password field on its row.
+    refresh_soon(app);
+    Ok(())
+}
+
+/// A followed registry's password, kept in the keychain; the registry is
+/// fetched again with it at once.
+#[tauri::command]
+pub async fn store_registry_password(app: AppHandle, name: String, password: String) -> Result<(), String> {
+    let n = name.clone();
+    blocking(&app, move |m| m.set_registry_password(&n, &password).map_err(text)).await?;
+    eprintln!("store\tregistry password\t{name}");
+    settings::reload_now(&app);
+    refresh(&app, Duration::ZERO).await;
+    Ok(())
 }
 
 #[tauri::command]
@@ -1400,6 +1449,14 @@ pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String>
 mod tests {
     use super::*;
     use pal_core::registry::Listing;
+
+    #[test]
+    fn a_lookup_says_found_or_password_as_the_page_reads_it() {
+        let found = Looked::Found(PreviewView { name: "acme".into(), url: "u".into(), count: 2, key: "K".into(), key_id: "ID".into() });
+        assert_eq!(serde_json::to_value(found).unwrap(), json!({ "kind": "found", "name": "acme", "url": "u", "count": 2, "key": "K", "key_id": "ID" }));
+        let asked = Looked::Password(registry::Gate { realm: Some("flash".into()), hint: None, refused: false });
+        assert_eq!(serde_json::to_value(asked).unwrap(), json!({ "kind": "password", "realm": "flash", "hint": null, "refused": false }));
+    }
 
     fn set(names: &[&str]) -> BTreeSet<String> {
         names.iter().map(|s| s.to_string()).collect()

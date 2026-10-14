@@ -309,6 +309,44 @@ index itself announces (`key`), which proves only that whoever serves the
 index holds its secret, not that the index is the one you meant.
 `pal registry add <url>` and a link with `url` alone still work that way.
 
+## A registry behind a password
+
+A registry may ask for a password before it answers. Its index request
+gets
+
+```
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Bearer realm="acme", hint="Ask Ada for the password"
+```
+
+`realm` is the registry's name; `hint` (optional, one short line) is shown
+under the password field. The app asks for the password and sends it as
+`Authorization: Bearer <password>` on the index, its `.minisig` and every
+package or manifest URL **on the index's origin** (scheme, host and port).
+A URL on another origin gets no header, and neither does a redirect, so a
+password never reaches a server it was not given to; screenshots are drawn by the app's page
+without it, so serve those openly or not at all.
+
+- **No password sent, or the one sent not accepted** (wrong, or revoked
+  later): `401`. A `403` is read the same way. The app records it as the
+  registry's error, Settings shows the password field on its row, and the
+  extensions installed from it stay as they are, without updates, until a
+  password is accepted.
+- **Accepted:** the index as anywhere else. The password changes nothing
+  about trust: the index and every build are still checked against the
+  pinned key.
+
+`pal registry add` and a `pal://registry/add` link that meet a `401` ask
+for the password (`pal registry add --password-stdin` reads it from a
+pipe). It is kept in the OS keychain; the config holds only the reference,
+`auth = "keychain:pal/registry-<name>"` in the registry's table, which
+syncs like any other secret setting's: a machine that gets the registry
+through sync asks for the password once.
+
+Give each person their own password rather than one shared one, so that
+taking one back does not lock everyone out. Hand them out together with
+the URL and key, e.g. in a `pal://registry/add?url=…&key=…` link.
+
 ## Calls the app makes to pal.cagdas.io
 
 Every request carries `User-Agent: pal/<version> (<os>; <arch>)`, and

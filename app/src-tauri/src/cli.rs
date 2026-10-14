@@ -406,6 +406,16 @@ pub enum RegistryCmd {
         /// Do not ask.
         #[arg(long)]
         yes: bool,
+        /// For a registry that asks for a password: read it from the first line of stdin rather than asking.
+        #[arg(long)]
+        password_stdin: bool,
+    },
+    /// Enter (or replace) the password of a registry that asks for one; kept in the keychain.
+    Password {
+        name: String,
+        /// Read it from the first line of stdin rather than asking.
+        #[arg(long)]
+        password_stdin: bool,
     },
     /// Stop following a registry; its extensions stay installed and are no longer updated.
     Remove { name: String },
@@ -667,19 +677,8 @@ impl Cmd {
                 }
                 Ok(false)
             }
-            Cmd::Registry { cmd: RegistryCmd::Add { url, key, yes } } => pal_core::registry::preview(url, key.as_deref()).map_err(|e| e.to_string()).and_then(|p| {
-                println!("registry\t{}\nurl\t{}\nlists\t{} extensions\nkey\t{} ({})", p.name, p.url, p.count, p.key, p.key_id.as_deref().unwrap_or("?"));
-                println!("Its extensions update by themselves unless you turn that off for it (auto_update = false).");
-                if !*yes && !confirm(&format!("Follow {} and trust this key?", p.name)) {
-                    return Err("not added".into());
-                }
-                m.add_registry(&p).map_err(text)?;
-                // The config now lists it: fetch it into the cache.
-                let regs = pal_core::registry::Registries::from_config(&pal_core::config::ConfigFile::locate().load().config.store);
-                regs.refresh(&p.name).map_err(|e| e.to_string())?;
-                println!("added {}", p.name);
-                Ok(false)
-            }),
+            Cmd::Registry { cmd: RegistryCmd::Add { url, key, yes, password_stdin } } => registry_add(&m, url, key.as_deref(), *yes, *password_stdin),
+            Cmd::Registry { cmd: RegistryCmd::Password { name, password_stdin } } => registry_password(&m, name, *password_stdin),
             Cmd::Registry { cmd: RegistryCmd::Remove { name } } => m.remove_registry(name).map_err(text).map(|()| {
                 println!("removed registry {name}; its extensions stay installed and are no longer updated");
                 false
@@ -899,6 +898,62 @@ fn state_text(s: &pal_core::updates::State) -> String {
     }
 }
 
+/// `pal registry add`: the index looked up (asking for the password when
+/// it asks for one), shown, confirmed, followed and fetched.
+fn registry_add(m: &pal_core::manage::Manager, url: &str, key: Option<&str>, yes: bool, password_stdin: bool) -> Result<bool, String> {
+    let mut password = password_stdin.then(stdin_line);
+    let mut asked = 0;
+    let p = loop {
+        match pal_core::registry::preview(url, key, password.as_deref()) {
+            Err(pal_core::registry::Error::Password { gate, .. }) if !password_stdin && asked < 3 => {
+                password = Some(ask_password(gate.realm.as_deref().unwrap_or(url), &gate)?);
+                asked += 1;
+            }
+            r => break r.map_err(|e| e.to_string())?,
+        }
+    };
+    println!("registry\t{}\nurl\t{}\nlists\t{} extensions\nkey\t{} ({})", p.name, p.url, p.count, p.key, p.key_id.as_deref().unwrap_or("?"));
+    println!("Its extensions update by themselves unless you turn that off for it (auto_update = false).");
+    if !yes && !confirm(&format!("Follow {} and trust this key?", p.name)) {
+        return Err("not added".into());
+    }
+    m.add_registry(&p, password.as_deref()).map_err(|e| e.to_string())?;
+    // The config now lists it: fetch it into the cache.
+    let regs = pal_core::registry::Registries::from_config(&pal_core::config::ConfigFile::locate().load().config.store);
+    regs.refresh(&p.name).map_err(|e| e.to_string())?;
+    println!("added {}", p.name);
+    Ok(false)
+}
+
+/// `pal registry password`: kept in the keychain, then the registry fetched with it.
+fn registry_password(m: &pal_core::manage::Manager, name: &str, password_stdin: bool) -> Result<bool, String> {
+    let gate = m.registries.status().into_iter().find(|r| r.name == name).and_then(|r| r.gate).unwrap_or_default();
+    let password = if password_stdin { stdin_line() } else { ask_password(name, &gate)? };
+    m.set_registry_password(name, &password).map_err(|e| e.to_string())?;
+    let regs = pal_core::registry::Registries::from_config(&pal_core::config::ConfigFile::locate().load().config.store);
+    regs.refresh(name).map_err(|e| e.to_string())?;
+    println!("{name} accepted the password");
+    Ok(false)
+}
+
+/// The first line of stdin, without its line ending.
+fn stdin_line() -> String {
+    let mut line = String::new();
+    let _ = std::io::stdin().read_line(&mut line);
+    line.trim_end_matches(['\r', '\n']).to_string()
+}
+
+/// A registry's password, typed without echo; the hint its challenge gave first.
+fn ask_password(name: &str, gate: &pal_core::registry::Gate) -> Result<String, String> {
+    if gate.refused {
+        eprintln!("{name} did not accept that password");
+    }
+    if let Some(h) = &gate.hint {
+        eprintln!("{name}: {h}");
+    }
+    rpassword::prompt_password(format!("Password for {name}: ")).map_err(|e| format!("could not read the password: {e}"))
+}
+
 /// `question [y/N]` on stderr, the answer from stdin.
 fn confirm(question: &str) -> bool {
     use std::io::Write;
@@ -1001,7 +1056,9 @@ mod tests {
         assert_eq!(cmd(&["update", "a", "b"]), Cmd::Update { names: vec!["a".into(), "b".into()], all: false });
         assert_eq!(cmd(&["update", "--all"]), Cmd::Update { names: vec![], all: true });
         assert!(Cli::try_parse_from(["pal", "update", "a", "--all"]).is_err());
-        assert_eq!(cmd(&["registry", "add", "https://a/index.json", "--yes"]), Cmd::Registry { cmd: RegistryCmd::Add { url: "https://a/index.json".into(), key: None, yes: true } });
+        assert_eq!(cmd(&["registry", "add", "https://a/index.json", "--yes"]), Cmd::Registry { cmd: RegistryCmd::Add { url: "https://a/index.json".into(), key: None, yes: true, password_stdin: false } });
+        assert_eq!(cmd(&["registry", "add", "https://a/index.json", "--password-stdin"]), Cmd::Registry { cmd: RegistryCmd::Add { url: "https://a/index.json".into(), key: None, yes: false, password_stdin: true } });
+        assert_eq!(cmd(&["registry", "password", "acme"]), Cmd::Registry { cmd: RegistryCmd::Password { name: "acme".into(), password_stdin: false } });
         assert_eq!(cmd(&["registry", "remove", "acme"]), Cmd::Registry { cmd: RegistryCmd::Remove { name: "acme".into() } });
         assert_eq!(cmd(&["disable", "hue"]), Cmd::Disable { name: "hue".into() });
         assert_eq!(cmd(&["enable", "hue"]), Cmd::Enable { name: "hue".into() });

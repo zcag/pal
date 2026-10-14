@@ -33,7 +33,9 @@ export type Status = { name: string; origin: Origin; registry?: string | null; i
 );
 export type Channel = "stable" | "edge";
 /** `last_checked` and `last_ok` are unix seconds. */
-export type RegistryStatus = { name: string; url: string; channel: Channel; auto_update: boolean; key: string; count: number; generated_at?: string | null; last_checked?: number | null; last_ok?: number | null; last_error?: string | null; ours: boolean };
+export type RegistryStatus = { name: string; url: string; channel: Channel; auto_update: boolean; key: string; count: number; generated_at?: string | null; last_checked?: number | null; last_ok?: number | null; last_error?: string | null; auth?: boolean; gate?: Gate | null; ours: boolean };
+/** A registry asking for a password (docs/registry.md): the name and hint its challenge gave, and whether one was sent and refused. */
+export type Gate = { realm?: string | null; hint?: string | null; refused: boolean };
 export type Available = { name: string; registry: string; listing: Listing; installed: boolean; bundled: boolean; installable: boolean; blocked?: string; build?: BuildInfo };
 export type Pending = { name: string; registry: string; error?: string; since: number };
 export type RolledBack = { name: string; hash: string; error: string; at: number };
@@ -47,6 +49,8 @@ export type StoreState = {
 };
 export type OpResult = { name: string; ok: boolean; loaded?: boolean; error?: string };
 export type Preview = { name: string; url: string; count: number; key: string; key_id: string };
+/** A registry looked up: its index, or that it asks for a password first. */
+export type Looked = ({ kind: "found" } & Preview) | ({ kind: "password" } & Gate);
 export type From = "store" | "settings" | "search" | "games" | "welcome" | "web" | "deeplink" | "migration" | "reconcile" | "auto" | "cli";
 
 /** What a page shows before the core answered, and what a partial answer is filled out to: nothing known, nothing claimed. */
@@ -67,8 +71,9 @@ export const store = {
   update: (names: string[], from: From) => invoke<OpResult[]>("store_update", { names, from }),
   remove: (name: string, forget: boolean) => invoke<OpResult>("store_remove", { name, forget }),
   setDisabled: (name: string, disabled: boolean) => invoke<void>("store_set_disabled", { name, disabled }),
-  registryPreview: (url: string, key: string | null) => invoke<Preview>("store_registry_preview", { url, key }),
-  registryAdd: (url: string, key: string) => invoke<void>("store_registry_add", { url, key }),
+  registryPreview: (url: string, key: string | null, password: string | null) => invoke<Looked>("store_registry_preview", { url, key, password }),
+  registryAdd: (url: string, key: string, password: string | null) => invoke<void>("store_registry_add", { url, key, password }),
+  registryPassword: (name: string, password: string) => invoke<void>("store_registry_password", { name, password }),
   registryRemove: (name: string) => invoke<void>("store_registry_remove", { name }),
   registrySet: (name: string, autoUpdate: boolean | null, channel: Channel | null) => invoke<void>("store_registry_set", { name, autoUpdate, channel }),
   forgetLeftover: (name: string) => invoke<void>("store_forget_leftover", { name }),

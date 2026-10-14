@@ -38,6 +38,8 @@ base64 = "0.22"
 # `pal://` links (deeplink.rs); percent-encoding decodes their parts
 tauri-plugin-deep-link = "2"
 percent-encoding = "2"
+# `pal registry add` and `pal registry password`: a password typed without echo
+rpassword = "7"
 # pick: the CLI's SIGINT handler unlinks its reply socket before exiting 130 (pick.rs)
 libc = "0.2"
 # states: `pal state watch` follows the feed file (states.rs)

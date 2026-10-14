@@ -65,6 +65,9 @@ impl ConfigFile {
             if let Some(c) = r.channel {
                 t["channel"] = toml_edit::value(c.as_str());
             }
+            if let Some(a) = &r.auth {
+                t["auth"] = toml_edit::value(a.as_str());
+            }
             let at = regs.iter().position(|t| name_of(t) == Some(&r.name));
             match at {
                 Some(i) => *regs.get_mut(i).expect("found") = t,
@@ -91,6 +94,16 @@ impl ConfigFile {
         self.edit(|doc| {
             if let Some(t) = registries(doc)?.iter_mut().find(|t| name_of(t) == Some(name)) {
                 t["key"] = toml_edit::value(key);
+            }
+            Ok(())
+        })
+    }
+
+    /// Sets a registry's `auth` reference (its password's place in the keychain).
+    pub fn store_set_registry_auth(&self, name: &str, auth: &str) -> Result<(), Error> {
+        self.edit(|doc| {
+            if let Some(t) = registries(doc)?.iter_mut().find(|t| name_of(t) == Some(name)) {
+                t["auth"] = toml_edit::value(auth);
             }
             Ok(())
         })

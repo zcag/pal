@@ -181,24 +181,51 @@ impl Manager {
         Ok(())
     }
 
-    /// Follows the registry `preview` checked, pinning its key. Its name
-    /// must be new and not ours.
-    pub fn add_registry(&self, preview: &Preview) -> Result<()> {
+    /// Follows the registry `preview` checked, pinning its key, with the
+    /// `password` it asked for kept in the keychain. Its name must be new
+    /// and not ours.
+    pub fn add_registry(&self, preview: &Preview, password: Option<&str>) -> Result<()> {
         if preview.name == PAL || !crate::extensions::safe_name(&preview.name) || self.registries.source(&preview.name).is_some() {
             return Err(Error::Manifest(format!("a registry named {:?} is already followed or not allowed", preview.name)));
         }
-        self.config.store_add_registry(&RegistryConfig { name: preview.name.clone(), url: preview.url.clone(), key: preview.key.clone(), ..Default::default() })?;
+        let auth = password.filter(|p| !p.trim().is_empty()).map(|p| self.keep_password(&preview.name, p)).transpose()?;
+        self.config.store_add_registry(&RegistryConfig { name: preview.name.clone(), url: preview.url.clone(), key: preview.key.clone(), auth, ..Default::default() })?;
         Ok(())
     }
 
-    /// Stops following `name` (never ours) and drops its cache. Its
-    /// extensions stay installed and are reported as no longer listed.
+    /// A followed registry's password: into the keychain, its reference
+    /// into the config. Checked at its next fetch.
+    pub fn set_registry_password(&self, name: &str, password: &str) -> Result<()> {
+        if name == PAL || self.config.load().config.store.registries.iter().all(|r| r.name != name) {
+            return Err(Error::Manifest(format!("no registry named {name:?} is followed")));
+        }
+        if password.trim().is_empty() {
+            return Err(Error::Manifest("the password is empty".into()));
+        }
+        let auth = self.keep_password(name, password)?;
+        self.config.store_set_registry_auth(name, &auth)?;
+        Ok(())
+    }
+
+    fn keep_password(&self, registry: &str, password: &str) -> Result<String> {
+        let key = password_key(registry);
+        self.registries.secrets().set(&key, password.trim()).map_err(|e| Error::Manifest(format!("could not keep the password: {e}")))?;
+        Ok(format!("keychain:{key}"))
+    }
+
+    /// Stops following `name` (never ours) and drops its cache and the
+    /// password pal kept for it. Its extensions stay installed and are
+    /// reported as no longer listed.
     pub fn remove_registry(&self, name: &str) -> Result<()> {
         if name == PAL {
             return Err(Error::Manifest("pal's own registry cannot be removed".into()));
         }
+        let kept = self.config.load().config.store.registries.iter().any(|r| r.name == name && r.auth.as_deref() == Some(&format!("keychain:{}", password_key(name))));
         self.config.store_remove_registry(name)?;
         self.registries.forget(name);
+        if kept {
+            let _ = self.registries.secrets().delete(&password_key(name));
+        }
         Ok(())
     }
 
@@ -223,20 +250,31 @@ impl Manager {
     }
 }
 
+/// Where pal keeps a registry's password: `keychain:pal/registry-<name>`.
+fn password_key(registry: &str) -> String {
+    format!("pal/registry-{registry}")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::secrets::{MemStore, SecretStore};
     use crate::extensions::tests::Fixture;
     use crate::registry::tests::index_json;
     use crate::registry::Source;
     use crate::testutil::Signer;
     use std::collections::{BTreeMap, BTreeSet};
+    use std::sync::Arc;
 
     fn manager(tmp: &Path, sources: Vec<Source>) -> Manager {
+        manager_with(tmp, sources, Arc::new(MemStore::default()))
+    }
+
+    fn manager_with(tmp: &Path, sources: Vec<Source>, secrets: Arc<MemStore>) -> Manager {
         let usage = Usage::at(tmp.join("data"));
         usage.set_enabled(true).unwrap();
         let inputs = Inputs { bundled: BTreeMap::from([("calc".into(), None)]), local: BTreeSet::new() };
-        Manager { store: Store::at(tmp.join("data/extensions")), registries: Registries::new(tmp.join("cache"), sources), config: ConfigFile::new(tmp.join("config.toml")), inputs, usage }
+        Manager { store: Store::at(tmp.join("data/extensions")), registries: Registries::new(tmp.join("cache"), sources).with_secrets(secrets), config: ConfigFile::new(tmp.join("config.toml")), inputs, usage }
     }
 
     fn queued(m: &Manager) -> Vec<Event> {
@@ -318,12 +356,12 @@ mod tests {
         let mut acme = Fixture::new("acme");
         let b = acme.build("todo", "x", 1, 1, None);
         acme.list("todo", vec![b], None);
-        let p = registry::preview(&acme.source().url, Some(&acme.key.public)).unwrap();
+        let p = registry::preview(&acme.source().url, Some(&acme.key.public), None).unwrap();
         let m = manager(tmp.path(), vec![]);
-        m.add_registry(&p).unwrap();
+        m.add_registry(&p, None).unwrap();
         let c = m.config.load().config;
         assert_eq!((c.store.registries[0].name.as_str(), c.store.registries[0].key.as_str()), ("acme", acme.key.public.as_str()));
-        assert!(m.add_registry(&Preview { name: PAL.into(), ..p.clone() }).is_err(), "never a second pal");
+        assert!(m.add_registry(&Preview { name: PAL.into(), ..p.clone() }, None).is_err(), "never a second pal");
 
         // Followed as the config says; a signed rotation lands in the config.
         let m = manager(tmp.path(), registry::sources(&c.store).into_iter().filter(|s| !s.is_ours()).collect());
@@ -343,5 +381,70 @@ mod tests {
         assert!(m.remove_registry(PAL).is_err());
         m.remove_registry("acme").unwrap();
         assert!(m.config.load().config.store.registries.is_empty());
+    }
+
+    #[test]
+    fn a_registry_behind_a_password() {
+        let tmp = tempfile::tempdir().unwrap();
+        let (mut acme, cdn) = (Fixture::new("acme"), Fixture::new("cdn"));
+        let here = acme.build("todo", "x", 1, 1, None);
+        let elsewhere = cdn.build("notes", "y", 1, 1, Some(&acme.key));
+        acme.list("todo", vec![here], None);
+        acme.list("notes", vec![elsewhere], None);
+        acme.server.header(r#"WWW-Authenticate: Bearer realm="acme", hint="Ask Ada""#);
+        acme.server.handle(|r| match r.headers.get("authorization").map(String::as_str) {
+            Some("Bearer s3cret") => None,
+            Some(_) => Some((403, Vec::new())),
+            None => Some((401, Vec::new())),
+        });
+        let url = acme.source().url;
+        let gate = |r: registry::Result<Preview>| match r {
+            Err(registry::Error::Password { gate, .. }) => (gate.realm.unwrap_or_default(), gate.hint.unwrap_or_default(), gate.refused),
+            r => panic!("{r:?}"),
+        };
+        assert_eq!(gate(registry::preview(&url, Some(&acme.key.public), None)), ("acme".into(), "Ask Ada".into(), false));
+        assert_eq!(gate(registry::preview(&url, Some(&acme.key.public), Some("nope"))), ("acme".into(), "Ask Ada".into(), true));
+        let p = registry::preview(&url, Some(&acme.key.public), Some("s3cret")).unwrap();
+
+        let secrets = Arc::new(MemStore::default());
+        manager_with(tmp.path(), vec![], secrets.clone()).add_registry(&p, Some("s3cret")).unwrap();
+        let c = ConfigFile::new(tmp.path().join("config.toml")).load().config;
+        assert_eq!(c.store.registries[0].auth.as_deref(), Some("keychain:pal/registry-acme"));
+        assert_eq!(secrets.get("pal/registry-acme").unwrap(), "s3cret");
+        assert!(!std::fs::read_to_string(tmp.path().join("config.toml")).unwrap().contains("s3cret"), "only the reference is written");
+
+        let followed = |secrets: &Arc<MemStore>| manager_with(tmp.path(), registry::sources(&ConfigFile::new(tmp.path().join("config.toml")).load().config.store).into_iter().filter(|s| !s.is_ours()).collect(), secrets.clone());
+        let m = followed(&secrets);
+        assert!(m.refresh().iter().all(|(_, r)| r.is_ok()));
+        assert_eq!(m.registries.status()[0].gate, None);
+        m.install("todo", None, From::Cli).unwrap();
+        m.install("notes", None, From::Cli).unwrap();
+        let auth_of = |s: &crate::testutil::Server, at: &str| s.requests.lock().unwrap().iter().filter(|r| r.path.starts_with(at)).map(|r| r.headers.get("authorization").cloned()).collect::<Vec<_>>();
+        assert_eq!(auth_of(&acme.server, "/pkg/"), vec![Some("Bearer s3cret".to_string())]);
+        assert_eq!(auth_of(&acme.server, "/acme/").last(), Some(&Some("Bearer s3cret".to_string())), "the index and its signature");
+        assert_eq!(auth_of(&cdn.server, "/"), vec![None], "a package on another origin never gets the password");
+
+        secrets.set("pal/registry-acme", "old").unwrap();
+        acme.publish();
+        let r = m.refresh();
+        assert!(matches!(&r[0].1, Err(registry::Error::Password { gate, .. }) if gate.refused), "{r:?}");
+        let st = &m.registries.status()[0];
+        assert_eq!((st.gate.clone(), st.auth), (Some(registry::Gate { realm: Some("acme".into()), hint: Some("Ask Ada".into()), refused: true }), true));
+        assert!(m.store.get("todo").is_ok(), "what is installed stays");
+
+        m.set_registry_password("acme", "s3cret").unwrap();
+        assert!(m.refresh()[0].1.is_ok());
+        assert_eq!(m.registries.status()[0].gate, None);
+        assert!(m.set_registry_password("nobody", "x").is_err() && m.set_registry_password(PAL, "x").is_err());
+
+        secrets.delete("pal/registry-acme").unwrap();
+        let m = followed(&secrets);
+        acme.publish();
+        assert!(m.refresh()[0].1.is_err());
+        assert_eq!(m.registries.status()[0].gate.as_ref().map(|g| g.refused), Some(false), "a machine without it is asked, not told it was wrong");
+
+        m.set_registry_password("acme", "s3cret").unwrap();
+        m.remove_registry("acme").unwrap();
+        assert!(secrets.get("pal/registry-acme").is_err(), "the password goes with the registry");
     }
 }

@@ -480,14 +480,15 @@ impl Store {
                 None => Error::NoBuild(name.into()),
             });
         };
-        self.install_build(src, &regs.build_keys(src), &entry, build)
+        self.install_build(src, &regs.build_keys(src), regs.auth(src).as_ref(), &entry, build)
     }
 
     /// Installs (or replaces with) one build of `entry` from `src`, whose
-    /// statements verify against `keys` (`Registries::build_keys`). The
+    /// statements verify against `keys` (`Registries::build_keys`), its
+    /// package fetched with `auth` (`Registries::auth`) when it has one. The
     /// checks, in order: protocol, statement signature, download, tree
     /// hash, manifest name. Nothing in the store changes unless all pass.
-    pub fn install_build(&self, src: &Source, keys: &[String], entry: &Entry, build: &Build) -> Result<Installed> {
+    pub fn install_build(&self, src: &Source, keys: &[String], auth: Option<&registry::Auth>, entry: &Entry, build: &Build) -> Result<Installed> {
         let name = entry.name.as_str();
         let fail = |why: String| Error::Verify(name.into(), why);
         if !safe_name(name) {
@@ -498,7 +499,7 @@ impl Store {
         }
         let statement = registry::statement(name, &build.hash, build.seq, build.protocol);
         registry::verify(statement.as_bytes(), &build.sig, keys).map_err(|why| fail(format!("the build's signature does not verify against {}'s key ({why})", src.name)))?;
-        let bytes = download(&build.url)?;
+        let bytes = download(&build.url, auth)?;
         let _lock = self.lock()?;
         std::fs::create_dir_all(&self.dir).map_err(io(&self.dir))?;
         let stage = tempfile::Builder::new().prefix("stage-").tempdir_in(self.staging()).map_err(io(self.staging()))?;
@@ -741,9 +742,11 @@ fn copy_tree(from: &Path, to: &Path) -> Result<()> {
 }
 
 /// A registry package's bytes, capped.
-fn download(url: &str) -> Result<Vec<u8>> {
-    let agent = crate::net::agent(DOWNLOAD_TIMEOUT);
-    let mut resp = crate::net::get(&agent, url).call().map_err(|e| Error::Download(format!("{url}: {e}")))?;
+fn download(url: &str, auth: Option<&registry::Auth>) -> Result<Vec<u8>> {
+    let mut resp = registry::send(url, None, auth, DOWNLOAD_TIMEOUT).map_err(|e| Error::Download(match e {
+        registry::Error::Network(_, why) => why,
+        e => format!("{url}: {e}"),
+    }))?;
     let mut bytes = Vec::new();
     resp.body_mut().as_reader().take(MAX_TARBALL + 1).read_to_end(&mut bytes).map_err(|e| Error::Download(e.to_string()))?;
     if bytes.len() as u64 > MAX_TARBALL {
@@ -830,7 +833,7 @@ fn github_sha(owner: &str, repo: &str, reference: Option<&str>) -> Option<String
 /// unpacked to (`<repo>-<ref>/`, whatever GitHub named it).
 fn download_github(owner: &str, repo: &str, reference: Option<&str>, into: &Path) -> Result<PathBuf> {
     let url = format!("https://codeload.github.com/{owner}/{repo}/tar.gz/{}", reference.unwrap_or("HEAD"));
-    unpack(&download(&url)?, into)
+    unpack(&download(&url, None)?, into)
 }
 
 /// A gzipped source tarball into `into`; returns its single top-level
@@ -940,7 +943,7 @@ pub(crate) mod tests {
         }
 
         pub fn source(&self) -> Source {
-            Source { name: self.name.clone(), url: self.server.url(&format!("/{}/index.json", self.name)), key: Some(self.key.public.clone()), channel: Channel::Stable, auto_update: true }
+            Source { name: self.name.clone(), url: self.server.url(&format!("/{}/index.json", self.name)), key: Some(self.key.public.clone()), channel: Channel::Stable, auto_update: true, auth: None }
         }
 
         /// A package for `ext` with `body` in its index.js, as a build
@@ -1005,7 +1008,7 @@ pub(crate) mod tests {
         let src = fx.source();
         let entry: Entry = serde_json::from_value(serde_json::json!({ "name": "todo", "builds": [b2.clone()] })).unwrap();
         let build: Build = serde_json::from_value(b2).unwrap();
-        store.install_build(&src, &regs.build_keys(&src), &entry, &build).unwrap();
+        store.install_build(&src, &regs.build_keys(&src), None, &entry, &build).unwrap();
         assert_eq!(std::fs::read_to_string(store.dir().join("todo/index.js")).unwrap(), "two");
         assert_eq!(std::fs::read_to_string(store.previous("todo").join("index.js")).unwrap(), "one");
 
@@ -1036,15 +1039,15 @@ pub(crate) mod tests {
 
         // Signed by someone else.
         let b = as_build(fx.build("todo", "x", 1, 1, Some(&Signer::new())));
-        refused(store.install_build(&src, &keys, &entry("todo"), &b), "a stranger's signature");
+        refused(store.install_build(&src, &keys, None, &entry("todo"), &b), "a stranger's signature");
         // A good statement over a different hash than the package has.
         let mut b = as_build(fx.build("todo", "x", 1, 1, None));
         let other = as_build(fx.build("todo", "y", 1, 1, None));
         b.url = other.url.clone();
-        refused(store.install_build(&src, &keys, &entry("todo"), &b), "hash mismatch");
+        refused(store.install_build(&src, &keys, None, &entry("todo"), &b), "hash mismatch");
         // Relisted under another name: the statement names the original.
         let b = as_build(fx.build("todo", "x", 1, 1, None));
-        refused(store.install_build(&src, &keys, &entry("evil"), &b), "renamed entry");
+        refused(store.install_build(&src, &keys, None, &entry("evil"), &b), "renamed entry");
         // Signed for its name, but the package's pal.json says otherwise.
         let manifest = r#"{"name":"other"}"#;
         let files = [("pal.json", manifest, false)];
@@ -1052,10 +1055,10 @@ pub(crate) mod tests {
         fx.server.ok("/pkg/bad.tar.gz", pack("todo", &files));
         let sig = fx.key.sign(registry::statement("todo", &hash, 1, 1).as_bytes());
         let b = Build { hash, seq: 1, protocol: 1, commit: String::new(), url: fx.server.url("/pkg/bad.tar.gz"), manifest: String::new(), size: None, sig, yanked: false };
-        refused(store.install_build(&src, &keys, &entry("todo"), &b), "manifest name mismatch");
+        refused(store.install_build(&src, &keys, None, &entry("todo"), &b), "manifest name mismatch");
         // A protocol this app does not run.
         let b = as_build(fx.build("todo", "x", 1, registry::PROTOCOL + 1, None));
-        refused(store.install_build(&src, &keys, &entry("todo"), &b), "too new");
+        refused(store.install_build(&src, &keys, None, &entry("todo"), &b), "too new");
     }
 
     #[test]

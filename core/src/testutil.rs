@@ -31,6 +31,7 @@ pub struct Server {
     pub base: String,
     routes: Arc<Mutex<HashMap<String, Route>>>,
     handler: Arc<Mutex<Option<Handler>>>,
+    headers: Arc<Mutex<Vec<String>>>,
     pub requests: Arc<Mutex<Vec<Request>>>,
 }
 
@@ -38,7 +39,7 @@ impl Server {
     pub fn start() -> Server {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let base = format!("http://{}", listener.local_addr().unwrap());
-        let server = Server { base, routes: Arc::default(), handler: Arc::default(), requests: Arc::default() };
+        let server = Server { base, routes: Arc::default(), handler: Arc::default(), headers: Arc::default(), requests: Arc::default() };
         let s = server.clone();
         std::thread::spawn(move || {
             for stream in listener.incoming().flatten() {
@@ -64,6 +65,11 @@ impl Server {
     /// Every request goes to `f` first.
     pub fn handle(&self, f: impl Fn(&Request) -> Option<(u16, Vec<u8>)> + Send + 'static) {
         *self.handler.lock().unwrap() = Some(Box::new(f));
+    }
+
+    /// A header line (`Name: value`) on every response from now on.
+    pub fn header(&self, line: &str) {
+        self.headers.lock().unwrap().push(line.to_string());
     }
 
     pub fn requests_to(&self, path: &str) -> Vec<Request> {
@@ -101,7 +107,8 @@ impl Server {
             (None, None) => (404, b"not found".to_vec(), None),
         };
         let etag = etag.map(|e| format!("ETag: {e}\r\n")).unwrap_or_default();
-        write!(stream, "HTTP/1.1 {status} X\r\nContent-Length: {}\r\n{etag}Connection: close\r\n\r\n", body.len())?;
+        let extra: String = self.headers.lock().unwrap().iter().map(|h| format!("{h}\r\n")).collect();
+        write!(stream, "HTTP/1.1 {status} X\r\nContent-Length: {}\r\n{etag}{extra}Connection: close\r\n\r\n", body.len())?;
         stream.write_all(&body)?;
         stream.flush()
     }

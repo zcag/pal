@@ -534,6 +534,7 @@ always first):
 | `key` | string | | The minisign public key its index and builds are signed with: pinned when the registry was added, moved when the registry announces its next key in a signed index. |
 | `auto_update` | bool | `[store] auto_update` | Whether this registry's updates install by themselves. |
 | `channel` | `"stable"`, `"edge"` | `"stable"` | Which of its indexes to follow. Only pal's own has both. A new channel is fetched as soon as the file is saved. |
+| `auth` | string | | The password of a registry that asks for one ([Registries](registry.md#a-registry-behind-a-password)), always a reference: `"keychain:pal/registry-<name>"`, written when you enter it in Settings › Extensions › Registries or `pal registry add`; `env:VAR` works too. A machine without the secret shows the password field on the registry's row. |
 
 A table named `pal` sets only pal's own registry's `channel` and
 `auto_update`; its URL and keys are built in:

@@ -949,10 +949,13 @@ async fn install(app: &AppHandle, spec: &str, open: Option<&str>, trusted: bool)
 /// `registry/add?url=&key=`: the registry fetched and checked first, then
 /// the card with its name, URL, how many extensions it lists and the key
 /// that is pinned (the link's, else the one its index announces; with
-/// neither the HUD asks for the key), then followed.
+/// neither the HUD asks for the key), then followed. One that asks for a
+/// password is followed under the name its challenge gives, with the
+/// link's key, and Settings opens on its row for the password.
 async fn registry_add(app: &AppHandle, url: String, key: Option<String>, trusted: bool) {
-    let p = match crate::store::preview(app, url.clone(), key.clone()).await {
-        Ok(p) => p,
+    let p = match crate::store::preview(app, url.clone(), key.clone(), None).await {
+        Ok(crate::store::Looked::Found(p)) => p,
+        Ok(crate::store::Looked::Password(gate)) => return registry_add_gated(app, url, key, gate, trusted).await,
         Err(e) => {
             eprintln!("deeplink\tregistry refused\t{e}");
             return hud::show(app, &format!("pal: {e}"));
@@ -971,8 +974,37 @@ async fn registry_add(app: &AppHandle, url: String, key: Option<String>, trusted
         }
     }
     // The key the card showed is the one pinned.
-    match crate::store::registry_add(app, url, Some(p.key)).await {
+    match crate::store::registry_add(app, url, Some(p.key), None).await {
         Ok(p) => hud::show(app, &format!("Following {} ({} extensions)", p.name, p.count)),
+        Err(e) => hud::show(app, &format!("pal: {e}")),
+    }
+}
+
+async fn registry_add_gated(app: &AppHandle, url: String, key: Option<String>, gate: pal_core::registry::Gate, trusted: bool) {
+    let Some(name) = gate.realm.filter(|r| pal_core::extensions::safe_name(r) && r != pal_core::registry::PAL) else {
+        return hud::show(app, "pal: this registry asks for a password but does not say its name");
+    };
+    let row = format!("extensions:registries:{name}");
+    if crate::settings::config(app).store.registries.iter().any(|r| r.name == name) {
+        return crate::settings::open_at(app, Some("extensions"), Some(&row));
+    }
+    let Some(key) = key.filter(|k| !k.trim().is_empty()) else {
+        return hud::show(app, &format!("pal: {name} asks for a password; its link needs the registry's key too"));
+    };
+    if !trusted {
+        let hint = gate.hint.map(|h| format!(" ({h})")).unwrap_or_default();
+        let message = format!("{url}\nIt asks for a password{hint}, which you enter in Settings next.\nkey {}", pal_core::registry::key_id(&key).unwrap_or_else(|| key.clone()));
+        match confirm(app, &format!("Follow the registry {name}?"), &message, "Follow").await {
+            Some(true) => on_main(app, panel::hide),
+            Some(false) => {
+                on_main(app, panel::hide);
+                return eprintln!("deeplink\tregistry\tdeclined");
+            }
+            None => return eprintln!("deeplink\tregistry\tunanswered"),
+        }
+    }
+    match crate::store::registry_follow_gated(app, url, key, name).await {
+        Ok(()) => crate::settings::open_at(app, Some("extensions"), Some(&row)),
         Err(e) => hud::show(app, &format!("pal: {e}")),
     }
 }

@@ -189,7 +189,7 @@ pub fn apply(store: &Store, regs: &Registries, status: &Status) -> Option<Result
     let build = status.target()?;
     let src = regs.source(status.registry.as_deref()?)?;
     let entry = regs.index(&src.name)?.entry(&status.name)?.clone();
-    Some(store.install_build(src, &regs.build_keys(src), &entry, build))
+    Some(store.install_build(src, &regs.build_keys(src), regs.auth(src).as_ref(), &entry, build))
 }
 
 /// After an app update: every store copy of a bundled extension from our

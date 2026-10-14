@@ -150,6 +150,8 @@ pal registry list                                  every registry: name, channel
 pal registry add https://acme.github.io/pal/index.json
 pal registry add URL --key RWQ...                  when the index does not announce its key
 pal registry add URL --yes                         without asking
+pal registry add URL --password-stdin              a registry's password from a pipe
+pal registry password acme                         enter or replace a registry's password
 pal registry remove acme
 ```
 
@@ -161,6 +163,12 @@ key the registry announces in a signed index (the pin then moves by
 itself). `remove` stops following one; its extensions stay installed and
 are reported as no longer updated. pal's own registry is always first and
 cannot be removed.
+
+A registry that asks for a password ([Registries](registry.md#a-registry-behind-a-password))
+makes `add` ask for it, without echo, with the hint the registry gives;
+it goes to the OS keychain and the config holds only its reference.
+`password` replaces it, for one that stopped accepting the old one or a
+machine that got the registry through sync.
 
 ## `pal instance`
 

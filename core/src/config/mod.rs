@@ -155,6 +155,9 @@ pub struct RegistryConfig {
     pub auto_update: Option<bool>,
     /// `stable` (the default) or `edge`. Only pal's registry has both.
     pub channel: Option<crate::registry::Channel>,
+    /// The password of a registry that asks for one, as a secret
+    /// reference (`keychain:pal/registry-<name>`), never the value.
+    pub auth: Option<String>,
     #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(skip)]
     pub extra: BTreeMap<String, toml::Value>,

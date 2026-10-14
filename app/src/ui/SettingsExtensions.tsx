@@ -241,6 +241,7 @@ export function SettingsExtensions({ extensions, selected, onSelect, selectedIns
       case "enable": return act(id, "Turning on…", () => store.setDisabled(n.name, false));
       case "remove": return act(id, "Removing…", () => store.remove(n.name, false));
       case "refresh": return act(id, "Checking…", store.refresh);
+      case "password": onBrowse(true); requestAnimationFrame(() => document.querySelector(`[data-anchor="extensions:registries:${n.name}"]`)?.scrollIntoView({ block: "center" })); return;
       case "pal": return store.updatePal?.();
     }
   };

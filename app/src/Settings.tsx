@@ -571,6 +571,7 @@ export default function Settings() {
     refresh: storeRefresh,
     previewRegistry: store.registryPreview,
     addRegistry: store.registryAdd,
+    setRegistryPassword: store.registryPassword,
     removeRegistry: store.registryRemove,
     setRegistry: store.registrySet,
     forgetLeftover: store.forgetLeftover,

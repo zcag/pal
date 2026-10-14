@@ -1424,6 +1424,9 @@ button.pal-shortcuts__name:hover { text-decoration: underline; }
 .pal-xreg__url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--pal-fg-muted); font-family: var(--pal-font-mono); font-size: var(--pal-text-xs); }
 .pal-xreg__line { color: var(--pal-fg-faint); font-size: var(--pal-text-xs); }
 .pal-xreg[data-failed] .pal-xreg__line { color: var(--pal-destructive); }
+.pal-xreg[data-gated] .pal-xreg__line { color: var(--pal-fg-muted); }
+.pal-xreg__password { flex-basis: 100%; display: flex; align-items: center; gap: var(--pal-space-2); }
+.pal-xreg__password .pal-inline { flex: 0 1 280px; min-width: 0; }
 .pal-xreg__auto { display: inline-flex; align-items: center; gap: var(--pal-space-2); color: var(--pal-fg-muted); font-size: var(--pal-text-sm); }
 .pal-xreg .pal-select, .pal-xreg .pal-button { flex: none; }
 .pal-xregs__add { margin-top: var(--pal-space-2); }

@@ -43,6 +43,12 @@ pub fn agent(timeout: Duration) -> ureq::Agent {
     ureq::Agent::config_builder().user_agent(user_agent()).timeout_global(Some(timeout)).build().new_agent()
 }
 
+/// [`agent`] that hands every status back as a response, for callers that
+/// read a 401's headers (a registry's password challenge).
+pub fn agent_any_status(timeout: Duration) -> ureq::Agent {
+    ureq::Agent::config_builder().user_agent(user_agent()).timeout_global(Some(timeout)).http_status_as_error(false).build().new_agent()
+}
+
 /// `GET url` on `agent`, with `X-Pal-Install` when `url` is on [`SITE`] and
 /// usage sharing is on.
 pub fn get(agent: &ureq::Agent, url: &str) -> ureq::RequestBuilder<ureq::typestate::WithoutBody> {

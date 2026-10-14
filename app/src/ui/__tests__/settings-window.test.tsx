@@ -8,7 +8,7 @@ vi.hoisted(() => { (globalThis as { window?: unknown }).window ??= globalThis; }
 import { SettingsWindow, settingsPages } from "../SettingsWindow";
 import { ExtensionPalettes, palettesIndex } from "../SettingsPalettes";
 import { SettingsExtensions, extensionsIndex, forgetText } from "../SettingsExtensions";
-import { browseRows, categoriesOf, featuredOf, relatedOf, whatLine, type ExtensionsStore } from "../SettingsStore";
+import { browseRows, categoriesOf, featuredOf, gateLine, relatedOf, whatLine, type ExtensionsStore } from "../SettingsStore";
 import { EMPTY_STORE } from "../../store";
 import { SettingsAbout } from "../SettingsAbout";
 import { barItems } from "./settings-fixtures";
@@ -91,7 +91,7 @@ describe("ExtensionPalettes", () => {
 /** The store's callbacks as the page takes them, doing nothing: the markup is what these tests read. */
 const fakeStore = (state = settingsStore): ExtensionsStore => ({
   state, loaded: true, install: async () => {}, update: async () => {}, remove: async () => {}, setDisabled: async () => {}, refresh: async () => {},
-  previewRegistry: async (url) => ({ name: "x", url, count: 0, key: "", key_id: "" }), addRegistry: async () => {}, removeRegistry: async () => {}, setRegistry: async () => {},
+  previewRegistry: async (url) => ({ kind: "found", name: "x", url, count: 0, key: "", key_id: "" }), addRegistry: async () => {}, setRegistryPassword: async () => {}, removeRegistry: async () => {}, setRegistry: async () => {},
   forgetLeftover: async () => {}, addUnlisted: async () => {}, references: storeReferences, openStore: noop,
 });
 const withStore = [...settingsExtensions, ...storeExtensions];
@@ -246,6 +246,24 @@ describe("SettingsExtensions", () => {
     expect(browse).toContain(">From acme</span>");
     expect(section("Registries")).toContain("https://acme.github.io/pal/index.json");
     expect(html).toContain("Open the Store palette");
+  });
+  it("a registry that asks for a password: its row has the field and the hint, Needs you sends there, one that works offers Change", () => {
+    const base = browseStore.registries[1];
+    const gated = { ...base, name: "flash", url: "https://flash.example/index.json", count: 0, auth: false, last_error: "flash: needs a password", gate: { realm: "flash", hint: "Ask Cagdas for it", refused: false } };
+    const state = { ...browseStore, registries: [...browseStore.registries, gated, { ...base, name: "keyed", auth: true, last_error: null, gate: null }] };
+    const html = renderToStaticMarkup(<SettingsExtensions extensions={withStore} onSelect={noop} onChange={noop} store={fakeStore(state)} browsing onBrowse={noop} />);
+    const at = html.indexOf('data-anchor="extensions:registries:flash"');
+    const row = html.slice(html.lastIndexOf("<li", at), html.indexOf("</li>", at));
+    expect(row).toContain("data-gated");
+    expect(row).not.toContain("data-failed");
+    expect(row).toContain("Asks for a password. Ask Cagdas for it");
+    expect(row).toContain('type="password"');
+    expect(row).toContain(">Save</button>");
+    expect(html).toContain('aria-label="Change keyed&#x27;s password"');
+    const home = renderToStaticMarkup(<SettingsExtensions extensions={withStore} onSelect={noop} onChange={noop} store={fakeStore(state)} />);
+    const need = home.slice(home.indexOf('data-anchor="extensions:need:registry:flash"'));
+    expect(need).toContain(">Enter password</button>");
+    expect(gateLine({ refused: true })).toBe("Its password was not accepted");
   });
   it("Browse's words and choices: the search, the categories, Featured, the card's line, related ones", () => {
     const all = browseStore.available;

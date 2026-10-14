@@ -25,12 +25,14 @@ use std::collections::BTreeSet;
 use std::io::Read;
 use std::ops::RangeInclusive;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::Duration;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use crate::config::secrets::{self, SecretError, SecretStore};
 use crate::fs::write_atomic;
 
 /// The SDK protocol this app speaks: the newest package `protocol` it runs.
@@ -112,6 +114,8 @@ pub enum Error {
     Unknown(String),
     #[error("{0}: no key to check it with; pass the registry's public key")]
     NoKey(String),
+    #[error("{name}: {}", if gate.refused { "its password was not accepted" } else { "needs a password" })]
+    Password { name: String, gate: Gate },
     #[error("{0}: {1}")]
     Tree(PathBuf, String),
     #[error("{path}: {source}")]
@@ -373,6 +377,8 @@ pub struct Source {
     /// Whether updates from it apply by themselves (its own `auto_update`,
     /// else `[store] auto_update`).
     pub auto_update: bool,
+    /// Where its password is (`keychain:pal/registry-<name>`), when it asks for one.
+    pub auth: Option<String>,
 }
 
 impl Source {
@@ -387,7 +393,7 @@ impl Source {
 pub fn sources(store: &crate::config::StoreConfig) -> Vec<Source> {
     let ours = store.registries.iter().find(|r| r.name == PAL);
     let channel = ours.and_then(|r| r.channel).unwrap_or_default();
-    let mut out = vec![Source { name: PAL.into(), url: pal_url(channel), key: None, channel, auto_update: ours.and_then(|r| r.auto_update).unwrap_or(store.auto_update) }];
+    let mut out = vec![Source { name: PAL.into(), url: pal_url(channel), key: None, channel, auto_update: ours.and_then(|r| r.auto_update).unwrap_or(store.auto_update), auth: None }];
     for r in &store.registries {
         if out.iter().any(|s| s.name == r.name) || r.url.trim().is_empty() {
             continue;
@@ -398,6 +404,7 @@ pub fn sources(store: &crate::config::StoreConfig) -> Vec<Source> {
             key: Some(r.key.trim().to_string()).filter(|k| !k.is_empty()),
             channel: r.channel.unwrap_or_default(),
             auto_update: r.auto_update.unwrap_or(store.auto_update),
+            auth: r.auth.clone().filter(|a| !a.trim().is_empty()),
         });
     }
     out
@@ -421,6 +428,68 @@ pub struct State {
     /// The key that verified the cached index (third-party registries):
     /// the pin as far as this cache knows, until the config catches up.
     pub key: Option<String>,
+    /// The last check met a password challenge it could not answer.
+    pub gate: Option<Gate>,
+}
+
+/// A registry asking for a password (docs/registry.md "A registry behind a
+/// password"): the name (`realm`) and hint its challenge gave, and whether
+/// one was sent and refused.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Gate {
+    pub realm: Option<String>,
+    pub hint: Option<String>,
+    pub refused: bool,
+}
+
+/// A registry's password and the origin it may be sent to: its index's.
+#[derive(Clone, PartialEq, Eq)]
+pub struct Auth {
+    origin: String,
+    password: String,
+}
+
+impl std::fmt::Debug for Auth {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Auth({})", self.origin)
+    }
+}
+
+impl Auth {
+    /// `None` when `index_url` does not parse or the password is empty.
+    pub fn new(index_url: &str, password: &str) -> Option<Auth> {
+        let password = password.trim();
+        if password.is_empty() {
+            return None;
+        }
+        Some(Auth { origin: origin(index_url)?, password: password.into() })
+    }
+
+    fn header(&self, url: &str) -> Option<String> {
+        (origin(url).as_deref() == Some(self.origin.as_str())).then(|| format!("Bearer {}", self.password))
+    }
+}
+
+fn origin(url: &str) -> Option<String> {
+    let u = url::Url::parse(url).ok()?;
+    Some(u.origin().ascii_serialization()).filter(|o| o != "null")
+}
+
+/// `<param>="..."` from a `WWW-Authenticate: Bearer` challenge.
+fn challenge_param(header: &str, param: &str) -> Option<String> {
+    let at = header.match_indices(&format!("{param}=\"")).find(|(i, _)| *i == 0 || header[..*i].ends_with([' ', ',']))?.0;
+    let rest = &header[at + param.len() + 2..];
+    let mut out = String::new();
+    let mut chars = rest.chars();
+    while let Some(c) = chars.next() {
+        match c {
+            '"' => return Some(out.trim().to_string()).filter(|h| !h.is_empty()),
+            '\\' => out.extend(chars.next()),
+            c => out.push(c),
+        }
+    }
+    None
 }
 
 /// What a successful check did.
@@ -448,6 +517,10 @@ pub struct RegistryStatus {
     pub last_checked: Option<u64>,
     pub last_ok: Option<u64>,
     pub last_error: Option<String>,
+    /// It has a password reference in the config.
+    pub auth: bool,
+    /// The last check needs a password it does not have (or had refused).
+    pub gate: Option<Gate>,
 }
 
 /// A registry seen before it is added: `pal registry add` shows this and
@@ -462,16 +535,47 @@ pub struct Preview {
 }
 
 /// The registries this app follows and their cache.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Registries {
     cache: PathBuf,
     sources: Vec<Source>,
+    secrets: Arc<dyn SecretStore>,
+}
+
+impl std::fmt::Debug for Registries {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Registries").field("cache", &self.cache).field("sources", &self.sources).finish_non_exhaustive()
+    }
 }
 
 impl Registries {
-    /// `cache` is the directory holding one subdirectory per registry.
+    /// `cache` is the directory holding one subdirectory per registry;
+    /// passwords are looked up in the OS keychain.
     pub fn new(cache: impl Into<PathBuf>, sources: Vec<Source>) -> Self {
-        Self { cache: cache.into(), sources }
+        Self { cache: cache.into(), sources, secrets: Arc::from(secrets::platform_store()) }
+    }
+
+    /// The same registries with passwords from `secrets` (tests).
+    pub fn with_secrets(self, secrets: Arc<dyn SecretStore>) -> Self {
+        Self { secrets, ..self }
+    }
+
+    /// Where passwords are kept.
+    pub fn secrets(&self) -> &dyn SecretStore {
+        &*self.secrets
+    }
+
+    /// `src`'s password and where it may go; `None` when it has none here.
+    pub fn auth(&self, src: &Source) -> Option<Auth> {
+        let reference = src.auth.as_deref()?;
+        match secrets::resolve(reference, &*self.secrets) {
+            Ok(p) => Auth::new(&src.url, &p),
+            Err(SecretError::NotFound(_)) => None,
+            Err(e) => {
+                eprintln!("registry\t{}\tpassword\t{e}", src.name);
+                None
+            }
+        }
     }
 
     /// The config's registries, cached under `<cache dir>/registries`.
@@ -539,6 +643,10 @@ impl Registries {
         let r = self.fetch(&src, &st);
         let now = now();
         st.last_checked = Some(now);
+        st.gate = match &r {
+            Err(Error::Password { gate, .. }) => Some(gate.clone()),
+            _ => None,
+        };
         match r {
             Ok(None) => {
                 st.last_ok = Some(now);
@@ -552,7 +660,7 @@ impl Registries {
                 write_atomic(&dir.join("index.json.minisig"), &f.sig).map_err(io(dir.join("index.json.minisig")))?;
                 write_atomic(&dir.join("index.json"), &f.bytes).map_err(io(dir.join("index.json")))?;
                 let rotated_to = (!src.is_ours() && src.key.as_deref() != Some(f.key.as_str())).then(|| f.key.clone());
-                st = State { url: src.url.clone(), etag: f.etag, last_checked: Some(now), last_ok: Some(now), last_error: None, generated_at: Some(f.index.generated_at), key: (!src.is_ours()).then_some(f.key) };
+                st = State { url: src.url.clone(), etag: f.etag, last_checked: Some(now), last_ok: Some(now), last_error: None, generated_at: Some(f.index.generated_at), key: (!src.is_ours()).then_some(f.key), gate: None };
                 self.save_state(name, &st);
                 Ok(Refreshed { changed, rotated_to })
             }
@@ -573,8 +681,9 @@ impl Registries {
     fn fetch(&self, src: &Source, st: &State) -> Result<Option<Fetched>> {
         let same_url = st.url == src.url && self.dir(&src.name).join("index.json").is_file();
         let etag = st.etag.as_deref().filter(|_| same_url);
-        let Some((bytes, etag)) = get(&src.name, &src.url, etag, MAX_INDEX)? else { return Ok(None) };
-        let (sig, _) = get(&src.name, &format!("{}.minisig", src.url), None, MAX_SIG)?.ok_or_else(|| Error::Network(src.name.clone(), "no signature".into()))?;
+        let auth = self.auth(src);
+        let Some((bytes, etag)) = get(&src.name, &src.url, etag, MAX_INDEX, auth.as_ref())? else { return Ok(None) };
+        let (sig, _) = get(&src.name, &format!("{}.minisig", src.url), None, MAX_SIG, auth.as_ref())?.ok_or_else(|| Error::Network(src.name.clone(), "no signature".into()))?;
         let sig = String::from_utf8_lossy(&sig).into_owned();
         let keys = self.index_keys(src);
         if keys.is_empty() {
@@ -613,6 +722,8 @@ impl Registries {
                     last_checked: st.last_checked,
                     last_ok: st.last_ok,
                     last_error: st.last_error,
+                    auth: s.auth.is_some(),
+                    gate: st.gate,
                 }
             })
             .collect()
@@ -639,11 +750,13 @@ struct Fetched {
 }
 
 /// Fetch a registry that is not followed yet and check it: its index, its
-/// signature against `key` (or the key the index announces), its format.
-pub fn preview(url: &str, key: Option<&str>) -> Result<Preview> {
+/// signature against `key` (or the key the index announces), its format;
+/// `password` for one that asks (`Error::Password` says it does).
+pub fn preview(url: &str, key: Option<&str>, password: Option<&str>) -> Result<Preview> {
     let what = url;
-    let (bytes, _) = get(what, url, None, MAX_INDEX)?.ok_or_else(|| Error::Network(what.into(), "no index".into()))?;
-    let (sig, _) = get(what, &format!("{url}.minisig"), None, MAX_SIG)?.ok_or_else(|| Error::Network(what.into(), "no signature".into()))?;
+    let auth = password.and_then(|p| Auth::new(url, p));
+    let (bytes, _) = get(what, url, None, MAX_INDEX, auth.as_ref())?.ok_or_else(|| Error::Network(what.into(), "no index".into()))?;
+    let (sig, _) = get(what, &format!("{url}.minisig"), None, MAX_SIG, auth.as_ref())?.ok_or_else(|| Error::Network(what.into(), "no signature".into()))?;
     let index = Index::parse(what, &bytes)?;
     let key = key.map(str::to_string).or(index.key.clone()).filter(|k| !k.trim().is_empty()).ok_or_else(|| Error::NoKey(what.into()))?;
     verify(&bytes, &String::from_utf8_lossy(&sig), std::slice::from_ref(&key)).map_err(|why| Error::Signature(what.into(), why))?;
@@ -651,15 +764,14 @@ pub fn preview(url: &str, key: Option<&str>) -> Result<Preview> {
 }
 
 /// `GET url` through [`crate::net`], at most `max` bytes: `(body, etag)`,
-/// `None` on a 304.
-fn get(what: &str, url: &str, etag: Option<&str>, max: u64) -> Result<Option<(Vec<u8>, Option<String>)>> {
+/// `None` on a 304. `auth`'s password goes only to its own origin.
+fn get(what: &str, url: &str, etag: Option<&str>, max: u64, auth: Option<&Auth>) -> Result<Option<(Vec<u8>, Option<String>)>> {
     let net = |e: String| Error::Network(what.into(), e);
-    let agent = crate::net::agent(INDEX_TIMEOUT);
-    let mut req = crate::net::get(&agent, url);
-    if let Some(e) = etag {
-        req = req.header("If-None-Match", e);
-    }
-    let mut resp = req.call().map_err(|e| net(format!("{url}: {e}")))?;
+    let mut resp = send(url, etag, auth, INDEX_TIMEOUT).map_err(|e| match e {
+        Error::Network(_, why) => net(why),
+        Error::Password { gate, .. } => Error::Password { name: what.into(), gate },
+        e => e,
+    })?;
     if resp.status() == 304 {
         return Ok(None);
     }
@@ -670,6 +782,32 @@ fn get(what: &str, url: &str, etag: Option<&str>, max: u64) -> Result<Option<(Ve
         return Err(net(format!("{url}: larger than {max} bytes")));
     }
     Ok(Some((bytes, etag)))
+}
+
+/// `GET url`, with `If-None-Match: etag` and `auth`'s header when it is
+/// for this origin. A 401 or 403 is `Error::Password`; any other status
+/// but a success or a 304 is `Error::Network`.
+pub fn send(url: &str, etag: Option<&str>, auth: Option<&Auth>, timeout: Duration) -> Result<ureq::http::Response<ureq::Body>> {
+    let agent = crate::net::agent_any_status(timeout);
+    let mut req = crate::net::get(&agent, url);
+    if let Some(e) = etag {
+        req = req.header("If-None-Match", e);
+    }
+    let sent = auth.and_then(|a| a.header(url));
+    if let Some(h) = &sent {
+        req = req.header("Authorization", h);
+    }
+    let resp = req.call().map_err(|e| Error::Network(url.into(), format!("{url}: {e}")))?;
+    let status = resp.status().as_u16();
+    if status == 401 || status == 403 {
+        let challenge = resp.headers().get("www-authenticate").and_then(|v| v.to_str().ok()).unwrap_or_default();
+        let gate = Gate { realm: challenge_param(challenge, "realm"), hint: challenge_param(challenge, "hint"), refused: sent.is_some() };
+        return Err(Error::Password { name: url.into(), gate });
+    }
+    if !(200..300).contains(&status) && status != 304 {
+        return Err(Error::Network(url.into(), format!("{url}: http status: {status}")));
+    }
+    Ok(resp)
 }
 
 /// Unix seconds now.
@@ -817,7 +955,7 @@ pub(crate) mod tests {
     }
 
     fn third(server: &Server, key: &str) -> Source {
-        Source { name: "acme".into(), url: server.url("/acme/index.json"), key: Some(key.into()), channel: Channel::Stable, auto_update: true }
+        Source { name: "acme".into(), url: server.url("/acme/index.json"), key: Some(key.into()), channel: Channel::Stable, auto_update: true, auth: None }
     }
 
     fn publish(server: &Server, signer: &Signer, text: &str, etag: Option<&str>) {
@@ -954,8 +1092,24 @@ pub(crate) mod tests {
         let mut v: serde_json::Value = serde_json::from_str(&index_json("acme", "2026-09-30T12:00:00Z", None, serde_json::json!([{ "name": "a" }]))).unwrap();
         v["key"] = key.public.clone().into();
         publish(&server, &key, &v.to_string(), None);
-        let p = preview(&server.url("/acme/index.json"), None).unwrap();
+        let p = preview(&server.url("/acme/index.json"), None, None).unwrap();
         assert_eq!((p.name.as_str(), p.count, p.key.as_str()), ("acme", 1, key.public.as_str()));
-        assert!(matches!(preview(&server.url("/acme/index.json"), Some(&Signer::new().public)), Err(Error::Signature(..))), "a key given is the one checked");
+        assert!(matches!(preview(&server.url("/acme/index.json"), Some(&Signer::new().public), None), Err(Error::Signature(..))), "a key given is the one checked");
+    }
+
+    #[test]
+    fn a_password_goes_only_to_its_index_s_origin() {
+        let a = Auth::new("https://reg.example/flash/index.json", " pw ").unwrap();
+        assert_eq!(a.header("https://reg.example/pkg/x/1.tar.gz").as_deref(), Some("Bearer pw"));
+        assert_eq!(a.header("https://reg.example:443/x").as_deref(), Some("Bearer pw"), "the default port is the same origin");
+        for other in ["http://reg.example/x", "https://reg.example:8443/x", "https://cdn.reg.example/x", "https://reg.example.evil/x", "not a url"] {
+            assert_eq!(a.header(other), None, "{other}");
+        }
+        assert_eq!(Auth::new("https://reg.example/i.json", "  "), None);
+        assert!(!format!("{a:?}").contains("pw"));
+        let c = r#"Bearer realm="flash", hint="Ask \"C\" first""#;
+        assert_eq!((challenge_param(c, "realm").as_deref(), challenge_param(c, "hint").as_deref()), (Some("flash"), Some(r#"Ask "C" first"#)));
+        assert_eq!(challenge_param(r#"Bearer xrealm="no", realm="flash""#, "realm").as_deref(), Some("flash"));
+        assert_eq!(challenge_param(r#"Bearer realm="flash""#, "hint"), None);
     }
 }

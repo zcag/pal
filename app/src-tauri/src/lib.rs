@@ -381,6 +381,7 @@ pub fn run() {
             store::store_set_disabled,
             store::store_registry_preview,
             store::store_registry_add,
+            store::store_registry_password,
             store::store_registry_remove,
             store::store_registry_set,
             store::store_forget_leftover,

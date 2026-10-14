@@ -1052,6 +1052,10 @@
       "additionalProperties": false,
       "description": "`[[store.registries]]`: one registry.",
       "properties": {
+        "auth": {
+          "description": "The password of a registry that asks for one, as a secret\nreference (`keychain:pal/registry-<name>`), never the value.",
+          "type": "string"
+        },
         "auto_update": {
           "description": "Overrides `[store] auto_update` for this registry.",
           "type": "boolean"
