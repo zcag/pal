@@ -27,6 +27,7 @@ older builds really stop working.
 | 5 | accounts (`docs/design/accounts.md`): `leaderboard`, `account`, `storage.onChange`; the kit's `score`, `leaderboard`, `account`, `signIn`, `storage.onChange`; the manifest's `sync` and `leaderboards` |
 | 6 | `each` in a sync object rule (`SyncObjectRule`) |
 | 7 | replays: `leaderboard.post`'s `replay`, `leaderboard.replay`, a row's `replay`; the kit's `score` with a `replay` and `replay` |
+| 8 | a surface's `/__ext/<required>/` files; WebAssembly in surfaces (`'wasm-unsafe-eval'`), `.wasm` and `.swf` served |
 
 ## Packages
 

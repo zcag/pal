@@ -11,10 +11,12 @@
 //
 //   bun host/src/surface.ts ../pal-games/solitaire [port]
 //
-// then open http://<host>:<port>/surface/index.html.
+// then open http://<host>:<port>/surface/index.html. A name in its
+// `requires` is served at /__ext/<name>/ from the folder beside it, else
+// from the extension repos (app/scripts/extension-repos.mjs).
 import { stat } from "node:fs/promises";
 import { hostname } from "node:os";
-import { extname, join, normalize, resolve } from "node:path";
+import { dirname, extname, join, normalize, resolve } from "node:path";
 
 const transpiler = new Bun.Transpiler({ loader: "ts", trimUnusedImports: true });
 const cache = new Map<string, { mtime: number; code: string }>();
@@ -30,22 +32,37 @@ export async function transpile(path: string): Promise<string> {
   return code;
 }
 
-/** What the scheme sends with every response (surface.rs `CSP`, kept the same): its own files and the kit, no network, no eval, no inline script. */
-export const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
+/** What the scheme sends with every response (surface.rs `CSP`, kept the same): its own files and the kit, no network, no eval but WebAssembly's, no inline script. */
+export const CSP = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
 
 if (import.meta.main) {
   const dir = resolve(process.argv[2] ?? ".");
   const repo = resolve(import.meta.dir, "../..");
   const kit = join(repo, "app/src-tauri/surface-kit");
+  const requires: string[] = (await Bun.file(join(dir, "pal.json")).json().catch(() => ({}))).requires ?? [];
+  const { extensionDirs } = await import("../../app/scripts/extension-repos.mjs");
+  const repos: Map<string, { dir: string }> = extensionDirs();
+  const required = async (name: string) => (requires.includes(name) ? ((await Bun.file(join(dirname(dir), name, "pal.json")).exists()) ? join(dirname(dir), name) : repos.get(name)?.dir) : undefined);
+  const route = async (path: string) => {
+    if (path === "/__pal/tokens.css") return join(repo, "app/src/ui/tokens.css");
+    if (path.startsWith("/__pal/fonts/")) return join(repo, "app/src/assets/fonts", path.slice(13));
+    if (path.startsWith("/__pal/")) return join(kit, path.slice(7));
+    const ext = path.match(/^\/__ext\/([^/]+)\/(.+)$/);
+    if (!ext) return join(dir, path);
+    const root = await required(ext[1]);
+    return root && join(root, ext[2]);
+  };
   const server = Bun.serve({
     hostname: "0.0.0.0",
     port: Number(process.argv[3] ?? 0),
     async fetch(req) {
-      const path = normalize(decodeURIComponent(new URL(req.url).pathname));
-      const file = path === "/__pal/tokens.css" ? join(repo, "app/src/ui/tokens.css") : path.startsWith("/__pal/fonts/") ? join(repo, "app/src/assets/fonts", path.slice(13)) : path.startsWith("/__pal/") ? join(kit, path.slice(7)) : join(dir, path);
-      if (path.split("/").some((s) => s.startsWith(".")) || !(await Bun.file(file).exists())) return new Response("not found", { status: 404 });
-      const headers = { "Content-Security-Policy": CSP, "Cache-Control": "no-cache" };
+      const url = new URL(req.url);
+      const path = normalize(decodeURIComponent(url.pathname));
+      const file = await route(path);
+      if (!file || path.split("/").some((s) => s.startsWith(".")) || !(await Bun.file(file).exists())) return new Response("not found", { status: 404 });
+      const headers = { "Content-Security-Policy": CSP.replaceAll("'self'", `'self' ${url.origin}`), "Access-Control-Allow-Origin": "*", "Cache-Control": "no-cache" };
       if (extname(file) === ".ts") return new Response(await transpile(file), { headers: { ...headers, "Content-Type": "text/javascript; charset=utf-8" } });
+      if (extname(file) === ".wasm") return new Response(Bun.file(file), { headers: { ...headers, "Content-Type": "application/wasm" } });
       return new Response(Bun.file(file), { headers });
     },
   });

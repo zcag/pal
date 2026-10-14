@@ -52,7 +52,7 @@ An instance key (`gmail@work`) is its extension's folder.
   no leading dot, no `/`, `\`, `:` or NUL); the file's real path must stay
   inside the folder's (a symlink pointing out is a 404); only the types in
   `mime()` are served (html, js, ts, css, json, txt, images, fonts,
-  audio). Anything else is a 404.
+  audio, `.wasm`, `.swf`). Anything else is a 404.
 - **TypeScript.** A `*.ts` answers as JavaScript: the scheme asks the host
   (`surface/transpile { path }`), which runs `Bun.Transpiler` on that one
   file (`trimUnusedImports`, so an import used only as a type goes) and
@@ -62,7 +62,7 @@ An instance key (`gmail@work`) is its extension's folder.
   erased; a runtime import of it or of a package does not resolve in the
   page.
 - **Headers.** Every response carries the CSP (`default-src 'self';
-  script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'
+  script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self'
   data: blob:; font-src 'self' data:; media-src 'self' data: blob:;
   connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none';
   form-action 'none'`, every `'self'` followed by the page's own origin,
@@ -70,9 +70,22 @@ An instance key (`gmail@work`) is its extension's folder.
   opaque origin and matched nothing, which blocked every script, the
   kit's too): the page loads from its own origin, the kit included, and
   nothing else; no network, no eval, no inline script (a
-  module file instead), inline style allowed. `Access-Control-Allow-Origin:
+  module file instead), inline style allowed. WebAssembly compiles
+  (`'wasm-unsafe-eval'`, protocol 8): it can only compile bytes the page
+  already loaded from its own origin, so it adds no source of code, and
+  Ruffle, the Flash emulator, is Rust compiled to it. `Access-Control-Allow-Origin:
   *` because the frame's origin is opaque (below) and module scripts are
   fetched in CORS mode; `no-cache` so an edited page shows on reopen.
+- **A required extension's files.** `/__ext/<name>/<path>` on the
+  page's origin is a file of `<name>` when the page's extension lists it
+  in `requires`, found as its own files are; any other name is a 404. A
+  shared runtime ships once that way (the `flash` extension's Ruffle for
+  every Flash game) and loads under the page's own CSP. A page reaches it
+  by a relative URL (`../__ext/flash/ruffle.js` from `surface/`): on
+  Windows the origin's root is not the extension's, and the route is
+  `http://ext.localhost/<extension>/__ext/<name>/...`. The dev server
+  serves it from the folder beside the page's extension, else from the
+  extension repos.
 - **Shipping.** `build-extensions.sh` copies an extension's `surface/` and
   the `*.ts` beside its `index.ts` (never `index.ts` itself, which the
   host would load over the bundle) into the resource tree.
@@ -152,9 +165,11 @@ storage.
   page, and relays only `send`, `storage.get`, `storage.set`, `settings`,
   `score`, `leaderboard`, `account`, `signIn`. A post from the host
   reaches the page only as `message`, `settings` or `storage`.
-- **CSP.** No network (`connect-src 'self'`), no other extension's origin,
-  no `icon://` (so no file thumbnails of the user's disk), no eval, no
-  inline script, no nested frame.
+- **CSP.** No network (`connect-src 'self'`), no other extension's origin
+  (a required one's files come through the page's own, above), no
+  `icon://` (so no file thumbnails of the user's disk), no eval, no
+  inline script, no nested frame. `'wasm-unsafe-eval'` lets WebAssembly
+  compile, from bytes the page fetched from `'self'` and nowhere else.
 
 ### Verified (2026-09-25, `/Applications/pal.app` built by `make app`)
 

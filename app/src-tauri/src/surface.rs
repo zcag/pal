@@ -5,12 +5,16 @@
 //! a `*.ts` comes back as JavaScript, transpiled by the host
 //! (`surface/transpile`, host/src/surface.ts). `/__pal/<file>` on every
 //! extension's origin is the kit: `surface.js`, the Kenney deck under
-//! `cards/`, and `tokens.css` (the app's own, compiled in). On Windows the
+//! `cards/`, and `tokens.css` (the app's own, compiled in).
+//! `/__ext/<name>/<path>` on an extension's origin is a file of `<name>`
+//! when the extension `requires` it (a shared runtime: Ruffle for the
+//! Flash games), so it loads under the page's own CSP. On Windows the
 //! same handler sits at `http://ext.localhost/<extension>/<path>`, which
 //! the UI derives the way it does `icon://`'s base.
 //!
 //! Every response carries [`CSP`]: the page loads from its own origin
-//! (the kit included) and nothing else, no network, no eval, no inline
+//! (the kit included) and nothing else, no network, no eval (WebAssembly
+//! compiled from what it loaded aside), no inline
 //! script; and `Access-Control-Allow-Origin: *`, since the frame is
 //! sandboxed without `allow-same-origin` and so fetches its own module
 //! scripts from an opaque origin. A path that is not a plain file inside
@@ -31,10 +35,12 @@ use crate::host::Host;
 pub const SCHEME: &str = "ext";
 /// The kit's route, first segment of a path on any extension's origin.
 const KIT: &str = "__pal";
+/// A required extension's files, `/__ext/<name>/...` on the requiring one's origin.
+const REQUIRED: &str = "__ext";
 /// The Windows form's host (`http://ext.localhost/<extension>/...`).
 const WINDOWS_HOST: &str = "ext.localhost";
 /// host/src/surface.ts `CSP`, kept the same (its dev server sends it too); [`csp`] adds the origin.
-const CSP: &str = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
+const CSP: &str = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' data: blob:; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
 /// The design tokens, one source for the panel and the pages.
 const TOKENS: &str = include_str!("../../src/ui/tokens.css");
 /// The design faces a page's `--pal-font-*` tokens name (surface-kit/fonts.css), the app's own copies.
@@ -85,8 +91,14 @@ type Served = Result<(&'static str, Vec<u8>), (StatusCode, String)>;
 
 async fn serve(app: &AppHandle, uri: &str) -> Served {
     let missing = || (StatusCode::NOT_FOUND, String::new());
-    let (ext, rel) = Url::parse(uri).ok().as_ref().and_then(target).ok_or_else(missing)?;
+    let Target { ext, via, rel } = Url::parse(uri).ok().as_ref().and_then(target).ok_or_else(missing)?;
     let mime = mime(&rel).ok_or_else(missing)?;
+    let exts = crate::settings::extensions(app);
+    let folder = |name: &str| exts.iter().find(|e| e.name == name).map(|e| Path::new(&e.root).join(name));
+    if let Some(by) = via.as_deref() {
+        let ext = ext.as_deref().unwrap_or_default();
+        exts.iter().find(|e| e.name == by).filter(|e| requires(&e.manifest, ext)).ok_or_else(missing)?;
+    }
     let file = match ext {
         None if rel == Path::new("tokens.css") => return Ok((mime, TOKENS.as_bytes().to_vec())),
         None if rel.starts_with("fonts") => {
@@ -94,7 +106,7 @@ async fn serve(app: &AppHandle, uri: &str) -> Served {
             return FONTS.iter().find(|(n, _)| *n == name).map(|(_, b)| (mime, b.to_vec())).ok_or_else(missing);
         }
         None => inside(&kit_dir(app), &rel),
-        Some(name) => crate::settings::extensions(app).into_iter().find(|e| e.name == name).and_then(|e| inside(&Path::new(&e.root).join(&name), &rel)),
+        Some(name) => folder(&name).and_then(|d| inside(&d, &rel)),
     }
     .ok_or_else(missing)?;
     if file.extension().is_some_and(|e| e == "ts") {
@@ -117,22 +129,42 @@ fn kit_dir(app: &AppHandle) -> PathBuf {
     }
 }
 
-/// A URL as the extension it names (`None`: the kit) and the relative path
-/// in it, both from segments that are plain names: not empty, no leading
-/// dot (so no `.` or `..`), no separator or drive colon once decoded.
-fn target(url: &Url) -> Option<(Option<String>, PathBuf)> {
+/// What a URL names: a file at `rel` of the extension `ext` (`None`: the
+/// kit); `via` is the extension whose origin asked, when `ext` is one it
+/// requires (`/__ext/<ext>/`).
+#[derive(Debug, PartialEq)]
+struct Target {
+    ext: Option<String>,
+    via: Option<String>,
+    rel: PathBuf,
+}
+
+/// `manifest`'s `requires` names `name`.
+fn requires(manifest: &Value, name: &str) -> bool {
+    manifest["requires"].as_array().is_some_and(|r| r.iter().any(|n| n.as_str() == Some(name)))
+}
+
+/// A URL as a [`Target`], from segments that are plain names: not empty,
+/// no leading dot (so no `.` or `..`), no separator or drive colon once
+/// decoded.
+fn target(url: &Url) -> Option<Target> {
     let mut segs: Vec<String> = url.path().strip_prefix('/')?.split('/').map(|s| percent_decode_str(s).decode_utf8().ok().map(|s| s.into_owned()).filter(|s| plain(s))).collect::<Option<_>>()?;
     let host = url.host_str()?;
     let mut ext = if host == WINDOWS_HOST { Some(segs.remove(0)) } else { Some(host.to_string()).filter(|h| plain(h)) };
+    let mut via = None;
     if ext.as_deref() == Some(KIT) {
         ext = None;
     } else if segs.first().map(String::as_str) == Some(KIT) {
         segs.remove(0);
         ext = None;
+    } else if segs.first().map(String::as_str) == Some(REQUIRED) && segs.len() > 2 {
+        segs.remove(0);
+        via = Some(ext?);
+        ext = Some(segs.remove(0));
     } else {
         ext.as_ref()?;
     }
-    (!segs.is_empty()).then(|| (ext, segs.iter().collect()))
+    (!segs.is_empty()).then(|| Target { ext, via, rel: segs.iter().collect() })
 }
 
 fn plain(s: &str) -> bool {
@@ -167,6 +199,8 @@ fn mime(path: &Path) -> Option<&'static str> {
         "ogg" => "audio/ogg",
         "wav" => "audio/wav",
         "m4a" => "audio/mp4",
+        "wasm" => "application/wasm",
+        "swf" => "application/x-shockwave-flash",
         _ => return None,
     })
 }
@@ -176,7 +210,21 @@ mod tests {
     use super::*;
 
     fn t(url: &str) -> Option<(Option<String>, PathBuf)> {
-        target(&Url::parse(url).unwrap())
+        target(&Url::parse(url).unwrap()).filter(|t| t.via.is_none()).map(|t| (t.ext, t.rel))
+    }
+
+    #[test]
+    fn a_required_extension_s_files_are_on_the_requiring_origin() {
+        let req = |url: &str| target(&Url::parse(url).unwrap());
+        let want = |rel: &str| Some(Target { ext: Some("flash".into()), via: Some("cubefield".into()), rel: PathBuf::from(rel) });
+        assert_eq!(req("ext://cubefield/__ext/flash/ruffle/ruffle.js"), want("ruffle/ruffle.js"));
+        assert_eq!(req("http://ext.localhost/cubefield/__ext/flash/core.wasm"), want("core.wasm"));
+        for bad in ["ext://cubefield/__ext/flash", "ext://cubefield/__ext/flash/", "ext://cubefield/__ext/.flash/a.js", "ext://cubefield/__ext/flash/.x.js", "http://ext.localhost/__ext/flash/a.js"] {
+            assert!(req(bad).is_none_or(|t| t.via.is_none() && t.ext.as_deref() != Some("flash")), "{bad}");
+        }
+        assert!(requires(&json!({ "requires": ["flash"] }), "flash"));
+        assert!(!requires(&json!({ "requires": ["other"] }), "flash"));
+        assert!(!requires(&json!({}), "flash"));
     }
 
     #[test]
@@ -230,9 +278,9 @@ mod tests {
     #[test]
     fn the_policy_names_the_page_s_own_origin() {
         let c = csp(&"ext://solitaire/surface/index.html".parse().unwrap());
-        assert!(c.starts_with("default-src 'self' ext://solitaire; script-src 'self' ext://solitaire;"), "{c}");
+        assert!(c.starts_with("default-src 'self' ext://solitaire; script-src 'self' ext://solitaire 'wasm-unsafe-eval';"), "{c}");
         assert!(c.contains("connect-src 'self' ext://solitaire;"));
-        assert!(csp(&"http://ext.localhost/solitaire/a.js".parse().unwrap()).contains("script-src 'self' http://ext.localhost;"));
+        assert!(csp(&"http://ext.localhost/solitaire/a.js".parse().unwrap()).contains("script-src 'self' http://ext.localhost 'wasm-unsafe-eval';"));
     }
 
     #[test]
@@ -241,6 +289,8 @@ mod tests {
         assert_eq!(mime(Path::new("index.HTML")), Some("text/html; charset=utf-8"));
         assert_eq!(mime(Path::new("cards/AS.png")), Some("image/png"));
         assert_eq!(mime(Path::new("tokens.css")), Some("text/css; charset=utf-8"));
+        assert_eq!(mime(Path::new("ruffle/core.wasm")), Some("application/wasm"));
+        assert_eq!(mime(Path::new("game.SWF")), Some("application/x-shockwave-flash"));
         assert_eq!(mime(Path::new("pal.toml")), None);
         assert_eq!(mime(Path::new("run.sh")), None);
         assert_eq!(mime(Path::new("Makefile")), None);

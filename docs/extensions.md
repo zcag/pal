@@ -864,7 +864,10 @@ export default defineExtension({
   check; `import type` from `@zcag/pal` is fine, a runtime import from it
   or a package is not. Every response carries a CSP: the page's own
   origin only (no network, no eval, no inline `<script>`; inline style is
-  fine). A bundled extension ships `surface/` and the `*.ts` beside its
+  fine; WebAssembly compiles, protocol 8). A file of an extension named
+  in `requires` is at `__ext/<name>/<path>` on the same origin
+  (protocol 8), for a runtime shared by several games: reach it by a
+  relative URL, `../__ext/flash/ruffle.js` from `surface/index.html`. A bundled extension ships `surface/` and the `*.ts` beside its
   `index.ts` (`build-extensions.sh`).
 - **The kit** at `/__pal/` on every origin: `surface.js` (include it
   first; it sets `window.pal`), the Kenney card deck
