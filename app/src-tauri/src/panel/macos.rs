@@ -126,22 +126,38 @@ pub fn set_frame(w: &WebviewWindow, (x, y, width, height): (f64, f64, f64, f64))
     ns.setFrame_display(to, true);
 }
 
-/// The panel to `size` (points) with its top edge where it is, animated by
-/// AppKit, so the vibrancy and the shadow (the window's, not the page's)
-/// glide with a design's fitted panel (`compact::panel_fit`). Main thread.
+/// The panel to `size` (points) with its top edge where it is, animated
+/// through the window's animator like `appear`, so the vibrancy and the
+/// shadow (the window's, not the page's) glide with a design's fitted panel
+/// (`compact::panel_fit`); one while a show drops in takes over the frame
+/// the show animates, at the top it lands on. Main thread.
 pub fn fit(w: &WebviewWindow, size: tauri::LogicalSize<f64>) {
+    use objc2::runtime::AnyObject;
+    use objc2::{class, msg_send};
     use objc2_app_kit::NSWindow;
     use objc2_foundation::{NSPoint, NSRect, NSSize};
     let Ok(ptr) = w.ns_window() else { return };
     let ns = unsafe { &*(ptr as *const NSWindow) };
     let f = ns.frame();
-    if (f.size.height - size.height).abs() < 0.5 && (f.size.width - size.width).abs() < 0.5 {
-        return;
-    }
-    let top = f.origin.y + f.size.height;
+    let top = match *DROPPING.lock().unwrap() {
+        Some((at, top)) if at.elapsed().as_secs_f64() < FADE_IN + 0.05 => top,
+        _ => f.origin.y + f.size.height,
+    };
     let to = NSRect::new(NSPoint::new(f.origin.x, top - size.height), NSSize::new(size.width, size.height));
-    ns.setFrame_display_animate(to, true, true);
+    unsafe {
+        let _: () = msg_send![class!(NSAnimationContext), beginGrouping];
+        let ctx: *mut AnyObject = msg_send![class!(NSAnimationContext), currentContext];
+        let _: () = msg_send![ctx, setDuration: FIT];
+        let anim: *mut AnyObject = msg_send![ns, animator];
+        let _: () = msg_send![anim, setFrame: to, display: true];
+        let _: () = msg_send![class!(NSAnimationContext), endGrouping];
+    }
 }
+
+/// How long a fitted panel's height glides, seconds.
+const FIT: f64 = 0.18;
+/// A show's drop in flight: when it began and the top edge it lands at, for a fit in the meantime.
+static DROPPING: std::sync::Mutex<Option<(std::time::Instant, f64)>> = std::sync::Mutex::new(None);
 
 /// Whether the panel is up: a flag, not the window's alpha, which passes
 /// through every value while a show or a hide fades (`appear`), so a hotkey
@@ -167,6 +183,9 @@ fn appear(p: &tauri_nspanel::objc2_app_kit::NSPanel, show: bool) {
     use objc2::{class, msg_send};
     unsafe {
         let to = p.frame();
+        if show {
+            *DROPPING.lock().unwrap() = Some((std::time::Instant::now(), to.origin.y + to.size.height));
+        }
         if show && p.alphaValue() < 0.01 {
             let mut from = to;
             from.origin.y += DROP;

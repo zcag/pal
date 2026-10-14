@@ -84,14 +84,15 @@ function useFit(panel: React.RefObject<HTMLDivElement | null>, fits: boolean, on
   }, [panel, fits, onFit]);
 }
 
-/** The height the level's content asks for: a list's rows (its inner box is the virtualiser's total) with whatever sits beside it in the body (the glance strip), an empty state's own lines with its padding. */
+/** The height the level's content asks for: a list's rows (its inner box is the virtualiser's total) with whatever sits beside it in the body (the glance strip), an empty state's own lines with its padding and the same beside it. */
 function natural(main: HTMLElement): number | undefined {
+  const beside = (own: HTMLElement) => [...main.children].reduce((h, k) => (k.contains(own) ? h : h + (k as HTMLElement).offsetHeight), 0);
   const inner = main.querySelector<HTMLElement>(".pal-list__inner");
-  if (inner) return [...main.children].reduce((h, k) => (k.contains(inner) ? h : h + (k as HTMLElement).offsetHeight), inner.offsetHeight);
+  if (inner) return beside(inner) + inner.offsetHeight;
   const empty = main.querySelector<HTMLElement>(".pal-empty");
   if (!empty || !empty.firstElementChild) return undefined;
   const kids = [...empty.children] as HTMLElement[];
   const top = kids[0].getBoundingClientRect().top, bottom = kids[kids.length - 1].getBoundingClientRect().bottom;
   const pad = parseFloat(getComputedStyle(empty).paddingTop) + parseFloat(getComputedStyle(empty).paddingBottom);
-  return bottom - top + pad;
+  return beside(empty) + bottom - top + pad;
 }
