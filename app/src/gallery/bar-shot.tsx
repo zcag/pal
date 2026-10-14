@@ -17,7 +17,7 @@ import { Launcher, menuLevel, type Level } from "../Launcher";
 import type { BarMenu, BarMenuNode } from "../bar";
 import { Hud } from "../ui";
 import { BarStrip, MENUBAR_H, SKETCHYBAR_H, type BarStripItem } from "../ui/BarStrip";
-import { POPOVER_MAX_H, popoverHeight } from "../ui/popover-size";
+import { popoverHeight } from "../ui/popover-size";
 import { toItem, toView, type Effect, type SourceInfo, type WireItem } from "../items";
 import { shots } from "virtual:pal-extensions";
 import { manifestOf } from "./data";
@@ -47,8 +47,8 @@ const fixtures = shots as Record<string, () => Promise<{ default: BarFixture }>>
 
 /** The strip: 720 by 60, the band at the top and the desktop under it. */
 const W = 720, STRIP_H = 60;
-/** Every popover shot's canvas: the band, the gap and the tallest popover (480) with a margin, so the store lays them out alike. */
-const POPOVER_CANVAS_H = 540;
+/** Every popover shot's canvas: the band, the gap and the tallest shot's popover (SHOT_MAX_H) with a margin, so the store lays them out alike. */
+const SHOT_MAX_H = 480, POPOVER_CANVAS_H = 540;
 const POPOVER_W = 420, POPOVER_GAP = 8;
 
 const patched = (fx: BarFixture, state?: string): BarItem => {
@@ -63,7 +63,7 @@ const menuOf = (m: BarMenu | undefined): "nodes" | "palette" | "view" | "none" =
 /**
  * The popover as `BarPage.tsx` opens it: the Launcher on the item's level,
  * 420 wide, centred under the anchor and 8 px down, clamped to the strip,
- * its height the content's up to 480. A `nodes` menu is a menu level; a
+ * its height the content's up to SHOT_MAX_H. A `nodes` menu is a menu level; a
  * `{ palette }` menu is that palette level over the fixture's rows; a
  * `{ view }` menu is that tree as the item's own view level (a pick from
  * it answers what the fixture recorded for that action, else keeps the level).
@@ -85,12 +85,12 @@ function Popover({ fx, item, x }: { fx: BarFixture; item: BarItem; x: number }) 
   }, [fx, m, kind, key]);
   const el = useRef<HTMLDivElement>(null);
   // From the tallest, then shrunk to the content: a view that scrolls its selected row into view on mount (stats) would otherwise scroll in a 120 px box.
-  const [h, setH] = useState(POPOVER_MAX_H);
+  const [h, setH] = useState(SHOT_MAX_H);
   // The height follows the content as BarPage.tsx measures it: the rows land after the Launcher's first search, so watch the tree.
   useLayoutEffect(() => {
     const root = el.current;
     if (!root) return;
-    const measure = () => setH(popoverHeight(root));
+    const measure = () => setH(popoverHeight(root, undefined, SHOT_MAX_H));
     const mo = new MutationObserver(measure);
     mo.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class"] });
     measure();

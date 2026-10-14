@@ -3,7 +3,7 @@
 //! (`panel::bar_install`) with the Launcher on one level and no root. It
 //! opens under the anchor rect a target reported (a tray icon's frame, a
 //! sketchybar item's `bounding_rects`), or at the panel's usual place from
-//! a hotkey; 420 wide, as tall as its content up to 480, clamped to the
+//! a hotkey; 420 wide, as tall as its content up to 720, clamped to the
 //! display the anchor is on.
 //!
 //! Peek and engage (`docs/design/bar.md`, Hover): the pointer resting on
@@ -56,7 +56,7 @@ pub const WIDTH: f64 = 420.0;
 static REVEAL_GEN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 /// The most a fresh item stays veiled when the page never says it is drawn.
 const REVEAL_MAX: Duration = Duration::from_millis(400);
-pub const MAX_HEIGHT: f64 = 480.0;
+pub const MAX_HEIGHT: f64 = 720.0;
 /// Between the anchor's bottom edge and the popover.
 pub const GAP: f64 = 8.0;
 

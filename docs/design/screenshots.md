@@ -33,7 +33,7 @@ panel shot does; a `{ view }` popover answers them from the fixture's
 `effects` (what `bar/action` returned for each action id), so Space opens
 the recorded preview (`bar-popover-preview.png`). The popover is centred under its
 item, as `BarPage.tsx` places it, and top-aligned under the band; the canvas
-is the tallest popover's (480 pt) so every popover shot is the same size.
+is the tallest shot's popover (480 pt, below the real 720) so every popover shot is the same size.
 
 `pal.json`'s `store.screenshots` lists the light files, each with its
 caption and `kind` (`panel` or `bar`); the dark twins are not listed. A

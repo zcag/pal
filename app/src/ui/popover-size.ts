@@ -5,7 +5,7 @@
  * sizes the real popover window with it and the gallery's bar shots draw
  * theirs with it, so a store picture is the popover's real size.
  */
-export const POPOVER_MAX_H = 480;
+export const POPOVER_MAX_H = 720;
 const CONTENT = ".pal-list__inner, .pal-view > .pal-view__stack, .pal-show, .pal-form-level, .pal-empty";
 
 /** The search row and the footer as drawn: each design sizes them its own way, and a design may drop the footer while a row carries the keys. */

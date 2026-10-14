@@ -127,7 +127,7 @@ the main one (`panel/macos.rs:34-37`: `nonactivating_panel`, floating,
 alpha 0) with the Launcher on one level and no root: Escape hides it, `cmd+k`
 and the whole grammar apply, `keep`/`push`/`show`/`form`/`view` stack inside
 it, any hiding effect hides it. Placement: centred under the anchor rect,
-8 px down, clamped to the screen; width 420, height by content up to 480.
+8 px down, clamped to the screen; width 420, height by content up to 720.
 The anchor is the tray icon's rect on a menu bar click or hover
 (`TrayIconEvent::Click { rect, .. }`, tauri 2.11 `src/tray/mod.rs:71`,
 verified in the registry source; `None` on Linux), `bounding_rects` from
