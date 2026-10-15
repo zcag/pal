@@ -181,7 +181,8 @@ describe("build", () => {
     expect(e.build.seq).toBe(Number(git("log", "-1", "--format=%ct")));
     expect(e.build.commit).toBe(git("rev-parse", "HEAD"));
     expect(readFileSync(join(out, "weather", "index.js"), "utf8")).toContain("// extensions/weather/index.ts");
-    expect(e.listing.palettes).toEqual([{ id: "weather", title: "Weather", kind: "live" }]);
+    const { kind } = JSON.parse(readFileSync(join(src, "pal.json"), "utf8")).palettes.weather;
+    expect(e.listing.palettes).toEqual([{ id: "weather", title: "Weather", kind }]);
     expect(e.listing.screenshots).toEqual([]);
   });
 });
