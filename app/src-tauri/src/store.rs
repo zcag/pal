@@ -498,6 +498,10 @@ fn install_with<'a>(app: &'a AppHandle, name: String, registry: Option<String>, 
             }
         }
         let _held = hold(app, &name).await;
+        // Asked again while it installed (a card the index had not caught up with): done.
+        if loaded_now(app, &name) {
+            return OpResult { name, ok: true, loaded: Some(true), error: None };
+        }
         let _busy = busy(app, &name);
         let (n, r) = (name.clone(), registry.clone());
         let done = blocking(app, move |m| {

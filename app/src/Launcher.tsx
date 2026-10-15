@@ -39,7 +39,7 @@ const missingAction = (v: MissingLevel): Action | undefined =>
 /** The card's words: what is missing, what to do, and how it went. */
 export function missingCard(v: MissingLevel): { title: string; hint?: string; note?: string } {
   const name = v.info?.title ?? v.extension;
-  const title = v.info?.state === "disabled" ? `${name} is turned off` : `${name} isn't installed`;
+  const title = v.info?.state === "disabled" ? `${name} is turned off` : v.info?.state === "installed" ? name : `${name} isn't installed`;
   if (v.phase === "busy") return { title, hint: v.info?.state === "disabled" ? "Turning it on…" : "Installing…" };
   if (v.phase === "ready") return { title, hint: "Opening…" };
   const hint = !v.info ? undefined : v.info.state === "disabled" ? "Its palettes and hotkeys do nothing until it is turned on." : v.info.state === "unknown" ? "No registry you follow lists it." : v.info.installable ? v.info.tagline : v.info.blocked ? `It can't be installed here: ${v.info.blocked}.` : "It can't be installed here.";
@@ -169,7 +169,7 @@ export type MissingLevel = { kind: "missing"; extension: string; palette?: strin
  * listed and installable (`registry` it installs from), listed but not for
  * here (`blocked`), turned off, or known to no registry.
  */
-export type MissingInfo = { title: string; icon?: IconSpec; tagline?: string; state: "not_installed" | "disabled" | "unknown"; installable?: boolean; blocked?: string; registry?: string };
+export type MissingInfo = { title: string; icon?: IconSpec; tagline?: string; state: "not_installed" | "disabled" | "installed" | "unknown"; installable?: boolean; blocked?: string; registry?: string };
 /** Where the missing card came from, for the install's usage count. */
 export type MissingFrom = "store" | "deeplink";
 
@@ -808,7 +808,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   useEffect(() => {
     if (!missingKey || !props.missing) return;
     let live = true;
-    const fill = (info: MissingInfo) => { if (live) nav.patch((v) => (v.kind === "missing" && v.extension === missingKey && !v.info ? { ...v, info } : v)); };
+    // Installed already (a pick that installed it, then pushed before the index listed it): the card waits for the index, as after its own install.
+    const fill = (info: MissingInfo) => { if (live) nav.patch((v) => (v.kind === "missing" && v.extension === missingKey && !v.info ? { ...v, info, ...(info.state === "installed" && { phase: "ready" as const }) } : v)); };
     props.missing(missingKey).then(fill, () => fill({ title: missingKey, state: "unknown" }));
     return () => { live = false; };
   }, [missingKey]); // eslint-disable-line react-hooks/exhaustive-deps

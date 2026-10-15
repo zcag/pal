@@ -95,6 +95,7 @@ export async function missingInfo(extension: string): Promise<MissingInfo> {
   const title = a?.listing.title || name;
   const icon = a ? iconOf(a.listing.icon, title) : undefined;
   if (s.disabled.includes(name)) return { title, icon, tagline: a?.listing.tagline, state: "disabled" };
+  if (s.statuses.some((x) => x.name === name)) return { title, icon, tagline: a?.listing.tagline, state: "installed" };
   return a ? { title, icon, tagline: a.listing.tagline, state: "not_installed", installable: a.installable, blocked: a.blocked, registry: a.registry } : { title, state: "unknown" };
 }
 

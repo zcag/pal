@@ -70,6 +70,21 @@ describe("a push into a missing extension", () => {
     expect(el.querySelector("input")?.getAttribute("placeholder")).toBe("Search Snippets…");
     expect(opened).toHaveBeenCalledWith("snippets/snippets");
   });
+  it("one a pick just installed, pushed before the index listed it: no card asking to install, the palette once it is listed", async () => {
+    const install = vi.fn(async () => {});
+    const p: Props = { missing: async () => ({ title: "Snippets", state: "installed" }), install };
+    await render([clipboard], p);
+    await act(() => { launcher.current!.open("snippets/snippets"); });
+    await flush();
+    expect(el.textContent).toContain("Opening…");
+    expect(el.textContent).not.toContain("isn't installed");
+    await enter();
+    await flush();
+    expect(install).not.toHaveBeenCalled();
+    await render([clipboard, snippets], p);
+    await flush();
+    expect(el.querySelector("input")?.getAttribute("placeholder")).toBe("Search Snippets…");
+  });
   it("says a failed install under the card and keeps Install", async () => {
     const p: Props = { missing: async () => ({ title: "Snippets", state: "not_installed", installable: true }), install: async () => { throw new Error("offline: pal.cagdas.io is not reachable"); } };
     await render([clipboard], p);
