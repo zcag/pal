@@ -176,6 +176,29 @@ export async function pageSources(dir: string): Promise<string[]> {
 }
 
 /**
+ * The files outside the extension's folder that its index.ts reaches by
+ * relative imports, followed to any depth (Flash's `../games/index.ts`, the
+ * Games shelf it builds on), relative to the folder (`../games/showcase.ts`).
+ * `bun build` inlines them; a staged build copies them beside the copy.
+ */
+export async function siblingSources(dir: string): Promise<string[]> {
+  const seen = new Set(["index.ts"]), queue = ["index.ts"], found: string[] = [];
+  while (queue.length) {
+    const rel = queue.shift()!;
+    const text = (await readFile(join(dir, rel), "utf8")).replace(COMMENT_LINES, "");
+    for (const m of text.matchAll(IMPORTS)) {
+      const target = normalize(join(dirname(rel), m[1]));
+      if (seen.has(target)) continue;
+      if (!(await exists(join(dir, target)))) throw new Error(`${basename(dir)}: ${rel} imports ${m[1]}, which is not there`);
+      seen.add(target);
+      queue.push(target);
+      if (target.startsWith("..")) found.push(target);
+    }
+  }
+  return found;
+}
+
+/**
  * One extension directory built into `<out>/<name>/`: `bun build` of its
  * index.ts with `@zcag/pal` external, its pal.json with `protocol` stamped,
  * and for a game its `surface/` with the sources beside index.ts the page
@@ -201,6 +224,10 @@ export async function build(dir: string, o: BuildOptions): Promise<Entry> {
       await mkdir(dirname(at), { recursive: true });
       const cp = spawnSync("cp", ["-R", dir, at]);
       if (cp.status !== 0) throw new Error(`${name}: staging under ${o.prefix}/ failed: ${cp.stderr}`);
+      for (const f of await siblingSources(dir)) {
+        await mkdir(dirname(join(at, f)), { recursive: true });
+        await copyFile(join(dir, f), join(at, f));
+      }
       return await build(at, { ...o, prefix: undefined, cwd: stage, seq, commit, released });
     } finally {
       await rm(stage, { recursive: true, force: true });

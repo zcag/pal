@@ -156,6 +156,21 @@ describe("build", () => {
     expect(run(dir, "build", "broken", "--out", join(dir, "bad"), "--cwd", dir, "--seq", "7").stderr.toString()).toContain(`broken: pal.json names it "other"`);
   });
 
+  test("staged, what index.ts imports from beside the folder is staged too and inlined; one not there fails the build", async () => {
+    const root = join(dir, "siblings");
+    source(root, "flashy");
+    mkdirSync(join(root, "shelf"), { recursive: true });
+    writeFileSync(join(root, "shelf", "index.ts"), `import { word } from "./word.ts";\nexport const shelf = () => word;\n`);
+    writeFileSync(join(root, "shelf", "word.ts"), `export const word = "from the shelf";\n`);
+    writeFileSync(join(root, "flashy", "index.ts"), `import { shelf } from "../shelf/index.ts";\nexport default { palettes: { a: { list: () => [{ id: "a", name: shelf() }] } } };\n`);
+    const out = join(dir, "siblings-out");
+    await build(join(root, "flashy"), { out, dirOnly: true, prefix: "extensions", seq: 7, commit: "" });
+    expect(readFileSync(join(out, "flashy", "index.js"), "utf8")).toContain("from the shelf");
+    expect(existsSync(join(out, "shelf"))).toBe(false);
+    writeFileSync(join(root, "flashy", "index.ts"), `import { shelf } from "../gone/index.ts";\nexport default { palettes: {} };\n`);
+    await expect(build(join(root, "flashy"), { out, dirOnly: true, prefix: "extensions", seq: 7, commit: "" })).rejects.toThrow("flashy: index.ts imports ../gone/index.ts, which is not there");
+  });
+
   // Weather where the extension repos have it (pal-extensions, not pal-games), built as pal's registry builds it: staged at
   // extensions/weather, so bun's source-path comments are those pal's own builds had and an unchanged extension keeps its hash.
   test.skipIf(!extensionsByName().has("weather"))("a repo extension: seq and commit from its checkout, staged under extensions/; the listing's palette titles from the manifest, the extension's for one named after it", async () => {

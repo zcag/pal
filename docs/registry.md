@@ -36,7 +36,9 @@ A package is one extension, built: the directory `pal-pack` writes.
 ```
 weather/
   pal.json        the manifest, with "protocol": N stamped in
-  index.js        bun build of index.ts, @zcag/pal external
+  index.js        bun build of index.ts, @zcag/pal external; what it imports
+                  from beside the extension's folder (../games/index.ts)
+                  is inlined
   *.js            chunks (--splitting)
   surface/        a game's page, when it has one
   *.ts            the sources a surface imports, when it has one: those
