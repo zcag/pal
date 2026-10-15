@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.17.1 · 2026-10-15
+
+- **Weather, redrawn**: the palette is a photograph of the sky that matches the weather and the hour, with the temperature on the left and two frosted cards: what is coming over the next hours, sunrise and sunset in their place, and the days ahead with each one's span. ← → walk the hours and the sky follows, ↑ ↓ pick a day, L searches for a place. It opens at once on the last reading.
+- **Weather warns of rain**: the bar item comes back when rain is likely within 12 hours, in blue, with the time in its tooltip; a shower the forecast doubts is shown lightly rather than as a downpour.
+- **Flash games keep their sound setting**: ⌘M (or Sound on/off) mutes a game and is remembered; the games run on Ruffle 0.7.1, and the Flash palette lists the collection's games once you follow it.
+- **Fixed: Hue rooms could stay on** after a quick All off, All on, All off.
+- **Fixed: Shell's Run again could show the last run's result**, DPI's test page could stay on "Testing…", and Stats' disk item could go blank for a minute after a slow read.
+- **Fixed: searching found uninstalled extensions only in pal's own registry**; a game from a collection you added now shows up by name.
+- **Fixed: the panel could clip the root and confirm cards** coming back from a one-row palette, and opening an extension right after installing it offered Install again.
+
 ## 0.17.0 · 2026-10-15
 
 - **Flash games**: the Flash extension plays old Flash games in the panel through Ruffle, with saves kept in pal and synced to your account, and scores on the leaderboards. Its "Add the Flash games collection" follows a registry that asks for a password.
