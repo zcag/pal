@@ -12,6 +12,19 @@ They run **in parallel**: bun gives each file a worker process (`--parallel`, up
 takes about as long as its slowest file. `test/budget.ts` prints the slowest five after every run and **fails any file over 30 s**
 (90 s on CI) and any single test over 1 s (3 s on CI, 8 s on its macOS runner). The suite went from 4 min to 43 s on 2026-09-24; the rules below are what keeps it there.
 
+## A flaky test is fixed when it shows up
+
+A test that fails on CI and passes on a re-run is a bug in the test or in the code, and it is fixed in the session that saw it,
+whatever change was being made. Find what it leaned on (a real wait, a race with I/O it did not wait for, a shared port, file or
+env, the wall clock) and take that away; the sections below are the usual causes. Re-running is fine to unblock a publish while the
+fix is made, never instead of it. The commit says what the race was.
+
+## Fewer, faster tests
+
+Touching an area's tests leaves them fewer or faster, not more: tests that build the same host to check neighbouring facts become
+one, a test another test or a contract test already covers goes, and a check that waits is made not to. New behaviour gets the
+tests that pin it, and pays for them by trimming what they duplicate. `budget.ts`'s limits are a ceiling, not a target.
+
 ## Stand-in tools: `writeTool`
 
 A fake CLI (`open`, `docker`, `scutil`, a `timer`) is written with `writeTool(path, body)` from `harness.ts`, never

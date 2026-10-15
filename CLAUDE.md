@@ -18,6 +18,9 @@ section of `notes/decisions.md`.
   runs the host's contract tests over the extension repos' checkouts and
   the bundled extensions' tests from pal-extensions (CI checks out both
   repos at main), so a host or SDK change that breaks one is caught here.
+- **A flaky test is fixed the session it shows up**, not re-run past, and
+  touching tests leaves them fewer or faster, never more
+  (`host/test/README.md`).
 
 ## The extension repos
 
