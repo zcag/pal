@@ -1129,7 +1129,7 @@ pub fn show_missing(app: &AppHandle, m: Missing) {
 
 // ---- root search: extensions not installed --------------------------------
 
-/// The synthetic source of our registry's extensions not installed here,
+/// The synthetic source of the followed registries' extensions not installed here,
 /// and the "Browse extensions" row: typed queries only, after every
 /// installed match (`index::query`), never by frecency.
 pub fn source() -> Source {
@@ -1139,10 +1139,11 @@ pub fn source() -> Source {
 /// The row that opens the Store palette.
 pub const BROWSE: &str = "pal:browse";
 
-/// One row per extension of ours this platform can install and does not
-/// have, then "Browse extensions".
+/// One row per extension this platform can install and does not have, from
+/// any followed registry (installable: no other source has the name), then
+/// "Browse extensions".
 fn rows(available: &[Available]) -> Vec<Item> {
-    let mut rows: Vec<Item> = available.iter().filter(|a| a.registry == PAL && !a.installed && a.installable).map(row).collect();
+    let mut rows: Vec<Item> = available.iter().filter(|a| !a.installed && a.installable).map(row).collect();
     rows.push(Item {
         id: BROWSE.into(),
         name: "Browse extensions".into(),
@@ -1178,7 +1179,8 @@ fn row(a: &Available) -> Item {
             md.push_str(&format!("![{caption}]({url})\n\n"));
         }
     }
-    md.push_str("Not installed. Enter installs it from pal's registry and opens it.");
+    let from = if a.registry == PAL { "pal's registry".to_string() } else { format!("the {} registry", a.registry) };
+    md.push_str(&format!("Not installed. Enter installs it from {from} and opens it."));
     let subtitle = if l.tagline.is_empty() { "Not installed".to_string() } else { format!("Not installed \u{b7} {}", l.tagline) };
     Item {
         id: a.name.clone(),
@@ -1207,7 +1209,7 @@ fn sync_rows(app: &AppHandle, available: &[Available]) {
     });
     if changed {
         let (n, blocked) = (available.len(), available.iter().filter(|a| a.blocked.is_some()).count());
-        eprintln!("store\troot rows\t{} of {n} listed ({blocked} blocked, the rest installed or another registry's)", rows.len() - 1);
+        eprintln!("store\troot rows\t{} of {n} listed ({blocked} blocked, the rest installed or not installable here)", rows.len() - 1);
         events::emit(app, events::INDEX, ());
     }
 }
@@ -1238,14 +1240,14 @@ pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, query: &str) 
         return crate::effects::apply(app, store_envelope(app)).await;
     }
     let st = state(app).await;
-    let Some(a) = st.available.iter().find(|a| a.registry == PAL && a.name == id).cloned() else { return Ok(crate::effects::toast("No longer available", id, "failure")) };
+    let Some(a) = st.available.iter().find(|a| a.installable && a.name == id).cloned() else { return Ok(crate::effects::toast("No longer available", id, "failure")) };
     let title = if a.listing.title.is_empty() { a.name.clone() } else { a.listing.title.clone() };
     if action == Some("page") {
         let env = store_envelope(app);
         return Ok(if env.get("push").is_some() { json!({ "push": { "extension": "store", "palette": "store", "query": a.name } }) } else { json!({ "open": format!("{}/{}", crate::commands::STORE, a.name) }) });
     }
     hud::show(app, &format!("Installing {title}\u{2026}"));
-    let r = install(app, &a.name, Some(PAL), From::Search).await;
+    let r = install(app, &a.name, Some(&a.registry), From::Search).await;
     match (r.ok, r.loaded) {
         (true, Some(true)) => {
             hud::show(app, &format!("Installed {title}"));
@@ -1534,16 +1536,17 @@ mod tests {
     }
 
     #[test]
-    fn available_rows_are_ours_uninstalled_and_installable_then_browse() {
-        let rows = rows(&[available("weather", PAL, false, true), available("calc", PAL, true, true), available("far", PAL, false, false), available("todo", "acme", false, true)]);
-        assert_eq!(rows.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(), ["weather", BROWSE]);
+    fn available_rows_are_uninstalled_and_installable_from_any_registry_then_browse() {
+        let rows = rows(&[available("weather", PAL, false, true), available("calc", PAL, true, true), available("far", PAL, false, false), available("todo", "acme", false, true), available("dup", "acme", false, false)]);
+        assert_eq!(rows.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(), ["weather", "todo", BROWSE], "a followed registry's too, when no other source has the name");
         let w = &rows[0];
         assert_eq!((w.name.as_str(), w.subtitle.as_deref()), ("WEATHER", Some("Not installed \u{b7} the sky")));
         assert!(["weather", "forecast", "Right now", "This week"].iter().all(|k| w.keywords.contains(&k.to_string())), "{:?}", w.keywords);
         let md = w.extra["detail"]["markdown"].as_str().unwrap();
         assert!(md.contains("Right now, This week") && md.contains("![one](https://x/1.png)") && md.contains("(https://x/2.png)"), "{md}");
         assert_eq!(w.extra["actions"][0]["id"], "install", "Enter installs");
-        assert!(["extensions", "store", "install", "browse"].iter().all(|k| rows[1].keywords.contains(&k.to_string())));
+        assert!(rows[1].extra["detail"]["markdown"].as_str().unwrap().contains("from the acme registry"));
+        assert!(["extensions", "store", "install", "browse"].iter().all(|k| rows[2].keywords.contains(&k.to_string())));
     }
 
     #[test]

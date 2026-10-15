@@ -2078,6 +2078,12 @@ a two-release migration, uninstalled extensions in root search and Games,
 anonymous usage counts behind a Settings switch. UI first: the TOML mirrors
 what the UI does, for backup and versioning. pal is public, pal-site private.
 
+Root search's uninstalled rows (2026-10-15) come from every followed
+registry, not only ours: a Flash game's name finds it once the collection
+is added. `installable` already means no other source has the name, so a
+row is never ambiguous; the install goes to that row's registry, and usage
+still counts only our registry's installs.
+
 ## Designs: one place for how pal looks (2026-10-02)
 
 Cagdas asked for a much stronger look and for every look to be easy to

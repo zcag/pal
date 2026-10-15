@@ -1031,8 +1031,8 @@ pub fn query(
     hits
 }
 
-/// The root's last section on a typed query: the extensions of ours that
-/// are not installed (`store::source`) that match, below every installed
+/// The root's last section on a typed query: the followed registries'
+/// extensions that are not installed (`store::source`) that match, below every installed
 /// match whatever they score, never on the empty query, and never boosted
 /// by frecency (their picks are not recorded either). At most
 /// [`AVAILABLE_MAX`] of them and no "N more" row: the source is no palette
