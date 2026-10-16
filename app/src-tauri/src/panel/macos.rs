@@ -130,7 +130,8 @@ pub fn set_frame(w: &WebviewWindow, (x, y, width, height): (f64, f64, f64, f64))
 /// through the window's animator like `appear`, so the vibrancy and the
 /// shadow (the window's, not the page's) glide with a design's fitted panel
 /// (`compact::panel_fit`); one while a show drops in takes over the frame
-/// the show animates, at the top it lands on. Main thread.
+/// the show animates, at the top it lands on. At once for the switcher's
+/// panel, as its show. Main thread.
 pub fn fit(w: &WebviewWindow, size: tauri::LogicalSize<f64>) {
     use objc2::runtime::AnyObject;
     use objc2::{class, msg_send};
@@ -147,7 +148,7 @@ pub fn fit(w: &WebviewWindow, size: tauri::LogicalSize<f64>) {
     unsafe {
         let _: () = msg_send![class!(NSAnimationContext), beginGrouping];
         let ctx: *mut AnyObject = msg_send![class!(NSAnimationContext), currentContext];
-        let _: () = msg_send![ctx, setDuration: FIT];
+        let _: () = msg_send![ctx, setDuration: if INSTANT.load(std::sync::atomic::Ordering::SeqCst) { 0.0 } else { FIT }];
         let anim: *mut AnyObject = msg_send![ns, animator];
         let _: () = msg_send![anim, setFrame: to, display: true];
         let _: () = msg_send![class!(NSAnimationContext), endGrouping];
@@ -176,9 +177,10 @@ const DROP: f64 = 6.0;
 
 /// The panel fades (AppKit's animator on the window, so the native blur and
 /// shadow fade with the page): in from `DROP` points higher, or out where it
-/// is. A show during a fade-out takes over the same property, so the two
+/// is; `instant` (the switcher's, which has to keep up with the keys) skips
+/// both. A show during a fade-out takes over the same property, so the two
 /// never fight. Main thread.
-fn appear(p: &tauri_nspanel::objc2_app_kit::NSPanel, show: bool) {
+fn appear(p: &tauri_nspanel::objc2_app_kit::NSPanel, show: bool, instant: bool) {
     use objc2::runtime::AnyObject;
     use objc2::{class, msg_send};
     unsafe {
@@ -186,14 +188,14 @@ fn appear(p: &tauri_nspanel::objc2_app_kit::NSPanel, show: bool) {
         if show {
             *DROPPING.lock().unwrap() = Some((std::time::Instant::now(), to.origin.y + to.size.height));
         }
-        if show && p.alphaValue() < 0.01 {
+        if show && !instant && p.alphaValue() < 0.01 {
             let mut from = to;
             from.origin.y += DROP;
             p.setFrame_display(from, false);
         }
         let _: () = msg_send![class!(NSAnimationContext), beginGrouping];
         let ctx: *mut AnyObject = msg_send![class!(NSAnimationContext), currentContext];
-        let _: () = msg_send![ctx, setDuration: if show { FADE_IN } else { FADE_OUT }];
+        let _: () = msg_send![ctx, setDuration: if instant { 0.0 } else if show { FADE_IN } else { FADE_OUT }];
         let anim: *mut AnyObject = msg_send![p, animator];
         let _: () = msg_send![anim, setAlphaValue: if show { 1.0f64 } else { 0.0f64 }];
         if show {
@@ -216,6 +218,26 @@ fn on_main(app: &AppHandle, f: impl FnOnce(&AppHandle) + Send + 'static) {
     }
 }
 
+/// The switcher's panel, clear since its show: visible now, at once. Called
+/// when the page has drawn the held level, and after [`REVEAL_LATEST`]
+/// whatever the page did; nothing for a panel hidden since or shown otherwise.
+pub fn reveal(app: &AppHandle) {
+    on_main(app, |app| {
+        if !SHOWN.load(std::sync::atomic::Ordering::SeqCst) || !INSTANT.load(std::sync::atomic::Ordering::SeqCst) {
+            return;
+        }
+        if let Ok(p) = app.get_webview_panel(WINDOW) {
+            p.set_alpha_value(1.0);
+        }
+    });
+}
+
+/// The most a switcher's show stays clear waiting for its page.
+const REVEAL_LATEST: std::time::Duration = std::time::Duration::from_millis(150);
+
+/// The panel showed for the switcher: it goes as it came, without the fade.
+static INSTANT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 pub fn show(app: &AppHandle) {
     on_main(app, show_now);
 }
@@ -224,7 +246,19 @@ fn show_now(app: &AppHandle) {
     let Ok(p) = app.get_webview_panel(WINDOW) else { return };
     SHOWN.store(true, std::sync::atomic::Ordering::SeqCst);
     p.set_ignores_mouse_events(false);
-    appear(p.as_panel(), true);
+    let instant = crate::switcher::holding();
+    INSTANT.store(instant, std::sync::atomic::Ordering::SeqCst);
+    if instant {
+        // Clear until the page has drawn the switcher's level (`reveal`), so the level before never shows.
+        p.set_alpha_value(0.0);
+        let handle = app.clone();
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(REVEAL_LATEST).await;
+            reveal(&handle);
+        });
+    } else {
+        appear(p.as_panel(), true, false);
+    }
     p.show_and_make_key();
     // The page never goes hidden, so its input keeps DOM focus and WebKit
     // does not claim first responder by itself: hand it the keyboard.
@@ -245,13 +279,14 @@ fn hide_now(app: &AppHandle) {
         // whose handler is this function, and the flag is already down by then.
         return;
     }
+    let instant = INSTANT.swap(false, std::sync::atomic::Ordering::SeqCst);
     crate::pop::note_hidden();
     crate::pick::on_hidden(app);
     crate::switcher::on_hidden(app);
     crate::states::on_panel(app, false);
     crate::views::set_visible(app, WINDOW, false, false);
     p.set_ignores_mouse_events(true);
-    appear(p.as_panel(), false);
+    appear(p.as_panel(), false, instant);
     // orderOut is what gives key focus back to the app in front; order
     // straight back in so WebKit keeps the page alive.
     p.hide(); // orderOut:
@@ -729,7 +764,7 @@ mod bar {
             }
             with: {
                 tracking_area: {
-                    options: TrackingAreaOptions::new().active_always().mouse_entered_and_exited(),
+                    options: TrackingAreaOptions::new().active_always().mouse_entered_and_exited().mouse_moved(),
                     auto_resize: true
                 }
             }
@@ -753,6 +788,22 @@ mod bar {
         } else {
             Hooks { on_resign: crate::bar::popover::on_resign, on_pointer: crate::bar::popover::on_pointer }
         }
+    }
+
+    /// WebKit hands a page its pointer moves only while the window is
+    /// active (WebFrame.cpp, `MouseMoved`: otherwise the scrollbars alone
+    /// see them), and a peeking popover or sidebar is never key, so its
+    /// rows took no hover until a click engaged it. While not key, each
+    /// move goes to the page as `pal://pointer { x, y }` (CSS pixels from
+    /// the top left), which replays it as a `mousemove` there.
+    fn pointer_moved(app: &AppHandle, label: &str, e: &objc2_app_kit::NSEvent) {
+        let Some(w) = e.window(objc2_foundation::MainThreadMarker::new().expect("tracking events arrive on the main thread")) else { return };
+        if w.isKeyWindow() {
+            return;
+        }
+        let Some(view) = w.contentView() else { return };
+        let at = e.locationInWindow();
+        crate::events::emit_to(app, label, crate::events::POINTER, serde_json::json!({ "x": at.x, "y": view.frame().size.height - at.y }));
     }
 
     /// The main panel's arrangement (`install` above): floating,
@@ -784,6 +835,8 @@ mod bar {
         events.on_mouse_entered(move |_| on_pointer(&h, true));
         let h = app.clone();
         events.on_mouse_exited(move |_| on_pointer(&h, false));
+        let (h, l) = (app.clone(), label.clone());
+        events.on_mouse_moved(move |e| pointer_moved(&h, &l, e));
         panel.set_event_handler(Some(events.as_ref()));
         let occlusion = window.with_webview(|wv| unsafe {
             let wk = &*(wv.inner() as *const AnyObject);

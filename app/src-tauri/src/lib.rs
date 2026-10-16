@@ -195,9 +195,8 @@ pub(crate) fn show_in(app: &AppHandle, palette: Option<String>) {
 }
 
 /// `show_in` for the switcher, `steps` presses into the hold: `hold` and
-/// `steps` ride in the event, and the held palette lists again on this
-/// show whatever the live relist gap says (a switch and a switch back
-/// within two seconds must see the new order).
+/// `steps` ride in the event; the held palette was listed again at the
+/// press (`switcher::begin`), and nothing else lists or renders for it.
 pub(crate) fn show_hold(app: &AppHandle, palette: String, steps: i32) {
     show_with(app, Some(palette), Some(steps));
 }
@@ -222,15 +221,23 @@ fn show_with(app: &AppHandle, palette: Option<String>, hold: Option<i32>) {
     if let Some(p) = &palette {
         store::opened(app, WINDOW, p);
     }
-    let held = hold.and(palette.clone());
     events::emit(app, events::SHOWN, Shown { t0, palette, keep, hold: hold.is_some(), steps: hold.unwrap_or(0) });
     // After the event: the live palettes list again off this thread; a file dialog in front and the Finder selection are looked for once per show.
     pershow::on_shown();
-    index::on_shown(app, held.as_deref());
-    bar::on_shown(app);
+    index::on_shown(app, hold.is_some());
+    // A switcher's show draws no bar: the items' show renders would only keep the host from its palette.
+    if hold.is_none() {
+        bar::on_shown(app);
+    }
     states::on_panel(app, true);
     // A missing permission is watched for while the panel is up.
     permissions::watch(app);
+}
+
+/// The page drew the switcher's level: its panel shows (panel `reveal`).
+#[tauri::command]
+fn panel_reveal(app: AppHandle) {
+    panel::reveal(&app);
 }
 
 fn toggle(app: &AppHandle) {
@@ -269,11 +276,14 @@ pub fn run() {
     pal_core::net::init(env!("CARGO_PKG_VERSION"));
     // A `pal://` link as the only argument (Linux: what the desktop entry runs) is not a subcommand: the plugins carry it (deeplink.rs).
     let cli = if deeplink::argv_link().is_some() { cli::Cli { cmd: None } } else { cli::Cli::parse() };
-    // Only the instance logs to the file (a link argv starts one too); a `pal <cmd>` keeps its stderr.
-    if cli.cmd.is_none() {
+    let capture_log = || {
         if let Some(p) = pal_core::log::capture() {
             eprintln!("\nlog\t{}\t{}", p.display(), chrono_free_now());
         }
+    };
+    // Only the instance logs to the file (a link argv starts one too); a `pal <cmd>` keeps its stderr unless it becomes the instance, below.
+    if cli.cmd.is_none() {
+        capture_log();
     }
     // Before anything spawns: the user's PATH, not launchd's (core env.rs).
     let (_, from_shell) = pal_core::env::adopt();
@@ -304,6 +314,10 @@ pub fn run() {
         // Nothing answered: starting an app to quit or reload it is not what was asked.
         eprintln!("pal\tnot running");
         return;
+    }
+    // Nothing answered the subcommand, so this process is the instance (sketchybar's `pal bar sync` at login was, with stderr on /dev/null).
+    if cli.cmd.is_some() {
+        capture_log();
     }
     // Applied once the page has loaded, when started with a subcommand.
     let startup = Mutex::new(cli.cmd);
@@ -420,6 +434,7 @@ pub fn run() {
             dialog::dialog_detect,
             compact::panel_mode,
             compact::panel_fit,
+            panel_reveal,
             bar::popover::bar_ready,
             glance::glance_items,
             glance::glance_open,

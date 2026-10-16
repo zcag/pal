@@ -14,15 +14,17 @@ export type PanelProps = {
   onFit?: (height: number | null) => void;
   /** The level's colour (its extension's tile: a brand token or a `#rrggbb`), as `--pal-place` on the panel for a design that tints a place by it (ui.css `--pal-place-*`); none at the root. */
   place?: string;
+  /** The switcher holds the level (`data-hold`): rows only, the search row until something is typed (ui.css). */
+  hold?: boolean;
   children: ReactNode;
 };
 
 /** The frame: search row, body (with optional side pane), footer, overlays. `data-footer` lets the scrim stop above the footer. The side pane stays through its exit (fades as the list widens). */
-export function Panel({ search, footer, aside, overlay, fits, onFit, place, children }: PanelProps) {
+export function Panel({ search, footer, aside, overlay, fits, onFit, place, hold, children }: PanelProps) {
   const panel = useRef<HTMLDivElement>(null);
   useFit(panel, !!fits && !aside, onFit);
   return (
-    <div ref={panel} className="pal-panel" data-footer={footer ? "" : undefined} data-place={place ? "" : undefined} style={place ? ({ "--pal-place": place } as CSSProperties) : undefined}>
+    <div ref={panel} className="pal-panel" data-footer={footer ? "" : undefined} data-place={place ? "" : undefined} data-hold={hold ? "" : undefined} style={place ? ({ "--pal-place": place } as CSSProperties) : undefined}>
       <div className="pal-panel__search">{search}</div>
       <div className="pal-panel__body" data-split={aside ? "" : undefined}>
         <div className="pal-panel__main">{children}</div>

@@ -311,6 +311,8 @@ export type LauncherProps = {
   onPanelMode?: (palette?: string, mode?: PanelMode) => Promise<PanelMode>;
   /** A design's fitted panel (Panel `onFit`): the window takes the height (`panel_fit`); absent, the panel sizes itself (the gallery). */
   onPanelFit?: (height: number | null) => void;
+  /** The switcher's level is drawn with the cursor where the hold put it: the shell shows the window now (`panel_reveal`), so the level before never flashes. */
+  onHoldDrawn?: () => void;
   /** The glance strip's cards (`glance_items`): the chosen bar items as they are now, drawn over the empty root where the design shows the strip. */
   glance?: { key: string; label: string; title?: string; count?: number; tooltip?: string; icon?: unknown; urgent?: boolean; progress?: number; lines?: { text: string; action?: string }[] }[];
   /** A glance card's click or ⌥1–⌥4: the item's own click (`glance_open`); with `line`, that line's action. */
@@ -373,7 +375,7 @@ function useLocalSearch(items: Item[] = []) {
 }
 
 export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launcher(props, ref) {
-  const { version = 0, onPick, onHide, onSettings, onRefresh, onWelcome, onLink, onForget, onPickReply, onCompact, onPanelMode, onPanelFit, ordinals = false, mark, onOpened } = props;
+  const { version = 0, onPick, onHide, onSettings, onRefresh, onWelcome, onLink, onForget, onPickReply, onCompact, onPanelMode, onPanelFit, onHoldDrawn, ordinals = false, mark, onOpened } = props;
   const prefs = props.prefs ?? DEFAULT_PREFS;
   /** Compact: no detail pane (cmd+i is inert), the footer's primary hint sits in the search row instead. */
   const compact = prefs.compact;
@@ -659,7 +661,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   // (`answered` once the level's own search has replied, even with nothing;
   // `at` is where the cursor was put). A `commit` that came before that
   // reply waits in `commit` and runs from the effect below.
-  const holdRows = useRef<{ found: Hit[]; id?: string; placed: boolean; answered: boolean; steps: number; at: number; commit: boolean } | null>(null);
+  const holdRows = useRef<{ found: Hit[]; id?: string; placed: boolean; answered: boolean; steps: number; at: number; commit: boolean; drawn?: boolean } | null>(null);
   useEffect(() => {
     if (!hold) return;
     const t = holdRows.current;
@@ -667,7 +669,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     const placed = t?.placed ?? false, steps = t?.steps ?? 0;
     const idx = !placed ? (hits.length ? (((1 + steps) % hits.length) + hits.length) % hits.length : 0) : query ? followCursor(hits, t?.id, 0) : Math.min(cur.cursor, Math.max(0, hits.length - 1));
     if (idx !== cur.cursor) cur.set(idx);
-    holdRows.current = { found, id: hits[idx]?.item.id, placed: placed || hits.length > 0, answered: true, steps, at: idx, commit: t?.commit ?? false };
+    holdRows.current = { found, id: hits[idx]?.item.id, placed: placed || hits.length > 0, answered: true, steps, at: idx, commit: t?.commit ?? false, drawn: t?.drawn };
   }, [hold, found, hits, cur.cursor, query]);
   // A streamed palette's rows change under one query (`ctx.partial`, then the answer): the cursor stays on its row by id, not on an index that another row may take.
   const onRow = useRef<{ query: string; id?: string }>({ query });
@@ -880,6 +882,12 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     if (t && !t.answered) { t.commit = true; return; }
     if (current && listed[0]) run(listed[0]); else onHide();
   };
+  useEffect(() => {
+    const t = holdRows.current;
+    if (!hold || !t?.answered || t.drawn || (hits.length > 0 && cur.cursor !== t.at)) return;
+    t.drawn = true;
+    requestAnimationFrame(() => onHoldDrawn?.());
+  });
   // The kept commit: once the level's search answered and the cursor sits where the hold put it (the `cur.set` above has rendered).
   useEffect(() => {
     const t = holdRows.current;
@@ -1438,6 +1446,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     <Panel
       fits={!card && !isShow && !isView && !isForm && !isGrid && !isMissing && !actionsOpen && !confirming && !props.asking}
       onFit={onPanelFit}
+      hold={hold}
       place={extensionPlace ?? placeOf(levelIcon)}
       search={<Search value={query} onChange={setQuery} inputRef={input} back={back} args={argRow ? { fields: argRow.args!, values: argValues, invalid: argInvalid, onChange: setArg, firstRef: argFirst, onEscape: focus } : undefined} filter={filterSpec} listId={isShow || isView || isForm || isMissing ? undefined : LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} popup={isGrid ? "grid" : "listbox"} loading={loading} placeholder={placeholder} readOnly={isShow || isMissing} title={(isView && !viewInput) || isForm ? viewTitle : undefined} hint={compact ? primaryHint : undefined} onHint={compact ? onPrimary : undefined} count={compact ? (sel ? sel.items.length : undefined) : undefined} />}
       aside={!compact && showDetail && !isShow && !isView && !isForm && !isMissing && (paneDetail ? <Detail detail={paneDetail} loading={paneLoading} /> : <Empty title="No details" />)}

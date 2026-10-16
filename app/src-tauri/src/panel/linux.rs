@@ -69,6 +69,9 @@ pub fn is_visible(app: &AppHandle) -> bool {
     app.get_webview_window(WINDOW).and_then(|w| w.is_visible().ok()).unwrap_or(false)
 }
 
+/// The switcher's show is not held clear here: nothing to reveal.
+pub fn reveal(_app: &AppHandle) {}
+
 pub fn show(app: &AppHandle) {
     let Some(w) = app.get_webview_window(WINDOW) else { return };
     let _ = w.show();

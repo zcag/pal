@@ -65,6 +65,9 @@ pub const TRIGGER: &str = "pal://trigger";
 /// To every page: states changed, `{ states: { <name>: value } }` (states.rs);
 /// a view level whose palette lists `state:<name>` under `on` asks again.
 pub const STATES: &str = "pal://states";
+/// To the bar popover or the sidebar while it is shown but not key: the
+/// pointer moved, `{ x, y }` in CSS pixels (panel/macos.rs `pointer_moved`).
+pub const POINTER: &str = "pal://pointer";
 /// To every page: controls were published or regrouped, `{ changes: [{ control,
 /// provider, keys }] }` (controls.rs); Settings › Groups reads the devices again.
 pub const CONTROLS: &str = "pal://controls";

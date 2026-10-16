@@ -112,8 +112,10 @@ fn begin(app: &AppHandle, source: Source, mods: Modifiers) {
     let tap = crate::registry::taps(app, &source);
     *lock(&ACTIVE) = Some(Active { source, generation, steps: 0, shown: !tap });
     eprintln!("switcher\tbegin\t{key}\tmods={mods:?}");
-    // The window the user is in: row 1 of what a tap reads and the show relists.
+    // The window the user is in: row 1 of what a tap reads and the relist lists.
     windows::stamp_focused();
+    // Listed now rather than at the show, so the first frame has the fresh order.
+    index::relist_live(app, &key);
     if !mods.is_empty() {
         poll(app, generation, mods);
     }
@@ -197,10 +199,16 @@ fn tap(app: &AppHandle, steps: i32) {
     });
 }
 
+/// Whether a hold is on: its panel shows and hides without the fade.
+pub fn holding() -> bool {
+    lock(&ACTIVE).is_some()
+}
+
 /// `pal switch cancel`: a shown hold hides the panel, which ends it through
 /// [`on_hidden`]; one not yet shown simply ends.
 pub fn cancel(app: &AppHandle) {
-    match lock(&ACTIVE).as_ref().map(|a| a.shown) {
+    let shown = lock(&ACTIVE).as_ref().map(|a| a.shown);
+    match shown {
         Some(true) => crate::panel::hide(app),
         Some(false) => on_hidden(app),
         None => {}

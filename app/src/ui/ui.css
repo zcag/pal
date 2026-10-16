@@ -903,6 +903,8 @@ mark { background: var(--pal-match); color: inherit; border-radius: var(--pal-ra
   --pal-text-x: 12px;
   --pal-radius-panel: 10px;
   --pal-radius-row: 6px;
+  --pal-row-hints: none;
+  --pal-panel-fit: off;
 }
 .pal-bar-page[data-sidebar] .pal-panel { box-shadow: inset 0 0 0 1px var(--pal-line); }
 .pal-bar-page[data-sidebar] .pal-footer { display: none; }
@@ -919,6 +921,10 @@ mark { background: var(--pal-match); color: inherit; border-radius: var(--pal-ra
 .pal-bar-page[data-sidebar] .pal-row[data-active] .pal-row__ordinal { color: var(--pal-fg); }
 /* The field: gone while peeking (the pointer brought it, nothing to type into yet); slim and bare once engaged. */
 .pal-bar-page[data-sidebar][data-peek] .pal-panel__search { display: none; }
+.pal-bar-page[data-sidebar] .pal-panel__search:has(.pal-search__input:placeholder-shown),
+.pal-panel[data-hold] .pal-panel__search:has(.pal-search__input:placeholder-shown) { height: 0; overflow: hidden; border-bottom: 0; }
+.pal-panel[data-hold] { --pal-row-hints: none; }
+.pal-panel[data-hold] .pal-panel__footer, .pal-panel[data-hold] .pal-acc, .pal-bar-page[data-sidebar] .pal-acc { display: none; }
 .pal-bar-page[data-sidebar] .pal-search { padding: 0 var(--pal-space-3); }
 .pal-bar-page[data-sidebar] .pal-search__back { display: none; }
 .pal-bar-page[data-sidebar] .pal-search__input { font-size: var(--pal-text-md); }

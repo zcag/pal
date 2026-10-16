@@ -544,14 +544,18 @@ async fn list_palette(app: &AppHandle, host: &Arc<Host>, source: &Source, m: &Pa
 /// is due lists again (`relist`). Spawned, so the show never waits on it;
 /// the paint has the old rows, the next keystroke (or the `pal://index`
 /// re-query) the new ones. A lazy live palette on its first show goes the
-/// lazy way only. `held` (`extension/palette`, the switcher's) is due
-/// whatever the gap says: its order is the point.
-pub fn on_shown(app: &AppHandle, held: Option<&str>) {
+/// lazy way only. A switcher's show (`held`) lists nothing: its palette
+/// was listed at the press (`relist_live`), and the rest would only
+/// compete with it for the host.
+pub fn on_shown(app: &AppHandle, held: bool) {
     SHOWN.store(true, Ordering::SeqCst);
     // Signed in: the account's changes, at most once a minute.
     crate::account::shown(app);
     // The welcome rows follow the permission and the marker; a no-op once hidden.
     welcome::sync(app);
+    if held {
+        return;
+    }
     let waiting: Vec<(Source, PaletteMeta)> = Palettes::with(app, |reg| {
         reg.iter_mut().filter(|r| r.enabled && r.awaits_show && r.meta.lazy != Lazy::Visit).map(|r| { r.awaits_show = false; (r.source.clone(), r.meta.clone()) }).collect()
     });
@@ -576,7 +580,7 @@ pub fn on_shown(app: &AppHandle, held: Option<&str>) {
     let live: Vec<(Source, PaletteMeta)> = Palettes::with(app, |reg| {
         reg.iter().filter(|r| r.enabled && r.meta.relists_on_show() && !lazy_now.contains(&r.source)).map(|r| (r.source.clone(), r.meta.clone())).collect()
     });
-    relist(app, live, held);
+    relist(app, live, None);
 }
 
 /// The user is inside `source` (the page's query names it as its one
@@ -614,11 +618,12 @@ pub fn on_visit(app: &AppHandle, source: &Source) {
     }
 }
 
-/// The sidebar is showing `key` (`extension/palette`, sidebar.rs): that
-/// palette alone goes the panel's way, its first listing of the run if
-/// it was waiting for a show or a visit (the sidebar showing it is one),
-/// else the live relist above, past the gap like the switcher's (the
-/// sidebar shows to be read, so it reads fresh).
+/// The sidebar is showing `key` (`extension/palette`, sidebar.rs), or the
+/// switcher holds it: that palette alone goes the panel's way, its first
+/// listing of the run if it was waiting for a show or a visit (the
+/// sidebar showing it is one), else the live relist above, past the gap
+/// (the sidebar shows to be read and the switcher's order is the point,
+/// so both read fresh).
 pub fn relist_live(app: &AppHandle, key: &str) {
     let found = Palettes::with(app, |reg| {
         reg.iter_mut().find(|r| r.enabled && palette_key(&r.source) == key).map(|r| {
@@ -626,7 +631,7 @@ pub fn relist_live(app: &AppHandle, key: &str) {
             (r.source.clone(), r.meta.clone(), waiting)
         })
     });
-    let Some((source, m, waiting)) = found else { return eprintln!("index\tsidebar\t{key}\tno such palette to list") };
+    let Some((source, m, waiting)) = found else { return eprintln!("index\trelist\t{key}\tno such palette to list") };
     {
         let mut v = lock(&VISITED);
         if !v.contains(&source) {
@@ -650,9 +655,10 @@ pub fn palette_key(s: &Source) -> String {
 }
 
 /// The live palettes among `live` that are due (`relist_due`) list again,
-/// all at once, each given `LIVE_RELIST_TIMEOUT`, and the page is told
-/// once; `forced` (`extension/palette`) is due whatever the gap says.
-/// Spawned, so the show never waits on it.
+/// all at once, each given `LIVE_RELIST_TIMEOUT`, each stored as it lands
+/// and the page told once; `forced` (`extension/palette`) is due whatever
+/// the gap says, and the page is told the moment it lands, so a slow
+/// palette never holds it back. Spawned, so the show never waits on it.
 fn relist(app: &AppHandle, live: Vec<(Source, PaletteMeta)>, forced: Option<&str>) {
     let now = unix_secs();
     let ages: Vec<Option<u64>> = with_index(app, |ix| live.iter().map(|(s, _)| ix.source(s).and_then(|i| i.listed_at)).collect());
@@ -669,42 +675,47 @@ fn relist(app: &AppHandle, live: Vec<(Source, PaletteMeta)>, forced: Option<&str
     if !skipped.is_empty() {
         eprintln!("index\tshow relist\tskipped {}", skipped.iter().map(|((s, _), _)| format!("{}/{}", s.extension, s.palette)).collect::<Vec<_>>().join(", "));
     }
-    let live: Vec<(Source, PaletteMeta)> = live.into_iter().map(|(l, _)| l).collect();
+    let live: Vec<(Source, PaletteMeta, bool)> = live.into_iter().map(|((s, m), _)| { let urgent = forced == Some(palette_key(&s).as_str()); (s, m, urgent) }).collect();
     if live.is_empty() {
         return;
     }
-    lock(&IN_FLIGHT).extend(live.iter().map(|(s, _)| s.clone()));
+    lock(&IN_FLIGHT).extend(live.iter().map(|(s, _, _)| s.clone()));
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         let t0 = Instant::now();
         let host = app.state::<Arc<Host>>().inner().clone();
         // One task per palette: the requests are in flight together.
         let tasks: Vec<_> = live
-            .iter()
-            .map(|(source, m)| {
-                let (host, source, filter) = (host.clone(), source.clone(), m.default_filter());
+            .into_iter()
+            .map(|(source, m, urgent)| {
+                let (app, host, filter) = (app.clone(), host.clone(), m.default_filter());
                 tauri::async_runtime::spawn(async move {
                     let t = Instant::now();
                     let r = tokio::time::timeout(LIVE_RELIST_TIMEOUT, fetch(&host, &source, filter.as_deref(), false)).await;
-                    (ms(t), r)
+                    let ms = ms(t);
+                    let line = match r {
+                        Ok(Some(items)) => {
+                            let line = format!("{}/{} {} items {ms:.1}ms", source.extension, source.palette, items.len());
+                            store(&app, &source, &m, items);
+                            line
+                        }
+                        Ok(None) => format!("{}/{} failed", source.extension, source.palette),
+                        Err(_) => format!("{}/{} timed out after {ms:.0}ms", source.extension, source.palette),
+                    };
+                    lock(&IN_FLIGHT).retain(|s| *s != source);
+                    if urgent {
+                        events::emit(&app, events::INDEX, ());
+                    }
+                    line
                 })
             })
             .collect();
         let mut lines = Vec::new();
-        for ((source, m), task) in live.iter().zip(tasks) {
-            let Ok((ms, r)) = task.await else { continue };
-            match r {
-                Ok(Some(items)) => {
-                    lines.push(format!("{}/{} {} items {ms:.1}ms", source.extension, source.palette, items.len()));
-                    store(&app, source, m, items);
-                }
-                Ok(None) => lines.push(format!("{}/{} failed", source.extension, source.palette)),
-                Err(_) => lines.push(format!("{}/{} timed out after {ms:.0}ms", source.extension, source.palette)),
-            }
+        for task in tasks {
+            lines.extend(task.await);
         }
         eprintln!("index\tshow relist\t{:.1}ms\t{}", ms(t0), lines.join(", "));
         events::emit(&app, events::INDEX, ());
-        lock(&IN_FLIGHT).retain(|s| !live.iter().any(|(l, _)| l == s));
     });
 }
 

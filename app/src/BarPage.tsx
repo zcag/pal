@@ -118,6 +118,16 @@ export default function BarPage() {
     };
   }, [core.bump]);
 
+  // Not key, WebKit sends the page no pointer moves; the shell does (`pal://pointer`), replayed where the pointer is so rows hover as usual.
+  useEffect(() => {
+    const un = listen<{ x: number; y: number }>("pal://pointer", ({ payload: { x, y } }) => {
+      document.elementFromPoint(x, y)?.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: x, clientY: y }));
+    }, { target: getCurrentWindow().label });
+    return () => {
+      un.then((f) => f());
+    };
+  }, []);
+
   // The window's height follows the content: the list's virtual height, or a view, a show, a form.
   useEffect(() => {
     const el = page.current;
