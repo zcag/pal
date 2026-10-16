@@ -59,6 +59,20 @@ const positions = [
   { id: "last", title: "Where it was last" },
 ];
 
+export const DEFAULT_POP_TO_ROOT = "after 30s";
+
+const popTimes = [
+  { id: "always", title: "Never" },
+  { id: "after 10s", title: "Within 10 seconds" },
+  { id: "after 30s", title: "Within 30 seconds" },
+  { id: "after 90s", title: "Within 90 seconds" },
+  { id: "after 180s", title: "Within 3 minutes" },
+  { id: "never", title: "Always" },
+];
+
+/** The choices, plus the file's own value when it is none of them (`after 45s` typed by hand). */
+const popOptions = (current: string) => popTimes.some((o) => o.id === current) ? popTimes : [...popTimes, { id: current, title: `Within ${current.replace(/^after /, "")}` }];
+
 /**
  * Every row of the page, once: its label and description as drawn, and
  * what the search field finds it by. The index below is built from this,
@@ -74,7 +88,8 @@ const text = {
   design: { anchor: "general:design", hint: "Appearance", label: "Design", description: "How pal is drawn beyond its colours: the type, the selected row, where the keys sit. Every window follows it; a theme file still recolours it.", keywords: "look style ink skin font" },
   themeFile: { anchor: "general:theme-file", hint: "Appearance", label: "Theme file", description: "Colours, radii and fonts from a TOML file, light and dark sections applied to the theme above; saved changes apply live. The folder starts with a Catppuccin Frappé and a Rosé Pine Dawn to copy from.", keywords: "tokens accent" },
   position: { anchor: "general:position", hint: "Appearance", label: "Window position", description: "On the screen with the pointer.", keywords: "top centre center last" },
-  backspace: { anchor: "general:backspace", hint: "Keyboard", label: "Backspace goes back", description: "With nothing typed, Backspace leaves the palette or level you are in, as cmd+backspace does; a row that uses Backspace itself (a folder's Go up) comes first.", keywords: "backspace back pop level keyboard escape" },
+  popToRoot: { anchor: "general:pop-to-root", hint: "Navigation", label: "Reopen where you left", description: "How long after you hide pal it opens on the same palette and query; later than that, it opens fresh. A palette's own hotkey always opens that palette.", keywords: "pop root reset query keep remember last timeout fresh" },
+  backspace: { anchor: "general:backspace", hint: "Navigation", label: "Backspace goes back", description: "With nothing typed, Backspace leaves the palette or level you are in, as cmd+backspace does; a row that uses Backspace itself (a folder's Go up) comes first.", keywords: "backspace back pop level keyboard escape" },
   login: { anchor: "general:login", hint: "Startup", label: "Launch at login", description: "The hotkey works from the moment you sign in. Either way pal relaunches itself after a crash; the report shows under About.", keywords: "autostart" },
   menubar: { anchor: "general:menubar", hint: "Startup", label: "Menu bar icon", description: "pal has no Dock icon. Without this, the hotkey and pal settings are the ways in.", keywords: "tray" },
   checkUpdates: { anchor: "general:check-updates", hint: "Updates", label: "Check for pal updates", description: "Once a day, and when the Overview opens. Off, only Check now looks.", keywords: "update release version new automatic" },
@@ -159,7 +174,10 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
         </SettingsRow>
       </SettingsGroup>
 
-      <SettingsGroup title="Keyboard">
+      <SettingsGroup title="Navigation">
+        <SettingsRow anchor={text.popToRoot.anchor} label={text.popToRoot.label} description={text.popToRoot.description} configKey="general.pop_to_root" htmlFor="pal-general-pop-to-root">
+          <SettingsSelect id="pal-general-pop-to-root" value={value.popToRoot} options={popOptions(value.popToRoot)} onChange={(v) => set("popToRoot", v)} />
+        </SettingsRow>
         <SettingsRow anchor={text.backspace.anchor} label={text.backspace.label} description={text.backspace.description}>
           <SettingsSwitch checked={value.backspaceBack} onChange={(v) => set("backspaceBack", v)} label="Backspace goes back" />
         </SettingsRow>

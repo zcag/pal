@@ -11,7 +11,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import {
   SettingsAbout, SettingsBar, SettingsExtensions, SettingsGeneral, SettingsGroups, SettingsOverview, SettingsShortcuts, SettingsWindow, groupsIndex, isDevice, type GroupControl, type GroupDevice, type DeviceGroup, type DeviceOffer,
-  aboutIndex, barIndex, extensionsIndex, generalIndex, hotkeyList, overviewIndex, overviewItems, palettesIndex, shortcutsIndex, flashAnchor, settingsPages, BAR_DEFAULTS, SettingsFeatures, featuresIndex, sidebarIndex, permissionUsers, storePermissions, type SettingsFeature,
+  aboutIndex, barIndex, extensionsIndex, generalIndex, DEFAULT_POP_TO_ROOT, hotkeyList, overviewIndex, overviewItems, palettesIndex, shortcutsIndex, flashAnchor, settingsPages, BAR_DEFAULTS, SettingsFeatures, featuresIndex, sidebarIndex, permissionUsers, storePermissions, type SettingsFeature,
   resolveLook, lookDefaults, lookOf, lookWrites, LOOK_KEYS, holdOf, sidebarDefaults, sidebarSummary, type BarBadgeStyle, type BarConfig, type BarFont, type BarItem, type BarItemConfig, type BarRuleEffect, type BarLookConfig, type BarLookOverride, type BarShow, type BarTarget, type Diagnostic, type GeneralConfig, type HotkeyStatus, type PaletteConfig, type PaletteKey, type PaletteTier, type PermissionId, type PermissionsStatus, type SettingSpec, type SettingValue, type SettingValues, type SidebarConfig, type SidebarEdge,
   type CrashReport, type PaletteItem, type PanicReport, type ReportKind, type SettingsExtension, type SettingsIndexEntry, type SettingsPage, type SettingsPalette, type UpdateInfo, type UpdateProgress,
   badgedIcon, leavesFile, ownBrand, resolveInstance, type InstanceInfo, type RawInstance, type SettingsInstance,
@@ -35,7 +35,7 @@ type RawLook = { dim?: number; opacity?: number; size?: number; icon_size?: numb
 type RawBarItem = RawLook & { enabled?: boolean; show?: BarShow; target?: BarTarget; position?: string; hotkey?: string; open_on_hover?: boolean; order?: number; show_when?: string; hide_when?: string; settings?: Record<string, unknown> };
 type RawBar = { target: BarTarget; hover_delay: number; hover_grace: number; menubar: RawLook & { open_on_hover: boolean }; sketchybar: RawLook & { open_on_hover: boolean; position: string }; items: Record<string, RawBarItem> };
 type RawConfig = {
-  general: { hotkey: string | string[]; theme: GeneralConfig["theme"]; design?: string; glance?: string[]; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"]; backspace_back?: boolean; check_updates: boolean; usage?: boolean };
+  general: { hotkey: string | string[]; theme: GeneralConfig["theme"]; design?: string; glance?: string[]; launch_at_login: boolean; menu_bar_icon: boolean; position: GeneralConfig["position"]; backspace_back?: boolean; pop_to_root?: string; check_updates: boolean; usage?: boolean };
   /** `[store]` (docs/config.md): the installed and turned-off lists, auto-update, the registries. */
   store?: { auto_update?: boolean; installed?: string[]; disabled?: string[] };
   palettes: Record<string, RawPalette>;
@@ -537,7 +537,7 @@ export default function Settings() {
   if (!view) return null;
   const { config } = view;
 
-  const general: GeneralConfig = { hotkeys: hotkeyList(config.general.hotkey), theme: config.general.theme, design: designOf(config.general.design).id, glance: config.general.glance ?? [], launchAtLogin: config.general.launch_at_login, menuBarIcon: config.general.menu_bar_icon, position: config.general.position, backspaceBack: config.general.backspace_back !== false, appSwitcher: (config.features?.switcher?.app_switcher as string | undefined) || undefined,
+  const general: GeneralConfig = { hotkeys: hotkeyList(config.general.hotkey), theme: config.general.theme, design: designOf(config.general.design).id, glance: config.general.glance ?? [], launchAtLogin: config.general.launch_at_login, menuBarIcon: config.general.menu_bar_icon, position: config.general.position, backspaceBack: config.general.backspace_back !== false, popToRoot: String(config.general.pop_to_root ?? DEFAULT_POP_TO_ROOT), appSwitcher: (config.features?.switcher?.app_switcher as string | undefined) || undefined,
     // The file's value, else the store's view of it (the core's default is on for all three).
     checkUpdates: config.general.check_updates !== false, autoUpdate: config.store?.auto_update ?? storeState.auto_update, usage: config.general.usage ?? storeState.usage };
   const onGeneral = (next: GeneralConfig) => {
@@ -551,6 +551,7 @@ export default function Settings() {
     if (next.menuBarIcon !== general.menuBarIcon) write(["general", "menu_bar_icon"], next.menuBarIcon ? undefined : false);
     if (next.position !== general.position) write(["general", "position"], next.position);
     if (next.backspaceBack !== general.backspaceBack) write(["general", "backspace_back"], next.backspaceBack ? undefined : false);
+    if (next.popToRoot !== general.popToRoot) write(["general", "pop_to_root"], next.popToRoot === DEFAULT_POP_TO_ROOT ? undefined : next.popToRoot);
     if ((next.appSwitcher ?? "") !== (general.appSwitcher ?? "")) write(["features", "switcher", "app_switcher"], next.appSwitcher || undefined);
     // Written as the value either way: the core reacts to the change (the updater's schedule, auto-update, the usage id).
     if (next.checkUpdates !== general.checkUpdates) write(["general", "check_updates"], next.checkUpdates);

@@ -291,7 +291,7 @@ pub struct General {
     pub search_history: bool,
     /// What a re-show lands on: `"always"` back at the root (as before),
     /// `"never"` where you left (the level and the query kept), or `"after
-    /// 90s"`: kept while the panel was hidden for less than that many
+    /// 30s"`: kept while the panel was hidden for less than that many
     /// seconds, the root after. A palette hotkey always opens its palette.
     #[schemars(with = "String")]
     pub pop_to_root: PopToRoot,
@@ -346,7 +346,7 @@ pub const DEFAULT_SEARCH_ENGINE: &str = "https://www.google.com/search?q={query}
 /// `general.now` when unset: what plays (Spotify's row first: Enter is its lyrics), the next event, the running timer, what is on the clipboard.
 pub const DEFAULT_NOW: [&str; 5] = ["spotify-now-playing", "media", "calendar-today", "timer-timers", "clipboard-rows"];
 
-/// `general.pop_to_root`: `"always"`, `"never"`, or `"after 90s"` (any
+/// `general.pop_to_root`: `"always"`, `"never"`, or `"after 30s"` (any
 /// whole number of seconds; `"after 2m"` and `"after 1h"` are read too).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PopToRoot {
@@ -358,12 +358,12 @@ pub enum PopToRoot {
 
 impl Default for PopToRoot {
     fn default() -> Self {
-        Self::After(90)
+        Self::After(30)
     }
 }
 
 impl PopToRoot {
-    /// `"always"`, `"never"`, `"after 90s"` (spaces and case do not matter; a bare number is seconds).
+    /// `"always"`, `"never"`, `"after 30s"` (spaces and case do not matter; a bare number is seconds).
     pub fn parse(s: &str) -> Option<Self> {
         let s = s.trim().to_lowercase();
         match s.as_str() {

@@ -36,7 +36,7 @@ export { BarStrip, MenuBar, Sketchybar, shapeItem, clipText, defaultLook, type B
 import "./settings.css";
 export { SettingsWindow, settingsPages, pageTitle, flashAnchor } from "./SettingsWindow";
 export { SettingsOverview, overviewItems, overviewFacts, overviewIndex, type OverviewInput, type OverviewItem } from "./SettingsOverview";
-export { SettingsGeneral, generalIndex, USAGE_DOC } from "./SettingsGeneral";
+export { SettingsGeneral, generalIndex, USAGE_DOC, DEFAULT_POP_TO_ROOT } from "./SettingsGeneral";
 export { SettingsShortcuts, shortcutsIndex, bindings, clashOf, type Binding } from "./SettingsShortcuts";
 export { SettingsThemeFile, useThemeFile, type ThemeFileProps, type ThemeFileStatus } from "./SettingsTheme";
 export { ExtensionPalettes, palettesIndex, paletteIcon, HoldControl, HOLD_HELP, type PaletteItem } from "./SettingsPalettes";

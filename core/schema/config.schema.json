@@ -826,8 +826,8 @@
           "type": "array"
         },
         "pop_to_root": {
-          "default": "after 90s",
-          "description": "What a re-show lands on: `\"always\"` back at the root (as before),\n`\"never\"` where you left (the level and the query kept), or `\"after\n90s\"`: kept while the panel was hidden for less than that many\nseconds, the root after. A palette hotkey always opens its palette.",
+          "default": "after 30s",
+          "description": "What a re-show lands on: `\"always\"` back at the root (as before),\n`\"never\"` where you left (the level and the query kept), or `\"after\n30s\"`: kept while the panel was hidden for less than that many\nseconds, the root after. A palette hotkey always opens its palette.",
           "type": "string"
         },
         "position": {
@@ -1301,7 +1301,7 @@
           "timer-timers",
           "clipboard-rows"
         ],
-        "pop_to_root": "after 90s",
+        "pop_to_root": "after 30s",
         "position": "top",
         "root_caps": {
           "catalog": 3,

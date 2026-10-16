@@ -175,6 +175,8 @@ export type GeneralConfig = {
   /** macOS: ask for Accessibility on the panel's first show of a fresh profile. */
   /** `general.backspace_back`: Backspace with nothing typed goes back a level. */
   backspaceBack: boolean;
+  /** `general.pop_to_root` as the core prints it: `always`, `never` or `after <n>s`. */
+  popToRoot: string;
   /** `[features.switcher] app_switcher`: macOS's own App Switcher on this Tab chord, through the event tap; unset is off. */
   appSwitcher?: string;
   /** `general.check_updates`: look for a new pal once a day. Absent where the page does not offer it. */

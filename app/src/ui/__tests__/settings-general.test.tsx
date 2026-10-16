@@ -10,7 +10,7 @@ const settingsThemeFile: ThemeFileStatus = { setting: "", diagnostics: [], dir: 
 import { permissionRows, type GeneralConfig } from "../SettingsTypes";
 import { allGranted, nothingGranted } from "./settings-fixtures";
 
-const general: GeneralConfig = { hotkeys: ["cmd+space"], theme: "system", design: "ink", launchAtLogin: false, menuBarIcon: true, position: "top", backspaceBack: true, checkUpdates: true, autoUpdate: true, usage: true };
+const general: GeneralConfig = { hotkeys: ["cmd+space"], theme: "system", design: "ink", launchAtLogin: false, menuBarIcon: true, position: "top", backspaceBack: true, popToRoot: "after 30s", checkUpdates: true, autoUpdate: true, usage: true };
 const noop = () => {};
 const page = (props: Partial<Parameters<typeof SettingsGeneral>[0]>) =>
   renderToStaticMarkup(<SettingsGeneral value={general} onChange={noop} file={{ path: "~/.config/pal/config.toml" }} {...props} />);
@@ -62,7 +62,9 @@ describe("SettingsGeneral permissions", () => {
   });
   it("gives every row an anchor for the search", () => {
     const html = page({});
-    for (const a of ["general:shortcuts", "general:theme", "general:position", "general:backspace", "general:login", "general:menubar", "general:file"]) expect(html).toContain(`data-anchor="${a}"`);
+    for (const a of ["general:shortcuts", "general:theme", "general:position", "general:pop-to-root", "general:backspace", "general:login", "general:menubar", "general:file"]) expect(html).toContain(`data-anchor="${a}"`);
+    // A hand-written time that is none of the choices still shows as picked.
+    expect(page({ value: { ...general, popToRoot: "after 45s" } })).toMatch(/<option value="after 45s" selected="">Within 45s<\/option>/);
   });
   it("is found by any word of a row's description, not only its label, and every indexed anchor is on the page", () => {
     const find = (q: string) => generalIndex.filter((e) => `${e.label} ${e.hint ?? ""} ${e.keywords ?? ""}`.toLowerCase().includes(q)).map((e) => e.label);

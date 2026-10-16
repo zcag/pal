@@ -3,7 +3,7 @@
 //! notes when it hid (`note_hidden`, from both platforms' `panel::hide`);
 //! `show_in` asks `keep` and tells the page in the `pal://shown` payload.
 //! `"always"` is the old behaviour, `"never"` keeps the level for ever, and
-//! `"after 90s"` keeps it while the hide is younger than that. A palette
+//! `"after 30s"` keeps it while the hide is younger than that. A palette
 //! hotkey opens its palette either way (the page's `open` resets first).
 //! The switcher's hold is not a level to come back to: `forget` (from
 //! `switcher::on_hidden`) makes the next `keep` answer false once, so the
@@ -61,7 +61,8 @@ mod tests {
         assert!(!decide(&PopToRoot::Always, Some(0.0)));
         assert!(decide(&PopToRoot::After(90), Some(89.9)));
         assert!(!decide(&PopToRoot::After(90), Some(90.0)));
-        assert!(decide(&PopToRoot::default(), Some(30.0)), "the default is after 90s");
+        assert!(decide(&PopToRoot::default(), Some(29.9)), "the default is after 30s");
+        assert!(!decide(&PopToRoot::default(), Some(30.0)));
     }
 
     #[test]

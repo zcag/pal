@@ -286,9 +286,9 @@ The root list is more than the index's hits.
   its history of picks and the queries that found it are forgotten, so it
   ranks as never used. Settings > About > Maintenance resets all of it.
 - **Where a re-show lands.** Hide pal and press the hotkey again within
-  90 s and you are where you left, level and query kept; later than that,
-  at the root. `general.pop_to_root` is `"always"`, `"never"` or `"after
-  <seconds>s"`.
+  30 s and you are where you left, level and query kept; later than that,
+  at the root. Settings > General > Reopen where you left sets it
+  (`general.pop_to_root`: `"always"`, `"never"` or `"after <seconds>s"`).
 
 ## Palettes
 

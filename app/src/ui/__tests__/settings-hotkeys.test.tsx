@@ -11,7 +11,7 @@ import type { GeneralConfig } from "../SettingsTypes";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-const general: GeneralConfig = { hotkeys: ["cmd+space"], theme: "system", design: "ink", launchAtLogin: false, menuBarIcon: true, position: "top", backspaceBack: true };
+const general: GeneralConfig = { hotkeys: ["cmd+space"], theme: "system", design: "ink", launchAtLogin: false, menuBarIcon: true, position: "top", backspaceBack: true, popToRoot: "after 30s" };
 
 let root: Root, el: HTMLDivElement;
 beforeEach(() => {
