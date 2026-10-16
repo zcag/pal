@@ -200,6 +200,7 @@ fn tap(app: &AppHandle, steps: i32) {
 }
 
 /// Whether a hold is on: its panel shows and hides without the fade.
+#[cfg(target_os = "macos")]
 pub fn holding() -> bool {
     lock(&ACTIVE).is_some()
 }

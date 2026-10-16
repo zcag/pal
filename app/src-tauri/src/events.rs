@@ -67,6 +67,7 @@ pub const TRIGGER: &str = "pal://trigger";
 pub const STATES: &str = "pal://states";
 /// To the bar popover or the sidebar while it is shown but not key: the
 /// pointer moved, `{ x, y }` in CSS pixels (panel/macos.rs `pointer_moved`).
+#[cfg(target_os = "macos")]
 pub const POINTER: &str = "pal://pointer";
 /// To every page: controls were published or regrouped, `{ changes: [{ control,
 /// provider, keys }] }` (controls.rs); Settings › Groups reads the devices again.
