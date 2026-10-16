@@ -289,8 +289,8 @@ struct Bucket {
     path: Option<PathField>,
     /// id to position; the first item wins when an extension repeats an id.
     ids: HashMap<String, usize>,
-    /// Ordered by arrival, not by use: `QueryOpts::boost` skips it.
-    live: bool,
+    /// Not ranked by use (arrival order, or ids that last one listing): `QueryOpts::boost` skips it.
+    unranked: bool,
     /// Rows came from [`Index::restore`] (a cache) and no fresh list has
     /// replaced them yet, or a refresh was marked as pending.
     stale: bool,
@@ -302,12 +302,12 @@ struct Bucket {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct SourceInfo {
     pub source: Source,
-    pub live: bool,
+    pub unranked: bool,
     pub len: usize,
     /// See [`Index::restore`]: rows are a cached listing until a fresh one lands.
     pub stale: bool,
     /// Unix seconds of the listing the rows came from; `None` for a source
-    /// that only ever `extend`ed or was created by `set_live`.
+    /// that only ever `extend`ed or was created by `set_unranked`.
     pub listed_at: Option<u64>,
 }
 
@@ -330,7 +330,7 @@ impl Bucket {
     }
 
     fn info(&self) -> SourceInfo {
-        SourceInfo { source: self.source.clone(), live: self.live, len: self.entries.len(), stale: self.stale, listed_at: self.listed_at }
+        SourceInfo { source: self.source.clone(), unranked: self.unranked, len: self.entries.len(), stale: self.stale, listed_at: self.listed_at }
     }
 }
 
@@ -369,12 +369,12 @@ impl Index {
     /// Like [`replace`](Self::replace) but with rows from a cache: the
     /// source is `stale` until a real listing replaces them, and
     /// `listed_at` is the cached listing's time, so the caller can tell
-    /// how old they are. Marks the source `live` like a listing would.
-    pub fn restore(&mut self, source: Source, items: Vec<Item>, listed_at: Option<u64>, live: bool) {
+    /// how old they are. Marks the source `unranked` like a listing would.
+    pub fn restore(&mut self, source: Source, items: Vec<Item>, listed_at: Option<u64>, unranked: bool) {
         let bucket = self.bucket(source);
         bucket.stale = true;
         bucket.listed_at = listed_at;
-        bucket.live = live;
+        bucket.unranked = unranked;
         bucket.fill(items);
     }
 
@@ -416,10 +416,10 @@ impl Index {
         self.bucket(source).path = (!path.is_empty()).then(|| PathField { text: Utf32String::from(path), lower: path.to_lowercase() });
     }
 
-    /// Mark a source live: its order is arrival order, so `QueryOpts::boost`
+    /// Mark a source unranked: its picks are not remembered, so `QueryOpts::boost`
     /// does not apply to it. Creates the source empty if new.
-    pub fn set_live(&mut self, source: Source, live: bool) {
-        self.bucket(source).live = live;
+    pub fn set_unranked(&mut self, source: Source, unranked: bool) {
+        self.bucket(source).unranked = unranked;
     }
 
     /// Every source in order, with its item count.
@@ -446,7 +446,7 @@ impl Index {
         let i = match self.buckets.iter().position(|b| b.source == source) {
             Some(i) => i,
             None => {
-                self.buckets.push(Bucket { source, entries: Vec::new(), path: None, ids: HashMap::new(), live: false, stale: false, listed_at: None });
+                self.buckets.push(Bucket { source, entries: Vec::new(), path: None, ids: HashMap::new(), unranked: false, stale: false, listed_at: None });
                 self.buckets.len() - 1
             }
         };
@@ -505,7 +505,7 @@ impl Index {
                 } else {
                     0.0
                 };
-                let boost = if bucket.live { None } else { opts.boost };
+                let boost = if bucket.unranked { None } else { opts.boost };
                 let mut score = score + boost.map_or(0.0, |f| f(&bucket.source, &entry.item.id)) + bonus;
                 let word = matching && entry.starts_words(&words, &path_word);
                 if word {
@@ -618,7 +618,7 @@ impl Index {
 /// and aliases). The ladder of every adjustment, in nucleo's units of about
 /// 16 per matched char, for one query and the same match score; a frecency
 /// boost (`frecency::MAX_SCORE * BOOST_SCALE`, at most 200, "hot" below)
-/// comes on top of any of them except on a live source:
+/// comes on top of any of them except on an unranked source:
 ///
 /// | row | adjustment | hot |
 /// | --- | ---: | ---: |
@@ -839,10 +839,10 @@ mod tests {
         // The empty query is insertion order, which is grouped already.
         assert_eq!(sections(&ix.query("", QueryOpts::default())), ["apps", "icons", "bookmarks"]);
         assert!(ix.query("", QueryOpts::default()).more.is_empty());
-        // A live source listed again between two keystrokes (the show
+        // An unranked source listed again between two keystrokes (the show
         // relist) with the same rows changes nothing: the order is a
         // function of the rows, not of when they arrived.
-        ix.set_live(src("apps"), true);
+        ix.set_unranked(src("apps"), true);
         let before = ix.query("ha", QueryOpts { boost: Some(&handler), ..Default::default() });
         let rows = ix.snapshot(&src("apps"));
         ix.replace(src("apps"), rows);
@@ -891,8 +891,8 @@ mod tests {
         let hits = ix.query("ha", QueryOpts { boost: Some(&hot), ..opts() });
         assert_eq!(ids(&hits), ["ha", "handler.app", "d1", "i5", "i6", "i2", "i3"]);
         assert!(score_of(&hits, "i5") > score_of(&hits, "d1"));
-        // A live primary source keeps its tier (windows): no frecency, but the bonus.
-        ix.set_live(src("apps"), true);
+        // An unranked primary source keeps its tier (windows): no frecency, but the bonus.
+        ix.set_unranked(src("apps"), true);
         let hits = ix.query("ha", QueryOpts { boost: Some(&hot), ..opts() });
         assert_eq!(ids(&hits)[..2], ["ha", "handler.app"]);
         // The empty query is untouched by tier: insertion order, no bonus.
@@ -1106,8 +1106,8 @@ mod tests {
         let hits = ix.query("emile", QueryOpts::default());
         assert!(hits[0].score < EXACT_BONUS);
         assert!(ix.query("émile", QueryOpts::default())[0].score > EXACT_BONUS);
-        // Live sources get it too: exactness is the match, not the history.
-        ix.set_live(src("icons"), true);
+        // Unranked sources get it too: exactness is the match, not the history.
+        ix.set_unranked(src("icons"), true);
         assert!(ix.query("hand", QueryOpts::default())[0].score > EXACT_BONUS);
     }
 
@@ -1141,21 +1141,21 @@ mod tests {
     }
 
     #[test]
-    fn live_source_ignores_boost() {
+    fn unranked_source_ignores_boost() {
         let mut ix = index();
         let favour = |_: &Source, id: &str| if id == "i5" || id == "ha" { 1000.0 } else { 0.0 };
-        ix.set_live(src("icons"), true);
+        ix.set_unranked(src("icons"), true);
         let hits = ix.query("ha", QueryOpts { boost: Some(&favour), ..Default::default() });
-        // The bookmark still climbs; the live icon keeps its matched rank.
+        // The bookmark still climbs; the unranked icon keeps its matched rank.
         assert_eq!(hits[0].id, "ha");
         assert_eq!(hits[pos(&hits, "i5")].score, hits[pos(&hits, "i6")].score);
         let hits = ix.query("", QueryOpts { boost: Some(&favour), limit: 3, ..Default::default() });
         assert_eq!(ids(&hits), ["ha", "chrome.app", "terminal.app"]);
-        assert_eq!(ix.sources().iter().map(|s| (s.source.palette.as_str(), s.live, s.len)).collect::<Vec<_>>(), [("apps", false, 4), ("icons", true, 7), ("bookmarks", false, 1)]);
+        assert_eq!(ix.sources().iter().map(|s| (s.source.palette.as_str(), s.unranked, s.len)).collect::<Vec<_>>(), [("apps", false, 4), ("icons", true, 7), ("bookmarks", false, 1)]);
         // Flagging before any items arrive creates the source in place.
-        ix.set_live(src("otp"), true);
+        ix.set_unranked(src("otp"), true);
         ix.replace(src("otp"), vec![item("o1", "code", None, &[])]);
-        assert_eq!(ix.sources().last().map(|s| (s.live, s.len)), Some((true, 1)));
+        assert_eq!(ix.sources().last().map(|s| (s.unranked, s.len)), Some((true, 1)));
     }
 
     #[test]
@@ -1200,7 +1200,7 @@ mod tests {
         let mut fresh = Index::new();
         fresh.restore(src("icons"), items, Some(1234), true);
         let info = fresh.source(&src("icons")).unwrap();
-        assert_eq!((info.stale, info.listed_at, info.live, info.len), (true, Some(1234), true, 7));
+        assert_eq!((info.stale, info.listed_at, info.unranked, info.len), (true, Some(1234), true, 7));
         assert_eq!(fresh.snapshot(&src("icons")), ix.snapshot(&src("icons")));
         assert_eq!(ids(&fresh.query("chrome", QueryOpts::default())), ["i1", "i2", "i3"], "restored rows match like listed ones");
         // A real listing clears the flag and re-dates; set_stale flags a pending refresh.
@@ -1470,8 +1470,8 @@ mod tests {
             }
             rows.push(Item { id: format!("{ext}/{pal}"), name: title, subtitle: v["ext_title"].as_str().map(String::from), keywords, icon: None, section: None, extra: Default::default() });
             ix.replace(src.clone(), serde_json::from_value(v["items"].clone()).unwrap());
-            if v["meta"]["live"].as_bool() == Some(true) {
-                ix.set_live(src, true);
+            if v["meta"]["input"].as_bool() == Some(true) || v["meta"]["remember"].as_bool() == Some(false) {
+                ix.set_unranked(src, true);
             }
         }
         let palettes = Source::new("pal", "palettes");

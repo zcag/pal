@@ -689,9 +689,10 @@ type PaletteBase = {
   /** The palette's own row at the root: a glyph, emoji or hex colour, or a brand tile (`tile()`). */
   icon?: OwnIcon;
   /**
-   * Arrival order is the order (OTP codes, tabs, windows): never ranked by
-   * use, and listed again every time the panel is shown so the rows are
-   * current at the root (with `input` the rows are never at the root anyway).
+   * The rows change between shows (states, OTP codes, tabs): listed again
+   * every time the panel is shown so they are current at the root (with
+   * `input` the rows are never at the root anyway). Picks still rank them
+   * unless the manifest says `"remember": false`.
    */
   live?: boolean;
   columns?: number;
@@ -1188,6 +1189,8 @@ export type ManifestPalette = {
   tap?: boolean;
   /** Serves file dialogs: while an open or save panel is in front, the empty root's hint opens this palette (its rows carry Use in dialog). Files sets it. */
   dialog?: boolean;
+  /** `false`: picks are not remembered and never reorder the rows, for a palette whose order is the point (OTP codes, an inbox, windows most recent first) or whose ids last one listing. Input and view palettes are never remembered. */
+  remember?: boolean;
 };
 
 /**
@@ -1386,4 +1389,6 @@ export type PaletteMeta = Pick<PaletteBase, "icon" | "columns" | "placeholder" |
   tap?: true;
   /** `ManifestPalette.dialog`: the file dialog hint opens this palette. */
   dialog?: true;
+  /** `ManifestPalette.remember`: picks are not remembered (absent means they are, unless the palette is input). */
+  remember?: false;
 };

@@ -203,8 +203,7 @@ fn cache_dir(app: &AppHandle) -> PathBuf {
 
 /// Put every cached palette back before the host is spawned: registry
 /// entry (enabled per the config), items in the index flagged stale, the
-/// palette rows, the palettes' hotkeys. Needs the settings installed. The
-/// order is the empty query's order until frecency has a say: the welcome
+/// palette rows, the palettes' hotkeys. Needs the settings installed. /// order is the empty query's order until frecency has a say: the welcome
 /// rows (a fresh profile), the palette rows, then the `root_first`
 /// palettes in that order (apps among them), then the rest by name.
 pub fn restore_cache(app: &AppHandle) {
@@ -228,7 +227,7 @@ pub fn restore_cache(app: &AppHandle) {
                 if let Some(f) = &r.filter {
                     r.filtered.insert(f.clone(), e.items.clone());
                 }
-                with_index(app, |ix| ix.restore(r.source.clone(), e.items, Some(e.listed_at), r.meta.live));
+                with_index(app, |ix| ix.restore(r.source.clone(), e.items, Some(e.listed_at), !r.meta.remembered()));
             }
             reg.push(r);
         }
@@ -397,7 +396,7 @@ async fn sync_extension(app: AppHandle, host: Arc<Host>, ext: String, ext_title:
             Load::Fresh => {
                 // The cached (or last) listing stands.
                 with_index(&app, |ix| {
-                    ix.set_live(source.clone(), m.live);
+                    ix.set_unranked(source.clone(), !m.remembered());
                     ix.set_stale(source.clone(), false);
                 });
                 eprintln!("index\t{}/{}\tfresh\t{}s old of ttl {}s", source.extension, source.palette, now.saturating_sub(listed_at.unwrap_or(now)), m.ttl.unwrap_or(0.0));
@@ -408,13 +407,12 @@ async fn sync_extension(app: AppHandle, host: Arc<Host>, ext: String, ext_title:
                 eprintln!("index\t{}/{}\texpired\trefresh after ready", source.extension, source.palette);
             }
             Load::AfterShow => {
-                // The cached rows (if any) stay at the root; `on_shown` lists it. The
-                // bucket keeps `live` so a restored live palette relists on later shows.
+                // The cached rows (if any) stay at the root; `on_shown` lists it.
                 // One waiting for a visit has nothing pending until then (`on_visit`
                 // flags it), so it does not hold the root's loading bar all run.
                 with_index(&app, |ix| {
                     if ix.source(&source).is_some() {
-                        ix.set_live(source.clone(), m.live);
+                        ix.set_unranked(source.clone(), !m.remembered());
                         if m.lazy == Lazy::Visit {
                             ix.set_stale(source.clone(), false);
                         }
@@ -500,7 +498,7 @@ fn store(app: &AppHandle, source: &Source, m: &PaletteMeta, items: Vec<Item>) {
     };
     let entry = cache::Entry::new(unix_secs(), ext_title, m.clone(), items.clone());
     with_index(app, |ix| {
-        ix.set_live(source.clone(), m.live);
+        ix.set_unranked(source.clone(), !m.remembered());
         ix.replace(source.clone(), items);
     });
     app.state::<Arc<cache::Saver>>().save(source.clone(), entry);
@@ -1096,8 +1094,7 @@ pub fn sources(app: AppHandle, index: State<'_, Mutex<Index>>, palettes: State<'
 }
 
 /// "Reset ranking for this item": the row's frecency (visits and the
-/// queries that led to it) is forgotten, so it ranks as never picked. The
-/// page re-queries on the index event. Answers whether there was history.
+/// queries that led to it) is forgotten, so it ranks as never picked. /// page re-queries on the index event. Answers whether there was history.
 #[tauri::command]
 pub fn frecency_forget(app: AppHandle, source: Source, id: String, frecency: State<'_, Mutex<Frecency>>) -> bool {
     let had = lock(&frecency).forget(&Key::from_source(&source, id.clone()));
@@ -1123,8 +1120,7 @@ pub fn search_history_clear(frecency: State<'_, Mutex<Frecency>>) {
 }
 
 /// List `source` again now, or every enabled indexed palette when `None`
-/// (one after the other), whatever their `ttl`: the user asked. The
-/// targets are flagged stale first, so the footer says "updating" while
+/// (one after the other), whatever their `ttl`: the user asked. /// targets are flagged stale first, so the footer says "updating" while
 /// the listings run; the flag clears as each lands. The extension is told
 /// (`refresh: true` in the ctx) so its own cache steps aside.
 #[tauri::command]
@@ -1306,7 +1302,7 @@ pub async fn filter(app: AppHandle, source: Source, filter: String, host: State<
         }
     });
     with_index(&app, |ix| {
-        ix.set_live(source.clone(), meta.live);
+        ix.set_unranked(source.clone(), !meta.remembered());
         ix.replace(source, items);
     });
     events::emit(&app, events::INDEX, ());
@@ -1361,6 +1357,10 @@ mod tests {
         assert!(serde_json::to_value(&plain).unwrap().get("lazy").is_none());
         let parsed: PaletteMeta = serde_json::from_value(json!({ "name": "x", "title": "X", "live": true, "input": false, "lazy": true })).unwrap();
         assert!(parsed.lazy == Lazy::Show && parsed.relists_on_show());
+        assert!(parsed.remembered(), "a live palette learns from picks unless it says otherwise");
+        let parsed: PaletteMeta = serde_json::from_value(json!({ "name": "x", "title": "X", "live": true, "input": false, "remember": false })).unwrap();
+        assert!(!parsed.remembered());
+        assert!(!PaletteMeta { input: true, ..Default::default() }.remembered());
         assert_eq!(serde_json::to_value(&visit).unwrap()["lazy"], "visit");
         let parsed: PaletteMeta = serde_json::from_value(json!({ "name": "x", "title": "X", "live": false, "input": false, "lazy": "visit" })).unwrap();
         assert_eq!(parsed.lazy, Lazy::Visit);

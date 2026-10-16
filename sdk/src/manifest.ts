@@ -118,6 +118,7 @@ export function paletteMeta(name: string, p: Palette, m?: ManifestPalette, fallb
     ...(typeof m?.hold === "string" && m.hold.trim() && { hold: m.hold.trim() }),
     ...(m?.tap === true && { tap: true as const }),
     ...(m?.dialog === true && { dialog: true as const }),
+    ...(m?.remember === false && { remember: false as const }),
     ...(p.multi === true && { multi: true as const }),
     ...(keywords.length && { keywords }),
   };

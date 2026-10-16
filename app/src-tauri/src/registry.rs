@@ -159,6 +159,9 @@ pub struct PaletteMeta {
     /// `dialog` in the manifest: the root's file dialog hint opens it.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub dialog: bool,
+    /// `remember: false` in the manifest: see [`Self::remembered`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub remember: Option<bool>,
 }
 
 impl PaletteMeta {
@@ -179,6 +182,12 @@ impl PaletteMeta {
     /// Listed again on every show.
     pub fn relists_on_show(&self) -> bool {
         self.live && !self.input
+    }
+
+    /// Picks are recorded and rank the rows: every palette with indexed
+    /// rows unless its manifest says `remember: false`.
+    pub fn remembered(&self) -> bool {
+        !self.input && self.remember != Some(false)
     }
 }
 
@@ -235,7 +244,7 @@ impl Palettes {
 
     /// Whether picks from this source are not worth remembering.
     pub fn is_transient(&self, source: &Source) -> bool {
-        self.lock().iter().any(|r| &r.source == source && (r.meta.live || r.meta.input))
+        self.lock().iter().any(|r| &r.source == source && !r.meta.remembered())
     }
 }
 

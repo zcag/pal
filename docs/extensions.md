@@ -244,7 +244,11 @@ A palette is described in two files, and each fact has one home:
   this palette's, and the Window switcher feature is its chord; Windows
   sets it), `dialog` (serves file dialogs: while an open or save panel is
   in front, the empty root's hint opens this palette; Files sets it),
-  `on` (the triggers that list it again while it shows: `clipboard`, a
+  `remember` (`false`: picks are not remembered and never reorder the
+  rows, for a palette whose order is the point, such as OTP codes, an inbox
+  or windows most recent first, or whose ids last one listing; every
+  other palette with indexed rows learns from picks, `live` ones
+  included), `on` (the triggers that list it again while it shows: `clipboard`, a
   copy recorded; a view's re-ask it), `rank`, `settings`, and the
   extension's `icon` and `keywords`. The store and
   the settings window read these without running the code, and so does a
@@ -471,8 +475,10 @@ is left to the load-time check.
   licence key read from across the room. Blank text shows nothing; 400
   characters is the cut.
 - `detail(id, ctx?)`: the detail pane's content for a row, asked lazily.
-- Palette flags: `live` (arrival order, re-listed on every show, not twice
-  within 2 s; with a `ttl`, only once the last listing is older than that),
+- Palette flags: `live` (the rows change between shows: re-listed on every
+  show, not twice within 2 s; with a `ttl`, only once the last listing is
+  older than that; picks still rank them unless the manifest says
+  `"remember": false`),
   `view: "grid"` + `columns`, `placeholder`, `showDetail`, `filters`. `ttl`
   and `tier` belong in the manifest ("Where a palette is described",
   above); the code's is a fallback. Without a `ttl` a palette is listed on

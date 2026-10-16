@@ -97,8 +97,8 @@ fn main() {
         if paths {
             ix.set_path(src.clone(), path.join(" "));
         }
-        if meta["live"].as_bool() == Some(true) {
-            ix.set_live(src, true);
+        if meta["input"].as_bool() == Some(true) || meta["remember"].as_bool() == Some(false) {
+            ix.set_unranked(src, true);
         }
     }
     let palettes = Source::new("pal", "palettes");

@@ -35,11 +35,14 @@
 //! what a launcher wants. For the empty query the match score is 0 and
 //! the boost orders the list on its own, insertion order breaking ties.
 //!
-//! # Not for `live` palettes
+//! # Not for every palette
 //!
-//! Palettes whose order is arrival order (OTP codes, tabs, calculator
-//! output) must not be ranked by this table: a stale row floats to the top
-//! (v1 `polish.md` rule 7). The index decides that per palette; this module
+//! Palettes whose order is the point (OTP codes, an inbox, windows most
+//! recent first) must not be ranked by this table: a stale row floats to
+//! the top (v1 `polish.md` rule 7). Their manifest says `remember: false`,
+//! input palettes never index rows, and the index skips both
+//! (`Index::set_unranked`); a `live` palette with stable ids (Home
+//! Assistant entities, Hue lights) is ranked like any other. This module
 //! only scores what it is asked about. Ids must be stable for the same
 //! reason (rule 12): a new id is a new item with no history.
 //!
