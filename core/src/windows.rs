@@ -185,8 +185,10 @@ pub fn list() -> Result<Vec<Window>> {
     platform::list()
 }
 
-/// Bring the window to the front, restoring it when minimised. Stamps the
-/// focus history, so the window picked is the next "previous".
+/// Bring the window to the front, restoring it when minimised; on macOS a
+/// window on another space has that space brought in front first without
+/// the slide (as [`go_space`]). Stamps the focus history, so the window
+/// picked is the next "previous".
 pub fn focus(id: &str) -> Result<()> {
     platform::focus(id)?;
     note_focus(id);
@@ -575,6 +577,17 @@ mod platform {
         fn CGSMainConnectionID() -> i32;
         fn CGSCopyManagedDisplaySpaces(cid: i32) -> Option<NonNull<objc2_core_foundation::CFArray>>;
         fn CGSCopySpacesForWindows(cid: i32, mask: i32, wids: NonNull<objc2_core_foundation::CFArray>) -> Option<NonNull<objc2_core_foundation::CFArray>>;
+        fn CGSWindowIsOrderedIn(cid: i32, wid: u32, out: *mut bool) -> i32;
+    }
+
+    /// Whether the window is ordered in: false for one an app ordered out
+    /// and kept (Steam's, closed to the menu bar), which the window server
+    /// still files under a Space; true for one merely on another Space.
+    fn ordered_in(wid: u32) -> bool {
+        let mut on = true;
+        // SAFETY: a plain query writing one bool.
+        unsafe { CGSWindowIsOrderedIn(CGSMainConnectionID(), wid, &mut on) };
+        on
     }
     const EVERY_SPACE: i32 = 7;
     const FULLSCREEN_SPACE: i64 = 4;
@@ -689,19 +702,10 @@ mod platform {
         let to = strip.iter().position(|s| s.id == target.id).unwrap_or(from);
         if to != from {
             if let Some(n) = target.monitor.as_deref().and_then(|m| m.strip_prefix("Display ")).and_then(|n| n.parse::<usize>().ok()) {
-                // The swipe goes to the display under the cursor: put it on the target's (yabai does the same).
-                if let Some(d) = displays().ok().and_then(|ds| ds.into_iter().nth(n - 1)) {
-                    let (x, y) = d.frame.center();
-                    CGWarpMouseCursorPosition(CGPoint { x, y });
-                }
+                cursor_onto(n - 1);
             }
             swipe(to as i64 - from as i64)?;
-            // Until the window server reports the target in front, so the
-            // next read (a spammed hotkey's pick) starts from where we are.
-            let until = std::time::Instant::now() + SETTLE_WAIT;
-            while !managed_spaces().iter().any(|s| s.current && s.id.to_string() == target.id) && std::time::Instant::now() < until {
-                std::thread::sleep(std::time::Duration::from_millis(5));
-            }
+            settle(&target.id);
         }
         // Then the window used there last, so the space comes up with it
         // in front rather than whatever the app had on top. Its AX window
@@ -709,14 +713,58 @@ mod platform {
         // no AX window is tried again for a moment; past that the app is
         // activated, which lands on the right space either way.
         let Some(id) = landing(target) else { return Ok(()) };
-        let until = std::time::Instant::now() + LANDING_WAIT;
-        loop {
-            match super::focus(&id) {
-                Err(Error::Failed(_)) if std::time::Instant::now() < until => std::thread::sleep(std::time::Duration::from_millis(15)),
-                Err(Error::Failed(_) | Error::NeedsAccessibility(_)) => return activate(&id).map(drop),
-                r => return r,
-            }
+        match raise(&find(&id)?, &id, LANDING_WAIT) {
+            Err(Error::Failed(_) | Error::NeedsAccessibility(_)) => activate(&id).map(drop),
+            r => r.map(|()| super::note_focus(&id)),
         }
+    }
+
+    /// The swipe goes to the display under the cursor: the cursor onto
+    /// display `n` (as [`displays`] numbers them, from 0) when it is not
+    /// there already (yabai does the same); where it was when it moved.
+    fn cursor_onto(n: usize) -> Option<CGPoint> {
+        let d = displays().ok()?.into_iter().nth(n)?;
+        let at = objc2_core_graphics::CGEvent::new(None).map(|e| objc2_core_graphics::CGEvent::location(Some(&e)))?;
+        if d.frame.contains(at.x, at.y) {
+            return None;
+        }
+        let (x, y) = d.frame.center();
+        CGWarpMouseCursorPosition(CGPoint { x, y });
+        Some(at)
+    }
+
+    /// Until the window server reports space `id` in front, so the next
+    /// read (a spammed hotkey's pick) starts from where we are.
+    fn settle(id: &str) {
+        let until = std::time::Instant::now() + SETTLE_WAIT;
+        while !managed_spaces().iter().any(|s| s.current && s.id.to_string() == id) && std::time::Instant::now() < until {
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+    }
+
+    /// Bring the space `cg` is on in front of its display without the
+    /// slide when it is not (activating the app would slide there): the
+    /// swipe of [`go_space`], the cursor put back after. Whether it moved.
+    fn to_space_of(cg: &CgWindow) -> bool {
+        let on = spaces_of_window(cg.id);
+        let managed = managed_spaces();
+        let Some(target) = managed.iter().find(|s| on.contains(&s.id)) else { return false };
+        if managed.iter().any(|s| s.current && on.contains(&s.id)) || !crate::ax::trusted() {
+            return false;
+        }
+        let strip: Vec<&ManagedSpace> = managed.iter().filter(|s| s.display == target.display).collect();
+        let (Some(from), Some(to)) = (strip.iter().position(|s| s.current), strip.iter().position(|s| s.id == target.id)) else { return false };
+        let mut displays: Vec<&str> = vec![];
+        managed.iter().for_each(|s| if !displays.contains(&s.display.as_str()) { displays.push(&s.display) });
+        let back = displays.iter().position(|d| *d == target.display).filter(|_| displays.len() > 1).and_then(cursor_onto);
+        let moved = swipe(to as i64 - from as i64).is_ok();
+        if moved {
+            settle(&target.id.to_string());
+        }
+        if let Some(at) = back {
+            CGWarpMouseCursorPosition(at);
+        }
+        moved
     }
 
     /// How long the raise after a swipe keeps trying to find the window over AX.
@@ -946,8 +994,10 @@ mod platform {
                 // lists the current one), or the app answers AX with
                 // nothing. Keep it if it looks like a window (named, or on
                 // screen, and not one of the 0x0 / strip-shaped helpers);
-                // never an accessory app's.
+                // never an accessory app's, nor one a shown app ordered out
+                // (Steam's, closed to the menu bar: nothing to raise).
                 None if !regular || (cg.name.is_empty() && !cg.on_screen) || cg.frame.w < MIN_SIDE || cg.frame.h < MIN_SIDE => continue,
+                None if !cg.on_screen && !*hidden && !ordered_in(cg.id) => continue,
                 None => (cg.name.clone(), false),
             };
             let workspace = workspace_of(&numbers, cg.id);
@@ -1016,9 +1066,25 @@ mod platform {
 
     pub fn focus(id: &str) -> Result<()> {
         let cg = find(id)?;
+        let hopped = {
+            let _switching = SWITCH.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+            to_space_of(&cg)
+        };
+        raise(&cg, id, if hopped { LANDING_WAIT } else { std::time::Duration::ZERO })
+    }
+
+    /// Raise `cg` on the space in front, waiting up to `wait` for its AX
+    /// window (listed only once its space is visible).
+    fn raise(cg: &CgWindow, id: &str, wait: std::time::Duration) -> Result<()> {
+        let until = std::time::Instant::now() + wait;
+        let mut ax = ax_of(cg, "focus");
+        while matches!(ax, Err(Error::Failed(_))) && std::time::Instant::now() < until {
+            std::thread::sleep(std::time::Duration::from_millis(15));
+            ax = ax_of(cg, "focus");
+        }
         // The window first, so the app comes forward showing it rather than
         // whichever window it last had in front.
-        let raised = match ax_of(&cg, "focus") {
+        let raised = match ax {
             Ok(win) => {
                 if win.minimized() {
                     win.set_minimized(false);
@@ -1030,7 +1096,7 @@ mod platform {
             Err(Error::NeedsAccessibility(_) | Error::Failed(_)) => true,
             Err(e) => return Err(e),
         };
-        activate_app(&cg, id)?;
+        activate_app(cg, id)?;
         raised.then_some(()).ok_or_else(|| Error::Failed("the app came forward but refused to raise that window".into()))
     }
 
