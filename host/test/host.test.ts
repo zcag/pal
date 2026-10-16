@@ -453,7 +453,7 @@ describe("watching", () => {
     const root = new Root({ stay: { "index.ts": simpleExt("stay") }, go: { "index.ts": simpleExt("go") } });
     const host = await Host.start({ roots: [root.dir] });
     expect(await host.list("go", "go")).toHaveLength(1);
-    const removed = host.next("extension/removed", (p) => p.extension === "go");
+    const removed = host.next("extension/removed", (p) => p.extension === "go", 10_000);
     rmSync(join(root.dir, "go"), { recursive: true });
     await removed;
     expect((await host.call("list", { extension: "go", palette: "go" })).error).toBe("no extension go");
@@ -463,20 +463,20 @@ describe("watching", () => {
     expect(await host.list("stay", "stay")).toHaveLength(1);
     host.kill();
     root.rm();
-  });
+  }, 15_000); // FSEvents: up to seconds under load; the test ends at the event
 
   test("a root created after start is watched: its extensions load and reload, and it gets the @zcag/pal link", async () => {
     const parent = new Root();
     const late = join(parent.dir, "extensions");
     const host = await Host.start({ roots: [late] });
     expect((await host.hello()).extensions).toEqual([]);
-    const loaded = host.next("extension/loaded", (p) => p.extension === "fresh");
+    const loaded = host.next("extension/loaded", (p) => p.extension === "fresh", 10_000);
     mkdirSync(join(late, "fresh"), { recursive: true });
     writeFileSync(join(late, "fresh", "index.ts"), simpleExt("fresh"));
     expect((await loaded).params).toMatchObject({ extension: "fresh", root: late });
     expect(await host.list("fresh", "fresh")).toEqual([{ id: "a", name: "A" }]);
     expect(existsSync(join(late, "node_modules", "@zcag", "pal"))).toBe(true);
-    const reloaded = host.next("extension/loaded", (p) => p.extension === "fresh");
+    const reloaded = host.next("extension/loaded", (p) => p.extension === "fresh", 10_000);
     writeFileSync(join(late, "fresh", "index.ts"), simpleExt("fresh", { list: `() => [{ id: "b", name: "B" }]` }));
     await reloaded;
     expect(await host.list("fresh", "fresh")).toEqual([{ id: "b", name: "B" }]);
