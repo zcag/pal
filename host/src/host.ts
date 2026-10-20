@@ -483,11 +483,11 @@ async function fingerprint(name: string): Promise<string> {
   return lines.join("\n");
 }
 
-/** A load that reads the disk afresh (the watcher's, the core's `reload`), noting what it read; `unlessSeen` skips it when that is what the last such load read. */
-const loadFresh = (name: string, unlessSeen: boolean) =>
+/** A load that reads the disk afresh (the watcher's, the core's `reload`), noting what it read; skipped when that is what the last such load read. */
+const loadFresh = (name: string) =>
   serial(name, async () => {
     const fp = await fingerprint(name);
-    if (unlessSeen && seen.get(name) === fp) return log(`${name} unchanged since its last load`);
+    if (seen.get(name) === fp) return log(`${name} unchanged since its last load`);
     seen.set(name, fp);
     found.delete(name);
     await reload(name);
@@ -503,7 +503,7 @@ const loadFresh = (name: string, unlessSeen: boolean) =>
  */
 function schedule(name: string) {
   clearTimeout(timers.get(name));
-  timers.set(name, setTimeout(() => { timers.delete(name); loadFresh(name, true); }, 50));
+  timers.set(name, setTimeout(() => { timers.delete(name); loadFresh(name); }, 50));
 }
 
 function watchRoot(root: string) {
@@ -663,10 +663,11 @@ const methods: Record<string, (params: any) => unknown> = {
   // Notification from the core: the whole set of turned-off extensions.
   "disabled/changed": (p: DisabledChanged) => setDisabled(names(p?.names)),
   // The core swapped a directory (an install, update or rollback): load that name from disk now and say how it went.
+  // The swap's own events can beat this request to it; the build they loaded is the one asked for.
   reload: async (p: Reload) => {
     const name = String(p?.extension ?? "");
     if (!name) throw new Error("reload: no extension");
-    await loadFresh(name, false);
+    await loadFresh(name);
     return reloaded(name);
   },
   // The tests' clock (clock.ts): this thread's and every worker's moves `ms` forward; answered once every timer due on the way ran.
