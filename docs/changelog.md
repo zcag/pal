@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.17.2 · 2026-10-20
+
+- **Calculator converts on its own**: `50 lbs` answers in kg, `180 cm` in inches, `100 mph` in km/h, with no `to` needed; a sum like `1.5 kg + 300 g` shows its total, then the same in pounds.
+- **Search learns from more lists**: picks in palettes that refresh each time they open, such as Home Assistant's, now move them up in search; lists whose order is the point (inboxes, codes, newest first, windows) keep theirs.
+- **The panel goes back to the root sooner**: after 30 seconds instead of 90, and Settings › General › Navigation can reopen where you left instead.
+- **A steadier switcher**: the held palette is listed as you press, the switcher shows and hides at once, the sidebar opens on hover while peeking without shifting under a click, and cancelling a switch can no longer freeze it.
+- **Fixed: raising a window on another Space slid through the Spaces**, and windows closed to the menu bar, as Steam's, were offered as if open.
+
 ## 0.17.1 · 2026-10-15
 
 - **Weather, redrawn**: the palette is a photograph of the sky that matches the weather and the hour, with the temperature on the left and two frosted cards: what is coming over the next hours, sunrise and sunset in their place, and the days ahead with each one's span. ← → walk the hours and the sky follows, ↑ ↓ pick a day, L searches for a place. It opens at once on the last reading.
