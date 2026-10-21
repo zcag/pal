@@ -387,6 +387,15 @@ export class Host {
     }
   }
   untilStderr(text: string, timeout?: number) { return this.until(() => this.stderr.includes(text), timeout, `stderr "${text}"`); }
+  /** Until the watcher of `root` hears an edit inside `name`: FSEvents drops what happens in a new stream's first moments (19 of 40 runs side by side), so a test about the watcher waits for this before its own change. The edit is a dotfile, which a load's fingerprint leaves out, so once the watcher has loaded the extension again from disk it logs the name unchanged. */
+  async watching(root: string, name: string) {
+    const skipped = () => this.stderr.split(`${name} unchanged since its last load`).length;
+    const before = skipped();
+    for (let i = 0; skipped() === before; i++) {
+      writeFileSync(join(root, name, ".watching"), String(i));
+      await this.until(() => skipped() > before, 500).catch(() => {});
+    }
+  }
 
   /** Closes stdin (the core going away) and returns the exit code. */
   async close(): Promise<number> {

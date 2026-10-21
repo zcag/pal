@@ -453,6 +453,7 @@ describe("watching", () => {
     const root = new Root({ stay: { "index.ts": simpleExt("stay") }, go: { "index.ts": simpleExt("go") } });
     const host = await Host.start({ roots: [root.dir] });
     expect(await host.list("go", "go")).toHaveLength(1);
+    await host.watching(root.dir, "go");
     const removed = host.next("extension/removed", (p) => p.extension === "go", 10_000);
     rmSync(join(root.dir, "go"), { recursive: true });
     await removed;

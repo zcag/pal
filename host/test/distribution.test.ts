@@ -4,8 +4,8 @@
 // `disabled/changed`, `requires`, and the core's `reload {extension}` after
 // it swaps a directory, whose own file events do not load it a second time.
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { PROTOCOL, PROTOCOL_MIN, type Reloaded } from "../../sdk/src/protocol.ts";
 import { API, Host, Root, manifest, simpleExt } from "./harness.ts";
 
@@ -171,25 +171,27 @@ describe("reload", () => {
     const host = await Host.start({ roots: [root.dir] });
     // The core's swap: the new build staged beside the root, renamed over the old one.
     const swap = (name: string, text: string) => {
-      const staged = join(root.dir, "..", `${name}-staged-${Date.now()}`);
-      mkdirSync(staged);
+      const staged = mkdtempSync(join(dirname(root.dir), `${name}-staged-`));
       writeFileSync(join(staged, "index.ts"), text);
       rmSync(join(root.dir, name), { recursive: true, force: true });
       renameSync(staged, join(root.dir, name));
     };
+    const skipped = () => host.stderr.split("ext unchanged since its last load").length - 1;
     try {
+      await host.watching(root.dir, "ext");
+      const before = skipped(), loads = at(host.loaded(), "ext").length;
       swap("ext", simpleExt("ext", { list: `() => [{ id: "v", name: "2" }]` }));
       expect(await host.request<Reloaded>("reload", { extension: "ext" })).toEqual({ loaded: true, root: root.dir });
       expect((await host.list("ext", "ext"))[0].name).toBe("2");
       // The swap's own watcher events: FSEvents can hold them for seconds on a busy machine, so the wait is roomy (it ends at the line).
-      await host.untilStderr("ext unchanged since its last load", 10_000);
-      expect(at(host.loaded(), "ext")).toHaveLength(2);
+      await host.until(() => skipped() > before, 10_000, "the swap's events skipped");
+      expect(at(host.loaded(), "ext")).toHaveLength(loads + 1);
 
       swap("ext", "export default {{{");
       const r = await host.request<Reloaded>("reload", { extension: "ext" });
       expect(r.loaded).toBe(false);
       expect(r.error).toContain("index.ts:1:");
-      await host.until(() => host.stderr.split("ext unchanged since its last load").length > 2, 10_000, "the second swap's events skipped");
+      await host.until(() => skipped() > before + 1, 10_000, "the second swap's events skipped");
       expect(at(host.failed(), "ext")).toHaveLength(1);
 
       expect(await host.request<Reloaded>("reload", { extension: "nope" })).toEqual({ loaded: false, error: "no extension nope" });
