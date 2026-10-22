@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.17.3 · 2026-10-22
+
+- **A crowded sketchybar makes room**: when the items beside the notch would run into each other, the one nearest the collision shows just its icon until they fit, and gets its text back when there is room again. Counts, urgent items and items with no icon keep theirs.
+- **WhatsApp's bar hears new messages within a second** instead of at the next two-minute check, and marking a chat read or sending from pal updates the count at once.
+- **WhatsApp shows photos and stickers** in a chat's pane, with their captions, when the archive kept them.
+- **Fixed: keeping the Mac awake could report "Not kept awake"** right after it started.
+
 ## 0.17.2 · 2026-10-20
 
 - **Calculator converts on its own**: `50 lbs` answers in kg, `180 cm` in inches, `100 mph` in km/h, with no `to` needed; a sum like `1.5 kg + 300 g` shows its total, then the same in pounds.
