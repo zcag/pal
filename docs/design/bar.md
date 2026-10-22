@@ -305,6 +305,18 @@ rendered: the popover is the one rich surface. Hover reaches pal through
 peeks under `bounding_rects`; the popover's own pointer tracking spans the
 gap, so no `mouse.exited.global` guard is needed.
 
+Squeeze: sketchybar lays each position out from its own anchor and never
+reflows, so a crowded bar draws `e` over `right` (and `left` over `q`).
+After a draw changed something (250 ms debounce) pal reads every item's
+`bounding_rects` in one `sketchybar --query a --query b …` call (the answers
+come back as a stream of JSON objects) and, while a pair overlaps, draws the
+squeezable item nearest the collision without its title, one per pass
+until it fits. Squeezable: not urgent, a glyph to keep and a title to lose (a
+clock with no icon never is). Segments and the count badge stay. The last squeezed gets its text
+back once the gap has room for its width before plus 8 pt. `order` is the
+only control: an item moved toward the edge is squeezed later. No setting;
+the menu bar needs none (Apple hides what runs under the notch).
+
 ### Linux feed (`bar/feed.rs`, phase 3)
 
 `~/.local/state/pal/bar.json` (`{ "items": { "<ext>/<id>": BarItem & { text,

@@ -2385,3 +2385,11 @@ Cagdas: cmd+tab "doesn't work most of the time" and is slow to show and select, 
 - **The switcher's look**: the held level drew the whole palette (the search row with its crumb and placeholder, the row keys, the footer, every row's `space web`). Under a hold the panel carries `data-hold`: rows only, the search row collapsed until something is typed; the sidebar drops the text accessories too.
 - **The level before flashing**: a switcher show now keeps the window clear (`panel::reveal`) until the page has drawn the held level with the cursor placed (`Launcher` `onHoldDrawn`, the `panel_reveal` command), 150 ms at most.
 - **A deadlock it turned up**: `switcher::cancel` matched on `lock(&ACTIVE)`, so the guard lived through `panel::hide`, which on the main thread runs `on_hidden` and locks it again; `pal switch cancel` hung the app (hang report, main thread in `__psynch_mutexwait` under `on_hidden`). The state is read first now.
+
+## Bar squeeze: a crowded sketchybar makes room (2026-10-22)
+
+Cagdas: in rare moments the right side's items overlap. Measured on hornet: right of the notch is 784 pt, the `e` group ended at 1189 and the `right` group began at 1249, so 60 pt of slack, and about 20 items that come and go (`stats.network` alone 108 pt). sketchybar never reflows.
+
+- **Glyph-only, not smaller type and not a ⋯ fold** (mockups at bak.lan/pal-bar-overflow). Smaller type frees little: each item carries ~20 pt of padding that does not scale, so 14 → 12 pt is about 65 pt against a 108 pt newcomer, and every item would jump at once. A fold hides what is on the strip. It drops the title alone, so no extension does anything; segments and the badge stay, since they are counts (the first cut used `show_title = false`, which also dropped Grafana's firing count).
+- **No setting.** Nearest the collision goes first, so `order` already protects an item. Release is last-in-first-out, once the gap has room for the width it had plus 8 pt, so a release does not squeeze straight back.
+- One `--query` call with every name (sketchybar answers a stream of objects) after a debounced draw; a step redraws one item, which measures again.

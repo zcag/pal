@@ -30,9 +30,9 @@
 //! bar's own) has no "unset" in sketchybar, so the item is removed and
 //! added afresh, which gives it the bar's `--default`s again.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::process::Command;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{LazyLock, Mutex};
 
 use tauri::{AppHandle, Manager};
@@ -386,15 +386,145 @@ fn position_of(name: &str) -> Option<String> {
     v["geometry"]["position"].as_str().map(str::to_string)
 }
 
+// ---- squeeze -------------------------------------------------------------
+//
+// sketchybar lays each position out from its own anchor and never reflows,
+// so a crowded bar draws the `e` group over the `right` one (and `left`
+// over `q`). After a draw pal measures the two groups of each pair and,
+// while they overlap, draws the squeezable item nearest the collision
+// without its title (its glyph, segments and badge stay); an item gets its text
+// back, last squeezed first, once the gap has room for it again.
+
+/// The pairs that grow toward each other: the first rightwards, the second leftwards.
+const PAIRS: [(&str, &str); 2] = [("left", "q"), ("e", "right")];
+/// Room kept past a released item's width, so a release does not squeeze it straight back.
+const SLACK: f64 = 8.0;
+
+/// One drawn item's span on one display, from a `--query`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Extent {
+    pub name: String,
+    pub position: String,
+    pub display: String,
+    pub x0: f64,
+    pub x1: f64,
+}
+
+/// The drawn items in a stream of `--query <name>` answers (one call, many names).
+pub fn extents(out: &[u8]) -> Vec<Extent> {
+    let mut all = Vec::new();
+    for v in serde_json::Deserializer::from_slice(out).into_iter::<serde_json::Value>().map_while(Result::ok) {
+        let (Some(name), Some(position)) = (v["name"].as_str(), v["geometry"]["position"].as_str()) else { continue };
+        if v["geometry"]["drawing"] != "on" {
+            continue;
+        }
+        for (display, r) in v["bounding_rects"].as_object().into_iter().flatten() {
+            let (Some(x), Some(w)) = (r["origin"][0].as_f64(), r["size"][0].as_f64()) else { continue };
+            if x > -9000.0 && w > 0.0 {
+                all.push(Extent { name: name.into(), position: position.into(), display: display.clone(), x0: x, x1: x + w });
+            }
+        }
+    }
+    all
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Step {
+    /// Draw this key glyph-only; it was this wide with its text.
+    Squeeze(String, f64),
+    Release(String),
+}
+
+/// The next squeeze or release, or `None` when the bar fits as it is.
+/// `chains` maps each key to its names, `squeezable` are the keys that
+/// may lose their text, `squeezed` the ones that have, oldest first, with
+/// their width before.
+pub fn plan(extents: &[Extent], chains: &BTreeMap<String, Vec<String>>, squeezable: &BTreeSet<String>, squeezed: &[(String, f64)]) -> Option<Step> {
+    let key_of: BTreeMap<&str, &str> = chains.iter().flat_map(|(k, names)| names.iter().map(move |n| (n.as_str(), k.as_str()))).collect();
+    let span = |key: &str, display: &str| {
+        let mine = extents.iter().filter(|e| e.display == display && key_of.get(e.name.as_str()) == Some(&key));
+        mine.fold(None, |s: Option<(f64, f64)>, e| Some(s.map_or((e.x0, e.x1), |(a, b)| (a.min(e.x0), b.max(e.x1)))))
+    };
+    let displays: BTreeSet<&str> = extents.iter().map(|e| e.display.as_str()).collect();
+    // Per display and pair: the gap between the groups' inner edges, and where they meet.
+    let mut meets = Vec::new();
+    for display in &displays {
+        for (rightwards, leftwards) in PAIRS {
+            let on = |p: &'static str| extents.iter().filter(move |e| e.display == *display && e.position == p);
+            let (Some(end), Some(start)) = (on(rightwards).map(|e| e.x1).reduce(f64::max), on(leftwards).map(|e| e.x0).reduce(f64::min)) else { continue };
+            meets.push((*display, [rightwards, leftwards], start - end, (start + end) / 2.0));
+        }
+    }
+    if let Some((display, sides, _, at)) = meets.iter().filter(|m| m.2 < 0.0).min_by(|a, b| a.2.total_cmp(&b.2)) {
+        let in_pair = |k: &&String| extents.iter().any(|e| e.display == *display && sides.contains(&e.position.as_str()) && key_of.get(e.name.as_str()) == Some(&k.as_str()));
+        let near = squeezable.iter().filter(|k| !squeezed.iter().any(|(s, _)| s == *k)).filter(in_pair).filter_map(|k| span(k, display).map(|(a, b)| (k, a, b)));
+        return near.min_by(|x, y| (x.1 - at).abs().min((x.2 - at).abs()).total_cmp(&(y.1 - at).abs().min((y.2 - at).abs()))).map(|(k, a, b)| Step::Squeeze(k.clone(), b - a));
+    }
+    let (key, before) = squeezed.last()?;
+    let mut room = true;
+    for display in &displays {
+        let Some((a, b)) = span(key, display) else { continue };
+        let position = extents.iter().find(|e| e.display == *display && key_of.get(e.name.as_str()) == Some(&key.as_str())).map(|e| e.position.as_str());
+        let gap = meets.iter().filter(|m| m.0 == *display && position.is_some_and(|p| m.1.contains(&p))).map(|m| m.2).reduce(f64::min);
+        room &= gap.is_none_or(|g| g >= before - (b - a) + SLACK);
+    }
+    room.then(|| Step::Release(key.clone()))
+}
+
+/// Whether the item may lose its title: it has a glyph to keep and a title to lose, and is not urgent. Segments and the badge stay: they are counts.
+fn squeezable(item: &BarItem) -> bool {
+    !item.urgent && !item.hidden && item.icon.is_some() && item.title.as_deref().is_some_and(|t| !t.is_empty())
+}
+
 // ---- runtime -------------------------------------------------------------
 
 struct State {
     drawn: BTreeMap<String, (Rendered, i64)>,
     /// `position` of the items other positions reference, as last queried.
     sides: BTreeMap<String, Option<String>>,
+    squeezable: BTreeSet<String>,
+    /// Drawn glyph-only to make room, oldest first, with the width each had before.
+    squeezed: Vec<(String, f64)>,
 }
 
-static STATE: LazyLock<Mutex<State>> = LazyLock::new(|| Mutex::new(State { drawn: BTreeMap::new(), sides: BTreeMap::new() }));
+static STATE: LazyLock<Mutex<State>> = LazyLock::new(|| Mutex::new(State { drawn: BTreeMap::new(), sides: BTreeMap::new(), squeezable: BTreeSet::new(), squeezed: Vec::new() }));
+static FIT: AtomicU64 = AtomicU64::new(0);
+/// How long the bar settles after a draw before it is measured.
+const FIT_DEBOUNCE: std::time::Duration = std::time::Duration::from_millis(250);
+
+/// Measure the bar once draws settle, and take one [`plan`] step; the
+/// redraw that step causes measures again, until the bar fits.
+fn refit(app: &AppHandle) {
+    let gen = FIT.fetch_add(1, Ordering::Relaxed) + 1;
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(FIT_DEBOUNCE).await;
+        if FIT.load(Ordering::Relaxed) != gen {
+            return;
+        }
+        let Some(names) = tauri::async_runtime::spawn_blocking(bar_items).await.ok().flatten() else { return };
+        let query = names.iter().flat_map(|n| ["--query".to_string(), n.clone()]).collect::<Vec<_>>();
+        let Ok(Ok(out)) = tauri::async_runtime::spawn_blocking(move || Command::new(bin()).args(&query).output()).await else { return };
+        let step = {
+            let st = lock(&STATE);
+            let chains = st.drawn.iter().map(|(k, (r, _))| (k.clone(), r.order.clone())).collect();
+            plan(&extents(&out.stdout), &chains, &st.squeezable, &st.squeezed)
+        };
+        let key = match step {
+            None => return,
+            Some(Step::Squeeze(key, width)) => {
+                lock(&STATE).squeezed.push((key.clone(), width));
+                key
+            }
+            Some(Step::Release(key)) => {
+                lock(&STATE).squeezed.retain(|(k, _)| *k != key);
+                key
+            }
+        };
+        eprintln!("bar\tsketchybar\t{key}\t{}", if lock(&STATE).squeezed.iter().any(|(k, _)| *k == key) { "squeezed" } else { "released" });
+        super::sync(&app, &key);
+    });
+}
 
 /// The `sketchybar` binary: on PATH, else where Homebrew puts it. pal
 /// under launchd (the supervised instance, `autostart.rs`) has launchd's
@@ -468,6 +598,8 @@ async fn probe(app: &AppHandle, why: &str, force: bool) {
         let mut st = lock(&STATE);
         st.drawn.clear();
         st.sides.clear();
+        st.squeezable.clear();
+        st.squeezed.clear();
     }
     if wiped {
         eprintln!("bar\tsketchybar\twiped; re-adding");
@@ -545,8 +677,22 @@ impl Target for Sketchybar {
             return;
         }
         let Some(draw) = draw else { return self.remove(app, key) };
-        let mut next = props(key, draw, &palette(app), &pal_bin());
         let mut st = lock(&STATE);
+        let glyph_only;
+        let draw = if squeezable(&draw.item) {
+            st.squeezable.insert(key.to_string());
+            if st.squeezed.iter().any(|(k, _)| k == key) {
+                glyph_only = Draw { item: BarItem { title: None, ..draw.item.clone() }, ..draw.clone() };
+                &glyph_only
+            } else {
+                draw
+            }
+        } else {
+            st.squeezable.remove(key);
+            st.squeezed.retain(|(k, _)| k != key);
+            draw
+        };
+        let mut next = props(key, draw, &palette(app), &pal_bin());
         if let (_, Some((_, reference))) = placement(&next.position) {
             // Added on the reference's side: a `--move` across sides does nothing, so `before:<a left item>` stayed on the right.
             if let Some(side) = st.sides.entry(reference.clone()).or_insert_with(|| position_of(&reference)).clone() {
@@ -563,22 +709,30 @@ impl Target for Sketchybar {
         let argv = diff(prev.as_ref(), Some(&next), rtl, placed.as_deref());
         match run(&argv) {
             Ok(()) => {
+                st.drawn.insert(key.to_string(), (next, draw.order));
                 if !argv.is_empty() {
                     eprintln!("bar\tsketchybar\t{key}\t{} args", argv.len());
+                    drop(st);
+                    refit(app);
                 }
-                st.drawn.insert(key.to_string(), (next, draw.order));
             }
             Err(e) => eprintln!("bar\tsketchybar\t{key}\tfailed\t{e}"),
         }
     }
 
-    fn remove(&self, _app: &AppHandle, key: &str) {
-        let prev = lock(&STATE).drawn.remove(key);
+    fn remove(&self, app: &AppHandle, key: &str) {
+        let prev = {
+            let mut st = lock(&STATE);
+            st.squeezable.remove(key);
+            st.squeezed.retain(|(k, _)| k != key);
+            st.drawn.remove(key)
+        };
         if let Some((r, _)) = prev {
             let argv = diff(Some(&r), None, false, None);
             if let Err(e) = run(&argv) {
                 eprintln!("bar\tsketchybar\t{key}\tremove failed\t{e}");
             }
+            refit(app);
         }
     }
 
@@ -589,6 +743,8 @@ impl Target for Sketchybar {
         let mut st = lock(&STATE);
         st.drawn.clear();
         st.sides.clear();
+        st.squeezable.clear();
+        st.squeezed.clear();
         drop(st);
         // Everything under the prefix, ours from this run or a crashed one.
         if let Err(e) = run(&["--remove".into(), format!("/{}.*/", PREFIX.replace('.', "\\."))]) {
@@ -863,5 +1019,36 @@ mod tests {
         assert!(is_rtl("before:clock", |r| (r == "clock").then(|| "right".to_string())), "a reference on the right side");
         assert!(!is_rtl("after:apple", |_| Some("left".into())));
         assert!(!is_rtl("after:gone", |_| None), "an unknown reference reads as the left side");
+    }
+
+    #[test]
+    fn a_crowded_bar_squeezes_nearest_the_collision_and_releases_when_there_is_room() {
+        let at = |name: &str, position: &str, x0: f64, x1: f64| Extent { name: name.into(), position: position.into(), display: "display-1".into(), x0, x1 };
+        let chains: BTreeMap<String, Vec<String>> = [("mail", vec!["pal.mail", "pal.mail.badge"]), ("net", vec!["pal.net"]), ("clock", vec!["pal.clock"]), ("battery", vec!["pal.battery"])]
+            .into_iter().map(|(k, n)| (k.to_string(), n.into_iter().map(String::from).collect())).collect();
+        let can: BTreeSet<String> = ["net", "battery"].map(String::from).into();
+        // e: mail 1000..1100; right: net 1090..1200 (the newcomer, overlapping), battery 1200..1300, clock 1300..1400.
+        let crowded = [at("pal.mail", "e", 1000.0, 1080.0), at("pal.mail.badge", "e", 1080.0, 1100.0), at("pal.net", "right", 1090.0, 1200.0), at("pal.battery", "right", 1200.0, 1300.0), at("pal.clock", "right", 1300.0, 1400.0)];
+        assert_eq!(plan(&crowded, &chains, &can, &[]), Some(Step::Squeeze("net".into(), 110.0)), "the squeezable item nearest the collision");
+        assert_eq!(plan(&crowded, &chains, &can, &[("net".into(), 110.0)]), Some(Step::Squeeze("battery".into(), 100.0)), "still over: the next one");
+        assert_eq!(plan(&crowded, &chains, &BTreeSet::new(), &[]), None, "nothing squeezable: left as it is");
+        assert_eq!(plan(&crowded, &chains, &can, &[]), plan(&[crowded.to_vec(), vec![at("theme", "left", 0.0, 50.0)]].concat(), &chains, &can, &[]), "a group with no partner is no collision");
+
+        // net drawn glyph-only (30 wide), 1170..1200: a gap of 70 against the 80 its text needs back.
+        let squeezed = [crowded[0].clone(), crowded[1].clone(), at("pal.net", "right", 1170.0, 1200.0), crowded[3].clone(), crowded[4].clone()];
+        assert_eq!(plan(&squeezed, &chains, &can, &[("net".into(), 110.0)]), None, "no room to give the text back");
+        let roomy = [at("pal.mail", "e", 1000.0, 1085.0), at("pal.net", "right", 1170.0, 1200.0), crowded[3].clone(), crowded[4].clone()];
+        assert_eq!(plan(&roomy, &chains, &can, &[("net".into(), 110.0)]), None, "85 of room is short of 80 plus the slack");
+        let roomier = [at("pal.mail", "e", 1000.0, 1070.0), at("pal.net", "right", 1170.0, 1200.0), crowded[3].clone(), crowded[4].clone()];
+        assert_eq!(plan(&roomier, &chains, &can, &[("battery".into(), 100.0), ("net".into(), 110.0)]), Some(Step::Release("net".into())), "the last squeezed first");
+        assert_eq!(plan(&roomier[..1], &chains, &can, &[("net".into(), 110.0)]), Some(Step::Release("net".into())), "a squeezed item no longer drawn is released");
+    }
+
+    #[test]
+    fn extents_read_a_multi_query_and_skip_hidden_items() {
+        let out = br#"{"name":"pal.a","geometry":{"drawing":"on","position":"right"},"bounding_rects":{"display-1":{"origin":[10.0,0.0],"size":[20.0,38.0]}}}
+{"name":"pal.b","geometry":{"drawing":"off","position":"right"},"bounding_rects":{"display-1":{"origin":[-9999.0,-9999.0],"size":[1.0,1.0]}}}
+{"name":"pal.c","geometry":{"drawing":"on","position":"e"},"bounding_rects":{"display-1":{"origin":[-9999.0,-9999.0],"size":[1.0,1.0]}}}"#;
+        assert_eq!(extents(out), vec![Extent { name: "pal.a".into(), position: "right".into(), display: "display-1".into(), x0: 10.0, x1: 30.0 }]);
     }
 }

@@ -266,6 +266,13 @@ target's caveat).
 | `font` | `"system"`, `"mono"` | `"system"` | The text's face; `mono` for codes and times (SF Mono on the menu bar, prerendered; Menlo on sketchybar). |
 | `max_chars` | int | `32` | The longest title an item draws; longer text ends in an ellipsis, since Apple's bar hides whatever runs under the notch or off the left edge (sketchybar: `label.max_chars`). |
 
+On sketchybar a crowded bar makes room by itself: when the items right of
+the notch (or left of it) would run into each other, the one nearest the
+collision drops its title (its glyph, segments and count stay) until they fit, and gets its
+text back when there is room again. An urgent item and one with no icon keep
+their text; `order` decides who goes first (the nearer the notch, the
+sooner).
+
 The menu bar's title is a plain system-font string (tray-icon sets no
 attributes), so `size` (`icon_size`, `text_size`), `font`, `width`,
 `opacity` under 100 and a set `badge_color` make the renderer prerender the
