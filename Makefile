@@ -90,7 +90,7 @@ app:
 		. "$(dir $(PAL_DEV_P12))pal-dev.env" && app/scripts/signing-key.sh "$(PAL_DEV_P12)" "$$PAL_DEV_P12_PASSWORD"; }
 	cd app && PAL_BUNDLE=$(PAL_BUNDLE) CARGO_PROFILE_RELEASE_STRIP=false npm run tauri build -- --config '{"bundle":{"createUpdaterArtifacts":false,"macOS":{"signingIdentity":"pal-dev"}}}'
 	-pal quit 2>/dev/null; sleep 1
-	rm -rf /Applications/pal.app && cp -R target/release/bundle/macos/pal.app /Applications/pal.app
+	rm -rf /Applications/pal.app && cp -R $(or $(CARGO_TARGET_DIR),target)/release/bundle/macos/pal.app /Applications/pal.app
 	open -a /Applications/pal.app
 	@codesign -dv /Applications/pal.app 2>&1 | grep -E '^Authority|^Signature' | head -2
 
