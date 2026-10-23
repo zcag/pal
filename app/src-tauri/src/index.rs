@@ -996,11 +996,14 @@ pub fn query(
     // Tiers and titles in one pass: the titles serve the "more" rows, and
     // taking the registry again under the index guard would invert the order
     // `sync_palette_rows` takes them in (a deadlock seen in the scratch instance).
-    let (tiers, titles) = {
+    let in_front = crate::states::get(&app, "front_app").and_then(|v| v.as_str().map(str::to_owned));
+    let (tiers, titles, front) = {
         let reg = palettes.lock();
         let tiers: Vec<(Source, Tier)> = reg.iter().map(|r| (r.source.clone(), r.tier)).collect();
         let titles: Vec<(Source, String)> = reg.iter().map(|r| (r.source.clone(), r.meta.title.clone())).collect();
-        (tiers, titles)
+        // The palettes of the app in front (`front` in their manifest): their rows with the typed word lead the root.
+        let front: Vec<Source> = in_front.as_deref().map_or_else(Vec::new, |app| reg.iter().filter(|r| r.front.iter().any(|f| f.eq_ignore_ascii_case(app))).map(|r| r.source.clone()).collect());
+        (tiers, titles, front)
     };
     let tier = root_tier(&tiers);
     // Caps at the root only: a palette's own level lists everything.
@@ -1021,7 +1024,7 @@ pub fn query(
     let empty_root = at_root && q.trim().is_empty();
     let frequent = if empty_root { frequent(&ix, &fre, SystemTime::now()) } else { Vec::new() };
     let attention = if empty_root { attention(&ix) } else { Vec::new() };
-    let opts = QueryOpts { limit: limit.unwrap_or(DEFAULT_LIMIT), sources: sources.as_deref(), boost: Some(&boost), tier: Some(&tier), caps, cut: ranking.cut };
+    let opts = QueryOpts { limit: limit.unwrap_or(DEFAULT_LIMIT), sources: sources.as_deref(), boost: Some(&boost), tier: Some(&tier), caps, cut: ranking.cut, front: &front };
     let ranked = ix.query(&q, opts);
     let mut hits = views(&ix, ranked, &titles);
     if at_root {
@@ -1053,7 +1056,7 @@ fn available_tail(ix: &mut Index, q: &str, cut: bool) -> Vec<HitView> {
     let only = [crate::store::source()];
     // The cap is what lets the cut apply: rows with the typed word, when there are any, over rows that only scatter its letters.
     let caps = pal_core::index::Caps { primary: AVAILABLE_MAX, normal: AVAILABLE_MAX, catalog: AVAILABLE_MAX };
-    let ranked = ix.query(q, QueryOpts { limit: AVAILABLE_MAX, sources: Some(&only), boost: None, tier: None, caps: Some(caps), cut });
+    let ranked = ix.query(q, QueryOpts { limit: AVAILABLE_MAX, sources: Some(&only), boost: None, tier: None, caps: Some(caps), cut, front: &[] });
     views(ix, ranked, &[]).into_iter().filter(|h| h.hit.id != MORE_ID).collect()
 }
 

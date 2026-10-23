@@ -27,7 +27,7 @@ import type { ExtensionsStore } from "./ui/SettingsStore";
 
 // ---- what the core sends (settings.rs `View`, pal_core::config::Config) ----
 
-type RawPalette = { enabled?: boolean; alias?: string; hotkey?: string; hold?: string | null; icon?: string; tier?: PaletteTier; item_hotkeys?: Record<string, string>; settings?: Record<string, unknown> };
+type RawPalette = { enabled?: boolean; alias?: string; hotkey?: string; hold?: string | null; icon?: string; tier?: PaletteTier; front?: boolean; item_hotkeys?: Record<string, string>; settings?: Record<string, unknown> };
 /** core `Sidebar` as the file spells it (every key present, the core fills the defaults). */
 type RawSidebar = { palette?: string; edge?: SidebarEdge; display?: string; width?: number; peek?: boolean; delay?: number; grace?: number; hotkey?: string | null };
 /** core `BarLook` as the file spells it. */
@@ -48,11 +48,11 @@ type RawConfig = {
   /** `[groups.<id>]` (pal_core::controls::Group): devices used together. */
   groups?: Record<string, { title?: string; members?: string[]; volume?: string; inputs?: string }>;
 };
-type ManifestPalette = { title?: string; description?: string; kind?: string; keys?: PaletteKey[]; tier?: PaletteTier; settings?: SettingSpec[] };
+type ManifestPalette = { title?: string; description?: string; kind?: string; keys?: PaletteKey[]; tier?: PaletteTier; front?: string[]; settings?: SettingSpec[] };
 type ManifestStore = { tagline?: string; permissions?: string[]; screenshots?: { file: string; caption?: string; kind?: string }[] };
 type Manifest = { name: string; title?: string; controls?: GroupControl[]; description?: string; version?: string; icon?: unknown; author?: string; repo?: string; multi?: boolean; settings?: SettingSpec[]; palettes?: Record<string, ManifestPalette>; store?: ManifestStore };
 /** `PaletteMeta` (registry.rs): what the code said about a palette, `tier` already the manifest's over the code's (host.ts). */
-type Meta = { name: string; title: string; icon?: unknown; live?: boolean; input?: boolean; view?: string; tier?: PaletteTier; hold?: string };
+type Meta = { name: string; title: string; icon?: unknown; live?: boolean; input?: boolean; view?: string; tier?: PaletteTier; front?: string[]; hold?: string };
 type Record_ = { source: string; ref?: string; installed_at: number; commit_or_etag?: string };
 /** settings.rs `Ext`: one instance as the host reported it; `key` is the instance key (`gmail@work`), `name` the manifest's. `disabled`: turned off, reported with its manifest (`extension/disabled`) and never loaded. */
 type Ext = { key: string; name: string; instance: InstanceInfo; manifest: Manifest; root: string; loaded: boolean; disabled?: boolean; error?: string; palettes: Meta[]; warnings?: string[]; installed?: number; record?: Record_ };
@@ -156,8 +156,9 @@ function toExtension(e: Ext, config: RawConfig, store: StoreState, alone: boolea
       keys: declared?.keys,
       tier: isTier(meta?.tier) ? meta.tier : isTier(declared?.tier) ? declared.tier : undefined,
       hold: meta?.hold,
+      front: meta?.front ?? declared?.front,
       settings: declared?.settings ?? [],
-      config: { enabled: raw.enabled ?? true, alias: raw.alias, hotkey: raw.hotkey, hold: raw.hold ?? undefined, icon: raw.icon, tier: isTier(raw.tier) ? raw.tier : undefined, itemHotkeys: raw.item_hotkeys, settings: (raw.settings ?? {}) as SettingValues },
+      config: { enabled: raw.enabled ?? true, alias: raw.alias, hotkey: raw.hotkey, hold: raw.hold ?? undefined, icon: raw.icon, tier: isTier(raw.tier) ? raw.tier : undefined, front: raw.front === false ? false : undefined, itemHotkeys: raw.item_hotkeys, settings: (raw.settings ?? {}) as SettingValues },
       ...(inherits && { inherited: inheritedOf(declared?.settings ?? [], config.palettes[paletteId(e.name, name)]?.settings) }),
     };
   });
@@ -588,6 +589,7 @@ export default function Settings() {
     if (!p) return;
     const cur = p.config;
     if (next.enabled !== cur.enabled) write(["palettes", id, "enabled"], next.enabled ? undefined : false);
+    if (next.front !== cur.front) write(["palettes", id, "front"], next.front === false ? false : undefined);
     for (const k of ["alias", "hotkey", "icon", "tier"] as const) {
       if ((next[k] ?? "") !== (cur[k] ?? "")) write(["palettes", id, k], next[k]?.trim() ? next[k] : undefined);
     }

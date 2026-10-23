@@ -136,6 +136,15 @@ function PalettePane({ p, ext, onChange, onSetting, items }: { p: SettingsPalett
             <span className="pal-ppane__hint">{p.config.tier ? `Overrides the extension's ${p.tier ?? "normal"}.` : "As the extension says. Primary rows beat catalog rows on the same match."}</span>
           </dd>
         </div>
+        {p.front && p.front.length > 0 && (
+          <div className="pal-ppane__meta-row" data-anchor={`palettes:${p.id}:front`}>
+            <dt>App in front</dt>
+            <dd>
+              <SettingsSwitch checked={p.config.front !== false} onChange={(v) => onChange({ front: v ? undefined : false })} label={`${p.title} first while its app is in front`} />
+              <span className="pal-ppane__hint">First at the root while {p.front.join(", ")} is in front.</span>
+            </dd>
+          </div>
+        )}
       </dl>
 
       {p.keys && p.keys.length > 0 && (

@@ -1191,6 +1191,8 @@ export type ManifestPalette = {
   dialog?: boolean;
   /** `false`: picks are not remembered and never reorder the rows, for a palette whose order is the point (OTP codes, an inbox, windows most recent first) or whose ids last one listing. Input and view palettes are never remembered. */
   remember?: boolean;
+  /** Bundle ids (`com.google.Chrome`): while one of these apps is in front, the palette's rows that have the typed word lead the root, an exact name elsewhere included. Browser Tabs names the browsers. macOS only; `[palettes.<id>] front = false` turns it off. */
+  front?: string[];
 };
 
 /**
@@ -1391,4 +1393,6 @@ export type PaletteMeta = Pick<PaletteBase, "icon" | "columns" | "placeholder" |
   dialog?: true;
   /** `ManifestPalette.remember`: picks are not remembered (absent means they are, unless the palette is input). */
   remember?: false;
+  /** `ManifestPalette.front`: the apps in front that put its rows first at the root. */
+  front?: string[];
 };

@@ -116,6 +116,12 @@ pub const CATALOG_PENALTY: f32 = 150.0;
 /// long title. Twice a tier's bonus, so a normal row that has the word is
 /// above a primary one that only scatters it.
 pub const WORD_BONUS: f32 = 300.0;
+/// Added on top of [`WORD_BONUS`] to a row of a [`QueryOpts::front`]
+/// source: the palette belongs to the app in front (a browser's tabs while
+/// it is), so its rows that have the typed word lead every other row, an
+/// exact name included (1775 at most, the ladder under [`EXACT_BONUS`]).
+/// A row that only scatters the letters gets none of it.
+pub const FRONT_BONUS: f32 = 2000.0;
 
 /// How many rows one source may put in a typed query's answer, by tier.
 /// The rest of its matches are counted in [`Ranked::more`], for a row that
@@ -173,11 +179,14 @@ pub struct QueryOpts<'a> {
     /// With `caps`: a source with a row that has the typed word keeps only
     /// those rows ([`Caps`]). `[general] root_cut`; off, the cap alone.
     pub cut: bool,
+    /// Sources whose rows that have the typed word lead the rest
+    /// ([`FRONT_BONUS`]): the palettes of the app in front.
+    pub front: &'a [Source],
 }
 
 impl Default for QueryOpts<'_> {
     fn default() -> Self {
-        Self { limit: 200, sources: None, boost: None, tier: None, caps: None, cut: true }
+        Self { limit: 200, sources: None, boost: None, tier: None, caps: None, cut: true, front: &[] }
     }
 }
 
@@ -482,6 +491,7 @@ impl Index {
             }
             let tier = opts.tier.map_or(Tier::Normal, |f| f(&bucket.source));
             let bonus = if matching { tier.bonus() } else { 0.0 };
+            let front = opts.front.contains(&bucket.source);
             // The path is one haystack for the whole source, so it is
             // matched once here, not per row: per query word, what it
             // scores in the path, and `None` where it does not start a
@@ -510,6 +520,9 @@ impl Index {
                 let word = matching && entry.starts_words(&words, &path_word);
                 if word {
                     score += WORD_BONUS;
+                    if front {
+                        score += FRONT_BONUS;
+                    }
                     if entry.is_exactly(&typed) {
                         score += EXACT_BONUS;
                     }
@@ -1109,6 +1122,12 @@ mod tests {
         // Unranked sources get it too: exactness is the match, not the history.
         ix.set_unranked(src("icons"), true);
         assert!(ix.query("hand", QueryOpts::default())[0].score > EXACT_BONUS);
+        // The app in front's palette: its rows that have the word lead an exact name elsewhere; one that scatters the letters does not.
+        ix.extend(src("tabs"), vec![item("t1", "Google Chrome Help", None, &[]), item("t2", "Change the home page", None, &[])]);
+        let front = [src("tabs")];
+        assert_eq!(ix.query("chrome", QueryOpts { front: &front, ..Default::default() })[0].id, "t1");
+        assert_eq!(ix.query("chrome", QueryOpts::default())[0].id, "i1", "not in front: the exact name");
+        assert_ne!(ix.query("chme", QueryOpts { front: &front, ..Default::default() })[0].id, "t2");
     }
 
     #[test]

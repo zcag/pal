@@ -2402,3 +2402,11 @@ enforced it; the docs (`docs/extensions.md` "Surfaces", `docs/design/game-surfac
 tree stays the easy default because it follows the theme, the density and the keys by itself. First non-game user after
 Flashcards: atc's Terminal, a session's terminal in xterm.js with the bytes relayed through the extension's websocket
 (the page's CSP keeps it off the network).
+
+## Front: a palette leads the root while its app is in front (2026-10-23)
+
+Cagdas: "when chrome is focused its items are ranked much much higher, so i can easily search a tab". The panel is non-activating (`panel/macos.rs`), so the app in front while typing is still the one under it, and the `front_app` state already tracks it.
+
+- **A manifest field, not a Browser Tabs special case**: `front` (bundle ids) under a palette; Browser Tabs names the browsers. Any palette tied to an app (Slack, Obsidian) can say the same.
+- **Only rows that have the word, but over exact names**: `FRONT_BONUS` (2000) goes on top of the word bonus, above the whole ladder (1775 at most), so in Chrome `github` is the GitHub tab before the GitHub extension. A tab that only scatters the letters gets nothing, so `slack` in Chrome with no Slack tab is still the Slack app. The empty root is untouched.
+- Settings has it as a per-palette switch ("App in front"), `[palettes.<id>] front = false`. No `PROTOCOL` bump: an older app ignores the field, and the extension works the same without it.

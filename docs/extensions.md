@@ -244,7 +244,9 @@ A palette is described in two files, and each fact has one home:
   this palette's, and the Window switcher feature is its chord; Windows
   sets it), `dialog` (serves file dialogs: while an open or save panel is
   in front, the empty root's hint opens this palette; Files sets it),
-  `remember` (`false`: picks are not remembered and never reorder the
+  `front` (bundle ids of the apps whose being in front puts its rows
+first at the root, [below](#front-first-while-its-app-is-in-front)),
+`remember` (`false`: picks are not remembered and never reorder the
   rows, for a palette whose order is the point, such as OTP codes, an inbox
   or windows most recent first, or whose ids last one listing; every
   other palette with indexed rows learns from picks, `live` ones
@@ -333,6 +335,19 @@ the code may say `tier` too. The user overrides it with `[palettes.<id>]
 tier = "primary"` and the caps with `[general] root_caps`
 ([Config](config.md#palettesid)). The empty query is untouched: use, then
 the listing order, no caps.
+
+### `front`: first while its app is in front
+
+`"front": ["com.google.Chrome", "com.apple.Safari"]` under
+`palettes.<key>` names apps by bundle id. While one of them is the app in
+front (the panel never takes that over), the palette's rows that have the
+typed word lead the root, ahead of a row elsewhere named exactly what was
+typed: in Chrome, `github` is the GitHub tab before the GitHub
+extension. A row that only collects the letters gets nothing, so the
+rest of the root still answers what no tab has. The empty query is
+untouched. Browser Tabs names the browsers. macOS only (the app in front
+is the `front_app` state); the user turns it off per palette with
+`[palettes.<id>] front = false`, Settings' "App in front" switch.
 
 ## The code, `index.ts`
 

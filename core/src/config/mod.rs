@@ -580,6 +580,9 @@ pub struct Palette {
     /// `primary` (reached by name, ranked up), `normal`, `catalog` (a big
     /// static list, ranked down and capped harder).
     pub tier: Option<Tier>,
+    /// `false`: the palette never leads the root while one of the apps its
+    /// manifest names (`front`) is in front; unset or `true` follows it.
+    pub front: Option<bool>,
     /// A game page's panel: `normal`, `big` (most of the screen, centred) or
     /// `corner` (smaller, in the bottom-right corner). Only a palette whose
     /// view is a game page looks at it.
@@ -594,7 +597,7 @@ pub struct Palette {
 
 impl Default for Palette {
     fn default() -> Self {
-        Self { enabled: true, alias: None, hotkey: None, hold: None, item_hotkeys: BTreeMap::new(), icon: None, tier: None, panel: None, settings: toml::Table::new(), extra: BTreeMap::new() }
+        Self { enabled: true, alias: None, hotkey: None, hold: None, item_hotkeys: BTreeMap::new(), icon: None, tier: None, front: None, panel: None, settings: toml::Table::new(), extra: BTreeMap::new() }
     }
 }
 

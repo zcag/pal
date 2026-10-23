@@ -93,6 +93,7 @@ export function paletteMeta(name: string, p: Palette, m?: ManifestPalette, fallb
   const own = p.icon !== undefined;
   const icon = inst ? badged(own ? p.icon : fallbackIcon, own ? { badge: inst.badge } : inst) : (p.icon ?? fallbackIcon);
   const keywords = wordList([...(extKeywords ?? []), ...(m?.keywords ?? [])]);
+  const front = wordList(m?.front ?? []);
   return {
     name,
     title: inst ? instanceTitle(m?.title ?? p.title ?? name, inst) : (m?.title ?? p.title ?? name),
@@ -121,6 +122,7 @@ export function paletteMeta(name: string, p: Palette, m?: ManifestPalette, fallb
     ...(m?.remember === false && { remember: false as const }),
     ...(p.multi === true && { multi: true as const }),
     ...(keywords.length && { keywords }),
+    ...(front.length && { front }),
   };
 }
 

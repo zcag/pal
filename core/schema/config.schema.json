@@ -980,6 +980,10 @@
           "default": true,
           "type": "boolean"
         },
+        "front": {
+          "description": "`false`: the palette never leads the root while one of the apps its\nmanifest names (`front`) is in front; unset or `true` follows it.",
+          "type": "boolean"
+        },
         "hold": {
           "description": "The switcher chord: held, it shows this palette flat with the cursor\non row 2, every press steps (its `shift+` variant back), letting go\nof the modifier runs the row (`alt+tab` on Windows). `\"\"` turns off\nthe default the extension's manifest suggests.",
           "type": "string"

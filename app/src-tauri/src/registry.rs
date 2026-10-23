@@ -102,6 +102,10 @@ pub struct PaletteMeta {
     /// `[palettes.<id>] tier` overrides it (`Registered::tier`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tier: Option<Tier>,
+    /// The apps (bundle ids) whose being in front puts the palette's rows
+    /// that have the typed word first at the root (the manifest's `front`).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub front: Vec<String>,
     /// Lists inline at the root for queries its `match` accepts; the host
     /// does the matching (`inline` request), this only says who takes part.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
@@ -213,13 +217,21 @@ pub struct Registered {
     /// The tier the root ranks it by: the config's `tier` over the meta's,
     /// `normal` when neither says. Kept current by `apply_config`.
     pub tier: Tier,
+    /// The meta's `front` apps, or none when `[palettes.<id>] front = false`.
+    /// Kept current by `apply_config`.
+    pub front: Vec<String>,
+}
+
+/// The apps a palette leads the root for: the manifest's, unless the config turned that off.
+fn front_of(p: &pal_core::config::Palette, meta: &PaletteMeta) -> Vec<String> {
+    if p.front == Some(false) { Vec::new() } else { meta.front.clone() }
 }
 
 impl Registered {
     pub fn new(source: Source, meta: PaletteMeta, ext_title: String, config: &Config) -> Self {
         let p = config.palette(&palette_id(&source));
-        let tier = p.tier.or(meta.tier).unwrap_or_default();
-        Self { source, meta, ext_title, enabled: p.enabled, filter: None, filtered: HashMap::new(), deferred: false, awaits_show: false, tier }
+        let (tier, front) = (p.tier.or(meta.tier).unwrap_or_default(), front_of(&p, &meta));
+        Self { source, meta, ext_title, enabled: p.enabled, filter: None, filtered: HashMap::new(), deferred: false, awaits_show: false, tier, front }
     }
 }
 
@@ -379,7 +391,7 @@ pub fn replace_extension(reg: &mut Vec<Registered>, ext: &str, ext_title: &str, 
     }));
 }
 
-/// Apply `next`'s `enabled` flags (and its `tier` overrides, which take
+/// Apply `next`'s `enabled` flags (and its `tier` and `front` overrides, which take
 /// effect on the next query): the sources switched off and the ones
 /// switched on (with their meta, to list them).
 pub fn toggle_enabled(reg: &mut [Registered], next: &Config) -> (Vec<Source>, Vec<(Source, PaletteMeta)>) {
@@ -387,6 +399,7 @@ pub fn toggle_enabled(reg: &mut [Registered], next: &Config) -> (Vec<Source>, Ve
     for r in reg.iter_mut() {
         let p = next.palette(&palette_id(&r.source));
         r.tier = p.tier.or(r.meta.tier).unwrap_or_default();
+        r.front = front_of(&p, &r.meta);
         let wanted = p.enabled;
         if wanted == r.enabled {
             continue;
@@ -553,6 +566,12 @@ mod tests {
         let c: Config = toml::from_str("[palettes.emoji]\ntier = \"catalog\"\n[general]\nroot_caps = { primary = 5, catalog = 2 }\n").unwrap();
         assert_eq!(c.palette("emoji").tier, Some(Tier::Catalog));
         assert_eq!(c.general.root_caps, pal_core::index::Caps { primary: 5, normal: 6, catalog: 2 });
+        // `front` the same way: the manifest's apps, none once `front = false`.
+        let m: PaletteMeta = serde_json::from_value(json!({ "name": "tabs", "title": "Tabs", "live": true, "input": false, "front": ["com.google.Chrome"] })).unwrap();
+        let mut reg = vec![Registered::new(Source::new("browser-tabs", "tabs"), m, "Tabs".into(), &Config::default())];
+        assert_eq!(reg[0].front, ["com.google.Chrome"]);
+        toggle_enabled(&mut reg, &toml::from_str("[palettes.browser-tabs-tabs]\nfront = false\n").unwrap());
+        assert!(reg[0].front.is_empty());
     }
 
     #[test]

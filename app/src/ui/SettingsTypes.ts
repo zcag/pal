@@ -55,6 +55,8 @@ export type PaletteConfig = {
   icon?: string;
   /** `tier` override; the manifest's (or the code's) when unset. */
   tier?: PaletteTier;
+  /** `false`: never first while one of the manifest's `front` apps is in front; unset follows the manifest. */
+  front?: false;
   /** `item_hotkeys`: global hotkeys that run one item, keyed by item id. Edited in the file. */
   itemHotkeys?: Record<string, string>;
   settings: SettingValues;
@@ -78,6 +80,8 @@ export type SettingsPalette = {
   keys?: PaletteKey[];
   /** The tier the manifest or the code declares; `normal` when neither says. */
   tier?: PaletteTier;
+  /** The manifest's `front`: bundle ids of the apps whose being in front puts its rows first at the root. */
+  front?: string[];
   /** The switcher chord the manifest suggests (`alt+tab` for Windows); applies while the file has no `hold` line. */
   hold?: string;
   /** Settings the extension declared for this palette. */
