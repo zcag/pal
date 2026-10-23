@@ -289,7 +289,7 @@ export const view = {
 };
 
 /**
- * A game's page (a `surface` node, docs/design/game-surface.md), from the
+ * The extension's own page (a `surface` node, docs/design/game-surface.md), from the
  * extension's side: `surface.post(msg)` reaches the page's `pal.on`
  * handlers, any JSON value, in order. Addressed as `view.update` is (the
  * palette in context, else `{ palette }`); dropped by the core while no

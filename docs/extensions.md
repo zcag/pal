@@ -674,11 +674,12 @@ A palette can draw instead of list: give it `view(ctx)` in place of
 games 2048 and Wordle are ([pal-games](https://github.com/zcag/pal-games/tree/main/): `2048/`, `wordle/`); Blackjack, Crossword,
 Minesweeper, Night Parade, Snake II, Solitaire, Sudoku, Typing, Vortex and Yahtzee draw their own page instead, a
 `surface` node (each one's `surface/` in pal-games),
-and so does Flashcards ([`flashcards/surface/`](https://github.com/zcag/pal-extensions/tree/main/flashcards/surface) in pal-extensions).
+and so do Flashcards ([`flashcards/surface/`](https://github.com/zcag/pal-extensions/tree/main/flashcards/surface) in pal-extensions)
+and atc's terminal ([`atc/surface/`](https://github.com/zcag/pal-extensions/tree/main/atc/surface)).
 The tree is built from a fixed vocabulary the app draws with its own
 tokens, never HTML, so a view looks like the rest of the panel in both
-themes. The one exception is a game's own page, a `surface` node (below,
-"Game surfaces").
+themes. The one exception is an extension's own page, a `surface` node
+(below, "Surfaces").
 
 ```ts
 export default {
@@ -772,7 +773,7 @@ The vocabulary (`ViewNode` in `@zcag/pal`; every node may carry `key`,
 | `slider` | `value` 0..1, `width` px (else the free space), `color` as for `progress`, `label` (for a screen reader) | a level the user sets: a 6 px track with the fill and a round thumb at its end (`role="slider"`). The keys move it through the view's own actions; with `action`, a click runs that action with the clicked fraction as `ctx.values.value` ("0.620") |
 | `switch` | `on`, `color` (tag palette; else the accent), `label` | the system's switch pill, the knob slid over when on; with `action` a click runs it |
 | `keycap` | `keys` in the shortcut spelling (`h`, `cmd+k`, `up`) | key caps, as in the footer; with `action` a click runs what the cap names |
-| `surface` | `src`, a page in the extension's folder (`surface/index.html`; relative, no `..`) | games only: the page in a sandboxed frame that fills the body, one per view ("Game surfaces") |
+| `surface` | `src`, a page in the extension's folder (`surface/index.html`; relative, no `..`) | the extension's own page in a sandboxed frame that fills the body, one per view ("Surfaces") |
 
 Two fields every node takes. **`action`**: the id of one of the view's
 `actions`; a click (a tap) on the node runs it as its key would, so a
@@ -831,15 +832,19 @@ tokens'. A row whose keyed children come
 and go wants a `minHeight` so the layout holds still; a cell whose tile
 moves out wants a stack of its own holding an `outline` tile meanwhile.
 
-## Game surfaces: a page of your own
+## Surfaces: a page of your own
 
-For a **game** only: a view whose body is the extension's own HTML page,
-for what a tree cannot do (a card under the pointer, a drag, 60 frames a
-second). Anything that shows data uses the vocabulary above, which
-follows the theme, the density and the keys by itself. The design,
-security model included, is `docs/design/game-surface.md`; the smallest
-one is `examples/surface-extension/`, and the bundled Blackjack, Crossword,
-Minesweeper, Night Parade, Snake II, Solitaire, Sudoku, Typing, Vortex and Yahtzee are full games on it.
+A view whose body is the extension's own HTML page, for whatever a tree
+cannot do: a card under the pointer, a drag, 60 frames a second, a
+terminal. Any extension may use one; the vocabulary above is the easy
+default, since it follows the theme, the density and the keys by itself,
+and a page has to do that work on its own (the kit hands it the tokens).
+The design, security model included, is `docs/design/game-surface.md`;
+the smallest one is `examples/surface-extension/`. The bundled
+Blackjack, Crossword, Minesweeper, Night Parade, Snake II, Solitaire,
+Sudoku, Typing, Vortex and Yahtzee are games on it, Flashcards a study
+session, atc's Terminal a live terminal (xterm.js, its bytes relayed by
+the extension).
 
 ```ts
 import { defineExtension, storage, surface } from "@zcag/pal";
@@ -1902,7 +1907,7 @@ to the core.
   a level of yours came on top or left; `view.open()`: the levels open now;
   `VIEW_UPDATE_MIN_MS` (33): the coalescing window.
 - `surface.post(msg, { palette? })`: a message for the open game
-  surface's page (above, "Game surfaces"); `SurfaceKit` is the type of
+  surface's page (above, "Surfaces"); `SurfaceKit` is the type of
   the page's `window.pal`, `isSurfaceSrc(src)` what `checkView` accepts
   as a `surface` node's `src`.
 - `checkView(view)`, `checkForm(form)`, `checkBarItem(item)`,

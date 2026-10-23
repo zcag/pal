@@ -338,7 +338,7 @@ From there the same API grows into:
 - **Views**: a render tree for dashboards, detail pages and pickers
   ([View palettes](docs/extensions.md#view-palettes-a-render-tree)).
 - **Surfaces**: a sandboxed page of your own, for a game or anything a
-  view cannot draw ([Game surfaces](docs/extensions.md#game-surfaces-a-page-of-your-own)).
+  view cannot draw ([Surfaces](docs/extensions.md#surfaces-a-page-of-your-own)).
 - **Bar items**, **forms**, **typed arguments**, **links** of your own,
   and **several accounts** of one extension (a personal and a work
   Gmail).

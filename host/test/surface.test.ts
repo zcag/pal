@@ -1,4 +1,4 @@
-// Game surfaces, the host's side (src/serve.ts `surface`, src/surface.ts,
+// Surfaces, the host's side (src/serve.ts `surface`, src/surface.ts,
 // sdk/src/api.ts `surface`; docs/design/game-surface.md): `checkView`'s
 // rules for the node, the page's calls as the app relays them (`send` to
 // `onMessage` with its reply, the extension's storage and settings, a

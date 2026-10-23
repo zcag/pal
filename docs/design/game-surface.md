@@ -1,8 +1,9 @@
-# Game surfaces
+# Surfaces
 
-Design spec, 2026-09-25. One sandboxed exception to "a view is a render
-tree, never HTML" (`notes/decisions.md`, "Game surfaces"), for games only:
-a `surface` view node that runs the extension's own HTML and JavaScript in
+Design spec, 2026-09-25 (built for games; open to every extension since
+2026-10-23). One sandboxed exception to "a view is a render tree, never
+HTML" (`notes/decisions.md`, "Game surfaces" and "Surfaces for any
+extension"): a `surface` view node that runs the extension's own HTML and JavaScript in
 a frame filling the view body. Status: built in
 `app/src-tauri/src/surface.rs` (the `ext://` scheme), `app/src/ui/Surface.tsx`
 and `Launcher.tsx` (the frame and its bridge), `app/src-tauri/surface-kit/`
@@ -22,9 +23,9 @@ vocabulary until it is a game engine is the wrong direction; letting a
 game draw its own page is the small one, as long as the page cannot reach
 anything the rest of the panel can.
 
-Everything else stays a tree. The node is for games; a palette that shows
-data uses the vocabulary, which follows the theme, the density and the
-keys by construction.
+Any extension may draw its own page; what it decides to build is its
+call. The tree stays the easy default, since it follows the theme, the
+density and the keys by construction, which a page has to do itself.
 
 ## The node
 

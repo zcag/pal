@@ -364,7 +364,7 @@ export type ViewNode =
   /** A shortcut as key caps, in the `Action.shortcut` spelling (`h`, `cmd+k`, `up`). */
   | (NodeBase & { type: "keycap"; keys: string })
   /**
-   * A game's own page, for games only (docs/design/game-surface.md): an
+   * The extension's own page (docs/design/game-surface.md): an
    * HTML file of the extension's (`src`, relative to its folder, no `..`)
    * run in a sandboxed frame that fills the view body. The page includes
    * `/__pal/surface.js` and talks to the extension through `window.pal`

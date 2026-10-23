@@ -2393,3 +2393,12 @@ Cagdas: in rare moments the right side's items overlap. Measured on hornet: righ
 - **Glyph-only, not smaller type and not a ⋯ fold** (mockups at bak.lan/pal-bar-overflow). Smaller type frees little: each item carries ~20 pt of padding that does not scale, so 14 → 12 pt is about 65 pt against a 108 pt newcomer, and every item would jump at once. A fold hides what is on the strip. It drops the title alone, so no extension does anything; segments and the badge stay, since they are counts (the first cut used `show_title = false`, which also dropped Grafana's firing count).
 - **No setting.** Nearest the collision goes first, so `order` already protects an item. Release is last-in-first-out, once the gap has room for the width it had plus 8 pt, so a release does not squeeze straight back.
 - One `--query` call with every name (sketchybar answers a stream of objects) after a debounced draw; a step redraws one item, which measures again.
+
+## Surfaces for any extension (2026-10-23)
+
+The `surface` node was kept for games (2026-09-25) and Flashcards was let in as an exception. That rule is gone: any
+extension may draw its own page, since what an extension builds is its own decision, not the host's. Nothing in the code
+enforced it; the docs (`docs/extensions.md` "Surfaces", `docs/design/game-surface.md`, the SDK's comments) now say so. The
+tree stays the easy default because it follows the theme, the density and the keys by itself. First non-game user after
+Flashcards: atc's Terminal, a session's terminal in xterm.js with the bytes relayed through the extension's websocket
+(the page's CSP keeps it off the network).

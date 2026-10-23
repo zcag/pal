@@ -1,4 +1,4 @@
-// Game surfaces (docs/design/game-surface.md): a page's TypeScript served
+// Surfaces (docs/design/game-surface.md): a page's TypeScript served
 // as JavaScript. The app's `ext://` scheme (app/src-tauri/src/surface.rs)
 // asks `surface/transpile` for every `*.ts` a page loads; the answer is
 // Bun's transpiler on the one file (no bundling: its imports stay as
