@@ -61,7 +61,7 @@ export function volumeRow(v: Served<"volume"> | null | undefined, width: number,
     line = row([
       glyph,
       { type: "slider", key: "volume", value: v.level, width: width - 24 - 44 - 16, label: "Volume", action: "controls:volume:set" },
-      text(v.muted ? "muted" : `${pct}%`, { style: "number", size: "xs", width: 44, align: "end", key: `vol-${v.muted ? "m" : pct}` }),
+      text(v.muted ? "muted" : `${pct}%`, { style: "number", size: "xs", width: 44, align: "end", key: `vol-${v.muted ? "m" : pct}`, transition: { enter: "fade", exit: "none" } }),
     ], { key: "volume-row", gap: 2 });
   }
   return other ? column([line, text(other, { size: "xs", color: "faint", key: "vol-by" })], { key: "volume", gap: 0 }) : line;
