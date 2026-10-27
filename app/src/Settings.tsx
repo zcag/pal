@@ -46,7 +46,7 @@ type RawConfig = {
   /** `[instances.<key>]` (core `Instance`): the configured copies of `multi` extensions, and the default's title once named. */
   instances?: Record<string, RawInstance>;
   /** `[groups.<id>]` (pal_core::controls::Group): devices used together. */
-  groups?: Record<string, { title?: string; members?: string[]; volume?: string; inputs?: string }>;
+  groups?: Record<string, { title?: string; members?: string[]; volume?: string; inputs?: string; outputs?: string }>;
 };
 type ManifestPalette = { title?: string; description?: string; kind?: string; keys?: PaletteKey[]; tier?: PaletteTier; front?: string[]; settings?: SettingSpec[] };
 type ManifestStore = { tagline?: string; permissions?: string[]; screenshots?: { file: string; caption?: string; kind?: string }[] };
@@ -449,8 +449,8 @@ export default function Settings() {
     const absent = new Set(view.absent ?? []);
     return all.map((e) => toExtension(e, view.config, storeState, enabled(e.name) < 2, absent)).sort((a, b) => a.title.localeCompare(b.title));
   }, [view, storeState]);
-  const groups = useMemo<DeviceGroup[]>(() => Object.entries(view?.config.groups ?? {}).map(([id, g]) => ({ id, title: g.title, members: g.members ?? [], volume: g.volume, inputs: g.inputs })), [view]);
-  // Every instance whose manifest declares a device control (volume, power, inputs; a player alone is no device) can be a member; the device it drives is whatever it published last.
+  const groups = useMemo<DeviceGroup[]>(() => Object.entries(view?.config.groups ?? {}).map(([id, g]) => ({ id, title: g.title, members: g.members ?? [], volume: g.volume, inputs: g.inputs, outputs: g.outputs })), [view]);
+  // Every instance whose manifest declares a device control (volume, power, inputs, outputs; a player alone is no device) can be a member; the device it drives is whatever it published last.
   const devices = useMemo<GroupDevice[]>(() => (view?.extensions ?? []).filter((e) => isDevice(e.manifest.controls)).map((e) => {
     const s = extensions.find((x) => x.key === e.key);
     const device = Object.values(published[e.key] ?? {}).find((p) => p?.device)?.device;

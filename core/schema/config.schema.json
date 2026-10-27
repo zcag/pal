@@ -917,6 +917,10 @@
           },
           "type": "array"
         },
+        "outputs": {
+          "description": "The member serving the sound outputs (where the sound plays) to every member; unset: each its own.",
+          "type": "string"
+        },
         "title": {
           "description": "What Settings shows (\"Living room\"); the id when unset.",
           "type": "string"
@@ -1334,7 +1338,7 @@
         "$ref": "#/$defs/Group"
       },
       "default": {},
-      "description": "Groups: devices used together, one remote driving the TV's volume,\ninputs and power (`[groups.living-room] members = [\"appletv\",\n\"samsungtv\"] volume = \"samsungtv\"`; `docs/design/controls.md`).",
+      "description": "Groups: devices used together, one remote driving the TV's volume,\ninputs, sound output and power (`[groups.living-room] members = [\"appletv\",\n\"samsungtv\"] volume = \"samsungtv\"`; `docs/design/controls.md`).",
       "type": "object"
     },
     "instances": {

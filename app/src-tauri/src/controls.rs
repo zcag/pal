@@ -211,12 +211,12 @@ pub fn groups_set_members(app: AppHandle, id: String, members: Vec<String>) -> R
     write(&app, changes)
 }
 
-/// Which member serves `control` (`volume`, `inputs`) to the group; `None`: each its own.
+/// Which member serves `control` (`volume`, `inputs`, `outputs`) to the group; `None`: each its own.
 #[tauri::command(async)]
 pub fn groups_bind(app: AppHandle, id: String, control: String, member: Option<String>) -> Result<(), String> {
     let g = groups(&app).remove(&id).ok_or_else(|| format!("no group {id}"))?;
     if !controls::BOUND.contains(&control.as_str()) {
-        return Err(format!("a group binds {} only; power is every member's", controls::BOUND.join(" and ")));
+        return Err(format!("a group binds {} only; power is every member's", controls::BOUND.join(", ")));
     }
     if let Some(m) = member.as_deref().filter(|m| !g.members.iter().any(|x| x == m)) {
         return Err(format!("{m} is not a member of {id}"));

@@ -24,8 +24,8 @@
 // direction. An extension never sees these three envelopes; they are here
 // for a host or a test harness.
 
-/** The protocol a package is built for; bumped by a change that breaks extensions built before it, or that extensions built after it rely on (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. 2: `preview`, `ignoreStore`, `Effect.show.actions`. 3: the detail header (`Detail.caption`, `title`, `chips`, `stats`). 4: controls (`controls`, `Extension.controls`, `Manifest.controls`, the control view components). 5: accounts (`leaderboard`, `account`, `storage.onChange`, the kit's `score`, `leaderboard`, `account`, `signIn`, `storage.onChange`, `Manifest.sync` and `leaderboards`). 6: `each` in a sync object rule (`SyncObjectRule`). 7: replays (`leaderboard.post`'s `replay`, `leaderboard.replay`, `LeaderboardRow.replay`, the kit's `score` with `{ replay }` and `replay`). */
-export const PROTOCOL: number = 8;
+/** The protocol a package is built for; bumped by a change that breaks extensions built before it, or that extensions built after it rely on (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. 2: `preview`, `ignoreStore`, `Effect.show.actions`. 3: the detail header (`Detail.caption`, `title`, `chips`, `stats`). 4: controls (`controls`, `Extension.controls`, `Manifest.controls`, the control view components). 5: accounts (`leaderboard`, `account`, `storage.onChange`, the kit's `score`, `leaderboard`, `account`, `signIn`, `storage.onChange`, `Manifest.sync` and `leaderboards`). 6: `each` in a sync object rule (`SyncObjectRule`). 7: replays (`leaderboard.post`'s `replay`, `leaderboard.replay`, `LeaderboardRow.replay`, the kit's `score` with `{ replay }` and `replay`). 9: the `outputs` control (`OutputsState`, its ops, `outputsRow`). */
+export const PROTOCOL: number = 9;
 /** The oldest package protocol this SDK and host still run. Equal to `pal_core::registry::PROTOCOL_MIN`. */
 export const PROTOCOL_MIN: number = 1;
 
@@ -966,8 +966,8 @@ export type StatesChanged = { states: Record<string, StateValue> };
 // binding (`[groups.<id>]`), else the caller itself.
 
 /** The controls pal defines. */
-export type ControlName = "volume" | "power" | "inputs" | "player";
-export const CONTROL_NAMES: readonly ControlName[] = ["volume", "power", "inputs", "player"];
+export type ControlName = "volume" | "power" | "inputs" | "outputs" | "player";
+export const CONTROL_NAMES: readonly ControlName[] = ["volume", "power", "inputs", "outputs", "player"];
 
 /** What every control's state carries: the provider's device name ("75\" Neo QLED"), for a slot's tooltip and the group editor. */
 type ControlBase = { device?: string };
@@ -979,6 +979,10 @@ export type PowerState = ControlBase & { on?: boolean; busy?: boolean };
 export type ControlInput = { id: string; name: string; icon?: Icon };
 /** `inputs`: what the device switches between and which is on. */
 export type InputsState = ControlBase & { list?: ControlInput[]; current?: string };
+/** One place the sound can play: a TV's speakers, a soundbar, Q-Symphony. */
+export type ControlOutput = { id: string; name: string; icon?: Icon };
+/** `outputs`: where the device's sound plays, which one now, and `reconnect` when the provider can move it away and back (what wakes a soundbar gone quiet). */
+export type OutputsState = ControlBase & { list?: ControlOutput[]; current?: string; reconnect?: boolean };
 /** `player`: what plays. `position` is seconds as of `at` (unix ms); `palette` the provider's own Now Playing palette; `item` the provider's own bar item for this playback (media's item skips the player while that one is on a strip); `same` the bundle ids of the system's players that show the same playback (media drops those rows). */
 export type PlayerState = ControlBase & {
   state?: "playing" | "paused" | "stopped";
@@ -999,7 +1003,7 @@ export type PlayerState = ControlBase & {
   now?: boolean;
   same?: string[];
 };
-export type ControlStates = { volume: VolumeState; power: PowerState; inputs: InputsState; player: PlayerState };
+export type ControlStates = { volume: VolumeState; power: PowerState; inputs: InputsState; outputs: OutputsState; player: PlayerState };
 
 /** Who serves a control for the caller: an instance key, and the device name it published. */
 export type ControlProvider = { key: string; device?: string };
@@ -1011,6 +1015,7 @@ export type ControlOps = {
   volume: { set: [level: number]; step: [dir: 1 | -1]; mute: [on: boolean] };
   power: { set: [on: boolean] };
   inputs: { set: [id: string] };
+  outputs: { set: [id: string]; reconnect: [] };
   player: { play_pause: []; next: []; previous: []; seek: [seconds: number] };
 };
 export type ControlOp<C extends ControlName> = keyof ControlOps[C] & string;
@@ -1023,8 +1028,8 @@ export type ControlsChanged = { changes: { control: ControlName; provider: strin
 /** `controls/run` (core to host): one op on the provider's handler. */
 export type ControlRun = { extension: string; control: ControlName; op: string; args?: unknown[] };
 
-/** `[groups.<id>]`: devices used together. `members` are instance keys; `volume` and `inputs` the member serving each (unset: each member its own); power is every member's. */
-export type Group = { title?: string; members?: string[]; volume?: string; inputs?: string };
+/** `[groups.<id>]`: devices used together. `members` are instance keys; `volume`, `inputs` and `outputs` the member serving each (unset: each member its own); power is every member's. */
+export type Group = { title?: string; members?: string[]; volume?: string; inputs?: string; outputs?: string };
 
 /** `pal.json`: `bar.<id>`, readable without code (the Settings window lists it, hidden or not). */
 /**

@@ -69,7 +69,7 @@ pub struct Config {
     /// `docs/design/states.md`).
     pub states: BTreeMap<String, crate::states::Decl>,
     /// Groups: devices used together, one remote driving the TV's volume,
-    /// inputs and power (`[groups.living-room] members = ["appletv",
+    /// inputs, sound output and power (`[groups.living-room] members = ["appletv",
     /// "samsungtv"] volume = "samsungtv"`; `docs/design/controls.md`).
     pub groups: BTreeMap<String, crate::controls::Group>,
     /// Extension settings, keyed by extension name, or by instance key

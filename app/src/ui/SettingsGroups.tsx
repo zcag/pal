@@ -5,11 +5,13 @@ import { ArmedButton, SettingsRow, SettingsSelect } from "./SettingsField";
 import type { Icon as IconT } from "./types";
 import type { SettingsIndexEntry } from "./SettingsTypes";
 
-/** The controls a device can provide (`pal_core::controls::NAMES`); a group picks who serves volume and inputs, power is every member's. */
-export type GroupControl = "volume" | "power" | "inputs" | "player";
+/** The controls a device can provide (`pal_core::controls::NAMES`); a group picks who serves volume, inputs and the sound output, power is every member's. */
+export type GroupControl = "volume" | "power" | "inputs" | "outputs" | "player";
+/** What a group binds to one member (`pal_core::controls::BOUND`). */
+export type BoundControl = "volume" | "inputs" | "outputs";
 
 /** What makes an extension a device a group can hold: a player alone (Spotify, Now Playing) is not one. */
-export const DEVICE_CONTROLS: GroupControl[] = ["volume", "power", "inputs"];
+export const DEVICE_CONTROLS: GroupControl[] = ["volume", "power", "inputs", "outputs"];
 export const isDevice = (controls: readonly string[] | undefined) => !!controls?.some((c) => (DEVICE_CONTROLS as string[]).includes(c));
 
 /** An installed extension (instance) that can be a member: its manifest declares a device control. */
@@ -37,7 +39,7 @@ export type DeviceOffer = {
 };
 
 /** `[groups.<id>]` as the file spells it (`pal_core::controls::Group`). */
-export type DeviceGroup = { id: string; title?: string; members: string[]; volume?: string; inputs?: string };
+export type DeviceGroup = { id: string; title?: string; members: string[]; volume?: string; inputs?: string; outputs?: string };
 
 export type SettingsGroupsProps = {
   groups: DeviceGroup[];
@@ -48,15 +50,15 @@ export type SettingsGroupsProps = {
   onRename: (id: string, title: string) => void;
   onDelete: (id: string) => void;
   onMembers: (id: string, members: string[]) => Promise<void> | void;
-  /** `volume` or `inputs` to one member; `undefined`: each its own. */
-  onBind: (id: string, control: "volume" | "inputs", member: string | undefined) => Promise<void> | void;
+  /** `volume`, `inputs` or `outputs` to one member; `undefined`: each its own. */
+  onBind: (id: string, control: BoundControl, member: string | undefined) => Promise<void> | void;
   /** Install an offered device; resolves once it is loaded. */
   onInstall?: (name: string) => Promise<void>;
 };
 
 /** What the search field finds: the page, and every group by name. */
 export const groupsIndex = (groups: DeviceGroup[]): SettingsIndexEntry[] => [
-  { page: "groups", label: "Groups", hint: "Groups", keywords: "group devices room remote volume sound inputs power together tv apple" },
+  { page: "groups", label: "Groups", hint: "Groups", keywords: "group devices room remote volume sound output speaker soundbar inputs power together tv apple" },
   ...groups.map((g): SettingsIndexEntry => ({ page: "groups", label: g.title || g.id, hint: "Group", anchor: `groups:${g.id}`, keywords: `${g.id} ${g.members.join(" ")} group` })),
 ];
 
@@ -69,24 +71,28 @@ export function nextTitle(groups: DeviceGroup[]): string {
 
 /**
  * Who serves what once `key` joins: inputs go to the first member that has
- * them, and so does the sound, except that a TV (a member with inputs) takes
- * the sound over from a box without inputs (an Apple TV plays through the TV
- * it is plugged into). A choice made on the page is the binding itself, so
- * it is only ever replaced by this rule, never undone by it.
+ * them, and so do the sound outputs, and so does the volume, except that a
+ * TV (a member with inputs) takes the volume over from a box without inputs
+ * (an Apple TV plays through the TV it is plugged into). A choice made on
+ * the page is the binding itself, so it is only ever replaced by this rule,
+ * never undone by it.
  */
-export function bindingsOnJoin(g: DeviceGroup, key: string, controls: readonly GroupControl[], controlsOf: (key: string) => readonly GroupControl[]): { volume?: string; inputs?: string } {
-  const out: { volume?: string; inputs?: string } = {};
+export function bindingsOnJoin(g: DeviceGroup, key: string, controls: readonly GroupControl[], controlsOf: (key: string) => readonly GroupControl[]): Partial<Record<BoundControl, string>> {
+  const out: Partial<Record<BoundControl, string>> = {};
   const tv = controls.includes("inputs");
   if (tv && !g.inputs) out.inputs = key;
+  if (controls.includes("outputs") && !g.outputs) out.outputs = key;
   if (controls.includes("volume") && (!g.volume || (tv && !controlsOf(g.volume).includes("inputs")))) out.volume = key;
   return out;
 }
 
+const ROW_LABEL: Record<BoundControl, string> = { volume: "Volume buttons change", inputs: "Input buttons switch", outputs: "Sound plays through" };
+
 const names = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 
 /**
- * Settings › Groups: a card per group (its devices, where the sound and the
- * inputs come from, power together) and "New group". A device that is not
+ * Settings › Groups: a card per group (its devices, where the volume, the
+ * inputs and the sound output come from, power together) and "New group". A device that is not
  * installed but offered by a registry is one click away: picking it installs
  * it, then adds it. Every write is one of the core's `groups_*` commands; the
  * file mirrors the page.
@@ -102,8 +108,7 @@ export function SettingsGroups({ groups, devices, offers = [], onCreate, onRenam
     if (other && other.id !== g.id) await onMembers(other.id, other.members.filter((x) => x !== key));
     await onMembers(g.id, [...g.members, key]);
     const b = bindingsOnJoin(g, key, controlsOf(key), controlsOf);
-    if (b.volume) await onBind(g.id, "volume", b.volume);
-    if (b.inputs) await onBind(g.id, "inputs", b.inputs);
+    for (const c of ["volume", "inputs", "outputs"] as const) if (b[c]) await onBind(g.id, c, b[c]);
   };
   const nothing = devices.length === 0 && offers.length === 0;
   return (
@@ -226,11 +231,11 @@ function Card({ g, open, devices, offers, groupOf, join, onRename, onDelete, onM
       {error && <p className="pal-group__error">{error}</p>}
       {!empty && (
         <div className="pal-group__rows">
-          {(["volume", "inputs"] as const).map((control) => {
+          {(["volume", "inputs", "outputs"] as const).map((control) => {
             const able = g.members.filter((m) => provides(m, control));
             if (able.length === 0) return null;
             const bound = g[control] && g.members.includes(g[control]!) ? g[control]! : "";
-            const label = control === "volume" ? "Volume buttons change" : "Input buttons switch";
+            const label = ROW_LABEL[control];
             // One member has it: nothing to choose, the row only says what the buttons do.
             if (able.length === 1 && (!bound || bound === able[0])) return (
               <SettingsRow key={control} label={label}>

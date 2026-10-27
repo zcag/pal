@@ -1,8 +1,8 @@
 # Controls and groups
 
 Design spec, 2026-10-04. How one device's view drives another device's
-volume, power and inputs without either extension knowing the other, and
-how every player reaches one Now Playing. Status: agreed with Cagdas
+volume, power, inputs and sound output without either extension knowing
+the other, and how every player reaches one Now Playing. Status: agreed with Cagdas
 2026-10-04, being built.
 
 ## Why
@@ -33,11 +33,11 @@ Apple TV view            pal (group "Living room")        Samsung extension
 ```
 
 - **A control** is a small typed contract pal defines: `volume`, `power`,
-  `inputs`, `player`. An extension that *provides* one says so in
+  `inputs`, `outputs`, `player`. An extension that *provides* one says so in
   `pal.json` and implements it in its default export; it *publishes* the
   control's state when it changes.
 - **A group** is the user's: a name, its members (extension instance
-  keys), and for `volume` and `inputs` which member serves them. Power
+  keys), and for `volume`, `inputs` and `outputs` which member serves them. Power
   is every member that provides it. Built in Settings › Groups, mirrored
   in `[groups.<id>]`.
 - **A consumer** asks pal for "my volume", not "the Samsung's": pal
@@ -47,7 +47,7 @@ Apple TV view            pal (group "Living room")        Samsung extension
 - **Each device keeps its own view.** The Apple TV remote stays the
   Apple TV extension's, every bespoke part of it untouched. Only the
   parts a group can hand to another device are pal's shared components
-  (the volume row, the power button, the inputs row), so they look the
+  (the volume row, the power button, the inputs row, the outputs row), so they look the
   same whoever serves them, and a slot nobody serves is not drawn.
 - **Players are not grouped.** Every published `player` reaches `media`,
   whose Now Playing lists them all next to the system's players; picking
@@ -72,6 +72,7 @@ cannot be driven).
 | `volume` | `level` 0..1 or absent (only steps), `muted` | `set(level)`, `step(+1 \| -1)`, `mute(on)` |
 | `power` | `on` true/false, `busy` (waking) | `set(on)` |
 | `inputs` | `list: { id, name, icon? }[]`, `current` id | `set(id)` |
+| `outputs` | where the sound plays: `list: { id, name, icon? }[]`, `current` id, `reconnect` (the provider can move the sound away and back) | `set(id)`, `reconnect()` |
 | `player` | `state` (playing/paused/stopped), `title`, `artist`, `album`, `artwork` (url or `data:`), `app`, `position` + `at` (unix ms the position was read), `duration`, `palette` (the provider's own Now Playing palette), `item` (its own bar item for this playback, when it has one), `same` (bundle ids it duplicates on the system's list) | `play_pause`, `next`, `previous`, `seek(seconds)` |
 
 Every state also carries the provider's `device` (its device's name,
@@ -147,6 +148,7 @@ title = "Living room"
 members = ["appletv", "samsungtv"]
 volume = "samsungtv"     # unset: each member its own
 inputs = "samsungtv"
+outputs = "samsungtv"
 ```
 
 `[groups]` is a pal table like `[states]`: `Config.groups`, the schema,
@@ -158,7 +160,8 @@ wins. A binding to a non-member is a load warning and ignored.
 UI first: the page is the way to make a group; the file mirrors it.
 
 - A card per group: its name (click to edit), its devices as chips
-  with the device each drives, "Volume buttons change" and "Input buttons switch" among the members
+  with the device each drives, "Volume buttons change", "Input buttons switch"
+  and "Sound plays through" among the members
   that have them (a picker only when two do) (hidden when none does), and
   "Power" listing who turns on and off together.
 - **Never a dead end** (Cagdas, 2026-10-04: the first page was "a bunch
@@ -166,10 +169,11 @@ UI first: the page is the way to make a group; the file mirrors it.
   group" makes one at once and asks which devices; a device a registry
   offers but this pal lacks is in the same list and installs on the
   pick (`listing.controls`, docs/registry.md). A device is an extension
-  with volume, power or inputs: a player alone (Spotify) is not one.
-- **Zero picks for the usual case.** Joining binds the sound and the
-  inputs to the member with inputs (the TV), taking the sound over
-  from a box without inputs (`bindingsOnJoin`).
+  with volume, power, inputs or outputs: a player alone (Spotify) is not one.
+- **Zero picks for the usual case.** Joining binds the volume and the
+  inputs to the member with inputs (the TV), taking the volume over
+  from a box without inputs, and the sound outputs to the first member
+  with them (`bindingsOnJoin`).
 - An extension in no group shows nothing new anywhere.
 
 ## Now Playing
@@ -197,8 +201,11 @@ UI first: the page is the way to make a group; the file mirrors it.
 `samsungtv/` in pal-extensions, registry-only (a device most Macs do not have,
 and setup). Local only, current Tizen TVs (2016+, token auth): the
 remote channel on `wss://<tv>:8002`, UPnP RenderingControl on `:9197`
-for the volume level, Wake-on-LAN for power on. Provides `volume`,
-`power`, `inputs`, `player` (the running app; DLNA media position).
+for the volume level, IP Control on `:1516` for the input on screen, the
+sound output and the volume on a soundbar, Wake-on-LAN for power on.
+Provides `volume`, `power`, `inputs`, `outputs` (the TV's speakers,
+Q-Symphony, a soundbar; `reconnect` moves the sound to the speakers and
+back), `player` (the running app; DLNA media position).
 Its own remote: the d-pad, the keys, apps, typing into the TV's
 keyboard, inputs, the bar item, guided setup (find the TV, press Allow
 on it).
@@ -212,3 +219,14 @@ on it).
    the foundation).
 3. Live, with Cagdas: pair the Samsung, make "Living room", check the
    Apple TV remote drives the TV's volume and inputs.
+
+## Outputs (protocol 9, 2026-10-27)
+
+Where the sound plays is its own control, not an input: an input is what
+the screen shows, an output where the sound goes, and different devices can
+serve them (an AV receiver the outputs while the TV serves the inputs; the
+Apple TV's AirPlay speakers one day). Folding them into `inputs` would put
+speakers among the HDMI ports on every input row. `reconnect` exists for a
+soundbar that comes up quiet after the TV starts (Q-Symphony on a 2024
+Samsung): the provider moves the sound to its speakers and back, each step
+waited on, and the consumer only shows the ↻ chip the provider offered.

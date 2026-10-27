@@ -1,6 +1,6 @@
 // The parts of a device's view a group can hand to another device
 // (docs/design/controls.md): the volume row and buttons, the power button,
-// the inputs row. pal's own look whoever serves them (the Apple TV
+// the inputs row, the sound outputs row. pal's own look whoever serves them (the Apple TV
 // remote's, where it came from), drawn from what `controls.get` answered;
 // nothing for a control nobody serves. Every click runs a
 // `controls:<control>:<op>[:<arg>]` action, which `controls.act` runs on the
@@ -13,6 +13,7 @@ import { column, row, text } from "./rows.ts";
 /** Material Design glyphs (Nerd Font) the parts are drawn with. */
 export const CONTROL_GLYPHS = {
   volume: "\u{f057e}", volumeOff: "\u{f0581}", volUp: "\u{f075d}", volDown: "\u{f075e}", power: "\u{f0425}", sleep: "\u{f0904}", input: "\u{f0841}",
+  output: "\u{f04c3}", reconnect: "\u{f0450}",
 } as const;
 
 /** A button while its key flashes: the accent, translucent, so the panel's ink stays on it in both themes. */
@@ -76,6 +77,22 @@ export function inputsRow(i: Served<"inputs"> | null | undefined, width: number)
   return row([text(CONTROL_GLYPHS.input, { style: "glyph", size: "sm", color: "muted" }), row(chips, { key: "inputs-chips", gap: 1 })], { key: "inputs-row", gap: 2, width });
 }
 
+/**
+ * The sound outputs as a row of chips like the inputs, the current one lit;
+ * a click moves the sound there. With `reconnect` and an output playing,
+ * a last chip moves it away and back (`controls:outputs:reconnect`).
+ * Nothing without a list.
+ */
+export function outputsRow(o: Served<"outputs"> | null | undefined, width: number): ViewNode | undefined {
+  if (!o?.list?.length) return undefined;
+  const chips = o.list.map((x): ViewNode => {
+    const on = x.id === o.current;
+    return { type: "stack", key: `out-${x.id}`, direction: "row", gap: 1, align: "center", padding: 1, surface: on ? CONTROL_LIT : "elevated", radius: true, action: `controls:outputs:set:${x.id}`, children: [text(x.name, { size: "xs", color: on ? "accent" : undefined, weight: on ? "semibold" : undefined })] };
+  });
+  const again: ViewNode[] = o.reconnect && o.current ? [{ type: "spacer", key: "out-fill" }, { type: "stack", key: "out-reconnect", direction: "row", gap: 1, align: "center", padding: 1, surface: "elevated", radius: true, action: "controls:outputs:reconnect", children: [text(CONTROL_GLYPHS.reconnect, { style: "glyph", size: "xs", color: "muted" }), text("reconnect", { size: "xs", color: "muted" })] }] : [];
+  return row([text(CONTROL_GLYPHS.output, { style: "glyph", size: "sm", color: "muted" }), row(chips, { key: "outputs-chips", gap: 1 }), ...again], { key: "outputs-row", gap: 2, width });
+}
+
 /** What each `controls:` action reads as in ⌘K. */
 function titleOf(id: string): string {
   const a = parseControlAction(id)!;
@@ -85,6 +102,8 @@ function titleOf(id: string): string {
     case "volume:mute": return "Mute";
     case "power:set": return a.arg === "true" ? "Wake up" : a.arg === "false" ? "Sleep" : "Power";
     case "inputs:set": return `Switch input to ${a.arg ?? ""}`.trim();
+    case "outputs:set": return `Sound to ${a.arg ?? ""}`.trim();
+    case "outputs:reconnect": return "Reconnect sound";
     default: return `${a.control} ${a.op}`;
   }
 }

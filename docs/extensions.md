@@ -150,9 +150,13 @@ whose code fails to load.
   turned off, and loads when it arrives; installing it from a registry
   installs them.
 - `suggests`: the names of extensions some of its actions use (`["colors",
-  "diff"]` on Clipboard). The actions that need a missing one hide.
+  "diff"]` on Clipboard). It is a declaration: pal hides nothing by
+  itself. The extension decides what to offer while one is missing or
+  turned off, `extensions.list()` saying which are installed and
+  `loaded`; the Apple TV and Samsung TV remotes leave out their `o` to the
+  other remote then.
 - `controls`: the controls the code provides (`["volume", "power",
-  "inputs"]`; below, "Controls"), so Settings › Groups offers the
+  "inputs", "outputs"]`; below, "Controls"), so Settings › Groups offers the
   extension for them without loading it.
 - `sync`: the extension's storage syncs with the user's pal account,
   each key merged by its rule (below, "Syncing storage"). Without it the
@@ -1468,9 +1472,9 @@ without a render. The bundled `sessions` publishes `working` and
 ## Controls: one device's view drives another's
 
 An Apple TV and the TV it is plugged into are used together: the remote
-you navigate with should set the TV's volume, switch its inputs and wake
-both. Neither extension knows the other (`docs/design/controls.md`).
-pal defines four **controls**; an extension that **provides** one says so
+you navigate with should set the TV's volume, switch its inputs and its
+sound output, and wake both. Neither extension knows the other
+(`docs/design/controls.md`). pal defines five **controls**; an extension that **provides** one says so
 and publishes its state, any extension asks for "my volume", and the
 user's **group** (`[groups]`, Settings › Groups) decides who serves it.
 Without a group every extension is served by itself, so a provider that
@@ -1481,6 +1485,7 @@ is also a consumer (the usual case) behaves as it did alone.
 | `volume` | `level` 0..1 (absent: the device only steps), `muted` | `set(level)`, `step(1 \| -1)`, `mute(on)` |
 | `power` | `on`, `busy` (waking or going to sleep) | `set(on)` |
 | `inputs` | `list: { id, name, icon? }[]`, `current` | `set(id)` |
+| `outputs` | where the sound plays: `list: { id, name, icon? }[]` (a TV's speakers, a soundbar, Q-Symphony), `current`, `reconnect` (true: the provider can move the sound away and back, what wakes a soundbar gone quiet) | `set(id)`, `reconnect()` |
 | `player` | `state` (`playing`/`paused`/`stopped`), `title`, `artist`, `album`, `artwork` (a url or `data:`), `app`, `position` (s) with `at` (unix ms it was read), `duration`, `palette` (your own Now Playing palette), `item` (your own bar item showing it), `now` (true: you have your own row in the root's Now section for it), `same` (bundle ids of the system's players showing the same playback) | `play_pause`, `next`, `previous`, `seek(seconds)` |
 
 Every state also takes `device`, the name of the thing it controls
@@ -1540,12 +1545,15 @@ width, { device })` (the glyph mutes, a slider sets, the percentage; the
 step buttons when there is no level; the serving device's name under it
 when it is not `device`, your own), `volumeButton(v, 1 | -1, size, { lit,
 label })`, `powerButton(p, size, { lit, labels })` (wake when off, sleep
-when on), `inputsRow(i, width)` (a chip each, the current one lit), and
+when on), `inputsRow(i, width)` (a chip each, the current one lit),
+`outputsRow(o, width)` (the same for where the sound plays, with a
+reconnect chip when the provider offers `reconnect`; protocol 9), and
 `controlButton` under them for a button of your own in the same look
 (`lit` is a key's flash, `CONTROL_LIT`). Each takes what `controls.get`
 answered. Their clicks are actions spelled
 `controls:<control>:<op>[:<arg>]` (`controls:volume:step:-1`,
-`controls:power:set:true`, `controls:inputs:set:<id>`;
+`controls:power:set:true`, `controls:inputs:set:<id>`,
+`controls:outputs:set:<id>`, `controls:outputs:reconnect`;
 `controls:volume:set` and `controls:player:seek` read a slider's
 `values.value`, `controls:volume:mute` and `controls:power:set` without an
 argument toggle). `withControls(view)` declares the ones the tree runs as
@@ -1708,7 +1716,8 @@ to the core.
 
 - `controls.{publish, get, run, all, onChange, act}` and the parts
   `volumeRow`, `volumeButton`, `powerButton`, `inputsRow`,
-  `controlButton`, `withControls` (protocol 4): "Controls" above.
+  `controlButton`, `withControls` (protocol 4), the `outputs` control and
+  `outputsRow` (protocol 9): "Controls" above.
 - `settings.get<T>()`: the extension's values, `[extensions.<name>]`
   (the instance's, for an instance of a `multi` extension: "Instances"
   above). `settings.palette<T>()`: the current palette's declared values.

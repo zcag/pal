@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
 // Settings › Groups as used: no groups starts with New group, which makes
 // "Living room" at once and asks which devices; a device offered by a
-// registry installs on a pick and joins; joining binds the sound and the
-// inputs to the TV with no pick needed; members show the device each drives,
-// one missing with Install; "Volume buttons change" / "Input buttons switch" offer
+// registry installs on a pick and joins; joining binds the volume, the
+// inputs and the sound output to the TV with no pick needed; members show the device each drives,
+// one missing with Install; "Volume buttons change" / "Input buttons switch" / "Sound plays through" offer
 // only members that have it and hide when none does; power lists who turns
 // on together; a name commits on Enter; the search finds a group by name.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -14,9 +14,9 @@ import { SettingsGroups, bindingsOnJoin, groupsIndex, isDevice, nextTitle, type 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const apple: GroupDevice = { key: "appletv", title: "Apple TV", controls: ["volume", "power", "player"], device: "Living Room" };
-const samsung: GroupDevice = { key: "samsungtv", title: "Samsung TV", controls: ["volume", "power", "inputs", "player"], device: "75\" Neo QLED" };
-const samsungOffer: DeviceOffer = { name: "samsungtv", title: "Samsung TV", controls: ["volume", "power", "inputs", "player"] };
-const living: DeviceGroup = { id: "living-room", title: "Living room", members: ["appletv", "samsungtv"], volume: "samsungtv", inputs: "samsungtv" };
+const samsung: GroupDevice = { key: "samsungtv", title: "Samsung TV", controls: ["volume", "power", "inputs", "outputs", "player"], device: "75\" Neo QLED" };
+const samsungOffer: DeviceOffer = { name: "samsungtv", title: "Samsung TV", controls: ["volume", "power", "inputs", "outputs", "player"] };
+const living: DeviceGroup = { id: "living-room", title: "Living room", members: ["appletv", "samsungtv"], volume: "samsungtv", inputs: "samsungtv", outputs: "samsungtv" };
 
 let root: Root, el: HTMLDivElement;
 beforeEach(() => { el = document.createElement("div"); document.body.appendChild(el); root = createRoot(el); });
@@ -42,8 +42,8 @@ describe("SettingsGroups", () => {
   it("binds the sound and the inputs to the TV on join, taking the sound over from a box without inputs", () => {
     const of = (k: string): GroupControl[] => (k === "samsungtv" ? samsung.controls : apple.controls);
     expect(bindingsOnJoin({ id: "g", members: [] }, "appletv", apple.controls, of)).toEqual({ volume: "appletv" });
-    expect(bindingsOnJoin({ id: "g", members: ["appletv"], volume: "appletv" }, "samsungtv", samsung.controls, of)).toEqual({ volume: "samsungtv", inputs: "samsungtv" });
-    expect(bindingsOnJoin({ id: "g", members: ["samsungtv"], volume: "samsungtv", inputs: "samsungtv" }, "appletv", apple.controls, of)).toEqual({});
+    expect(bindingsOnJoin({ id: "g", members: ["appletv"], volume: "appletv" }, "samsungtv", samsung.controls, of)).toEqual({ volume: "samsungtv", inputs: "samsungtv", outputs: "samsungtv" });
+    expect(bindingsOnJoin({ id: "g", members: ["samsungtv"], volume: "samsungtv", inputs: "samsungtv", outputs: "samsungtv" }, "appletv", apple.controls, of)).toEqual({});
   });
 
   it("starts with New group, which creates Living room and asks which devices, an offered one installing then joining with the TV serving", async () => {
@@ -53,7 +53,7 @@ describe("SettingsGroups", () => {
     const render = () => show({ groups, devices, offers: devices.some((d) => d.key === "samsungtv") ? [] : [samsungOffer], onCreate, onMembers, onBind, onInstall });
     const onCreate = vi.fn((title: string) => { groups = [{ id: "living-room", title, members: [] }]; render(); return "living-room"; });
     const onMembers = vi.fn(async (id: string, members: string[]) => { calls.push(`members ${members.join(",")}`); groups = groups.map((g) => (g.id === id ? { ...g, members } : g)); });
-    const onBind = vi.fn(async (id: string, control: "volume" | "inputs", m: string | undefined) => { calls.push(`${control} ${m}`); groups = groups.map((g) => (g.id === id ? { ...g, [control]: m } : g)); });
+    const onBind = vi.fn(async (id: string, control: "volume" | "inputs" | "outputs", m: string | undefined) => { calls.push(`${control} ${m}`); groups = groups.map((g) => (g.id === id ? { ...g, [control]: m } : g)); });
     const onInstall = vi.fn(async (name: string) => { calls.push(`install ${name}`); devices = [...devices, samsung]; });
     await render();
     expect(el.textContent).toContain("No groups yet.");
@@ -65,7 +65,7 @@ describe("SettingsGroups", () => {
     await render();
     await click(button(card("living-room"), "Add a device"));
     await click(button(card("living-room"), "Samsung TV"));
-    expect(calls).toEqual(["members appletv", "volume appletv", "install samsungtv", "members appletv,samsungtv", "volume samsungtv", "inputs samsungtv"]);
+    expect(calls).toEqual(["members appletv", "volume appletv", "install samsungtv", "members appletv,samsungtv", "volume samsungtv", "inputs samsungtv", "outputs samsungtv"]);
   });
 
   it("lists the members with the device each drives, one not installed with Install", async () => {
@@ -88,9 +88,10 @@ describe("SettingsGroups", () => {
     expect(onBind).toHaveBeenLastCalledWith("living-room", "volume", undefined);
     expect(card("living-room").querySelector('[aria-label="Input buttons switch in Living room"]'), "only the Samsung has inputs: nothing to pick").toBeNull();
     expect(card("living-room").textContent).toContain("Input buttons switchthe Samsung TV");
+    expect(card("living-room").textContent).toContain("Sound plays throughthe Samsung TV");
     expect(card("living-room").textContent).toContain("Apple TV and Samsung TV turn on and off together");
     await show({ groups: [{ id: "bed", title: "Bed", members: ["appletv"] }] });
-    expect(card("bed").textContent, "no member has inputs: no row").not.toContain("Input buttons");
+    expect(card("bed").textContent, "no member has inputs or outputs: no row").not.toMatch(/Input buttons|Sound plays/);
   });
 
   it("removes a member, renames on Enter, and deletes on a second click", async () => {

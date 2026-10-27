@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { extensionDirs, extensionRepos } from "../../app/scripts/extension-repos.mjs";
 import type { BarCtx, BarItem, BarMeta, ClipboardEntry, ControlName, Ctx, Detail, Effect, Group, Item, Manifest, Notification, PaletteMeta, Request, ResolvedSettings, Response, SettingSpec, SystemCommand, ViewNode, ViewUpdate, Window } from "../../sdk/src/index.ts";
+import { CONTROL_NAMES } from "../../sdk/src/protocol.ts";
 
 // A test's own budget grows with its waits (`until` triples them on the CI runner): at bun's 5 s a test was killed while its 7.5 s wait
 // still ran, and that wait's error landed on whichever test came next.
@@ -490,7 +491,7 @@ export class Host {
   }
 
   private binding(g: Group | undefined, control: string): string | undefined {
-    const b = control === "volume" ? g?.volume : control === "inputs" ? g?.inputs : undefined;
+    const b = control === "volume" || control === "inputs" || control === "outputs" ? g?.[control] : undefined;
     return b && g?.members?.includes(b) ? b : undefined;
   }
 
@@ -514,12 +515,12 @@ export class Host {
       if (JSON.stringify(prev[id]) !== JSON.stringify(groups[id])) for (const g of [prev[id], groups[id]]) for (const m of g?.members ?? []) keys.add(m);
     }
     this.opts.groups = groups;
-    if (keys.size) this.notify("controls/changed", { changes: (["volume", "power", "inputs"] as ControlName[]).map((control) => ({ control, provider: "", keys: [...keys].sort() })) });
+    if (keys.size) this.notify("controls/changed", { changes: CONTROL_NAMES.filter((c) => c !== "player").map((control) => ({ control, provider: "", keys: [...keys].sort() })) });
   }
 
   private async controlsCall(fn: string, p: { extension: string; control: string; state?: Record<string, unknown> | null; op?: string; args?: unknown[]; provider?: string }): Promise<unknown> {
     const { extension: key, control } = p;
-    if (!["volume", "power", "inputs", "player"].includes(control)) throw new Error(`no control ${control}`);
+    if (!CONTROL_NAMES.includes(control as ControlName)) throw new Error(`no control ${control}`);
     const g = this.groupOf(key);
     switch (fn) {
       case "publish": {

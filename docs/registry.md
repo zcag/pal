@@ -28,6 +28,7 @@ older builds really stop working.
 | 6 | `each` in a sync object rule (`SyncObjectRule`) |
 | 7 | replays: `leaderboard.post`'s `replay`, `leaderboard.replay`, a row's `replay`; the kit's `score` with a `replay` and `replay` |
 | 8 | a surface's `/__ext/<required>/` files; WebAssembly in surfaces (`'wasm-unsafe-eval'`), `.wasm` and `.swf` served |
+| 9 | the `outputs` control (where a device's sound plays): `OutputsState`, its ops `set` and `reconnect`, `outputsRow`; a group's `outputs` binding |
 
 ## Packages
 

@@ -1,8 +1,8 @@
 //! Controls and groups (`docs/design/controls.md`): what extensions
-//! published of the four controls, keyed by instance key, and who serves a
+//! published of the five controls, keyed by instance key, and who serves a
 //! control to whom. A group (`[groups.<id>]`) lists devices used together;
-//! its `volume` and `inputs` name the member serving each, and its power is
-//! every member's. A caller outside any group, or a control its group does
+//! its `volume`, `inputs` and `outputs` name the member serving each, and
+//! its power is every member's. A caller outside any group, or a control its group does
 //! not bind, is served by itself. The app keeps one [`Table`] and routes
 //! `core/controls.*` through it (`app/src-tauri/src/controls.rs`).
 
@@ -14,9 +14,9 @@ use serde_json::{json, Map, Value};
 use crate::config::Diagnostic;
 
 /// The controls pal defines, as `sdk/src/protocol.ts` `CONTROL_NAMES`.
-pub const NAMES: [&str; 4] = ["volume", "power", "inputs", "player"];
+pub const NAMES: [&str; 5] = ["volume", "power", "inputs", "outputs", "player"];
 /// The controls a group binds to one member; power is every member's, players are never grouped.
-pub const BOUND: [&str; 2] = ["volume", "inputs"];
+pub const BOUND: [&str; 3] = ["volume", "inputs", "outputs"];
 
 /// `[groups.<id>]`: devices used together.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, schemars::JsonSchema)]
@@ -31,20 +31,27 @@ pub struct Group {
     pub volume: Option<String>,
     /// The member serving the inputs to every member; unset: each its own.
     pub inputs: Option<String>,
+    /// The member serving the sound outputs (where the sound plays) to every member; unset: each its own.
+    pub outputs: Option<String>,
     #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(skip)]
     pub extra: BTreeMap<String, toml::Value>,
 }
 
 impl Group {
-    /// The member bound to `control` (`volume`, `inputs`), when it is one.
+    /// The member bound to `control` (`volume`, `inputs`, `outputs`), when it is one.
     pub fn binding(&self, control: &str) -> Option<&str> {
-        let b = match control {
+        self.bound(control).filter(|k| self.members.iter().any(|m| m == k))
+    }
+
+    /// What the file says binds `control`, a member or not.
+    fn bound(&self, control: &str) -> Option<&str> {
+        match control {
             "volume" => self.volume.as_deref(),
             "inputs" => self.inputs.as_deref(),
+            "outputs" => self.outputs.as_deref(),
             _ => None,
-        };
-        b.filter(|k| self.members.iter().any(|m| m == k))
+        }
     }
 }
 
@@ -75,8 +82,7 @@ pub fn diagnostics(groups: &BTreeMap<String, Group>) -> Vec<Diagnostic> {
             }
         }
         for c in BOUND {
-            let b = if c == "volume" { &g.volume } else { &g.inputs };
-            if let Some(b) = b.as_deref().filter(|b| !g.members.iter().any(|m| m == b)) {
+            if let Some(b) = g.bound(c).filter(|b| !g.members.iter().any(|m| m == b)) {
                 out.push(Diagnostic::warn(format!("groups.{id}.{c}"), format!("{b} is not a member of the group; ignored")));
             }
         }
@@ -241,7 +247,7 @@ mod tests {
     }
 
     fn living() -> BTreeMap<String, Group> {
-        BTreeMap::from([("living-room".to_string(), Group { title: Some("Living room".into()), members: vec!["appletv".into(), "samsungtv".into()], volume: Some("samsungtv".into()), inputs: Some("samsungtv".into()), ..Default::default() })])
+        BTreeMap::from([("living-room".to_string(), Group { title: Some("Living room".into()), members: vec!["appletv".into(), "samsungtv".into()], volume: Some("samsungtv".into()), inputs: Some("samsungtv".into()), outputs: Some("samsungtv".into()), ..Default::default() })])
     }
 
     #[test]
@@ -256,6 +262,8 @@ mod tests {
         assert_eq!(t.get(&BTreeMap::new(), "appletv", "volume").unwrap()["level"], json!(0.9), "ungrouped: its own");
         assert_eq!(t.targets(&BTreeMap::new(), "appletv", "volume"), ["appletv"]);
         assert!(t.get(&g, "appletv", "inputs").is_none(), "bound to a member that published nothing: nobody serves it");
+        t.publish(&g, "samsungtv", "outputs", st(json!({ "list": [{ "id": "QSYM-RECEIVER", "name": "Q-Symphony" }], "current": "QSYM-RECEIVER", "reconnect": true }))).unwrap();
+        assert_eq!((t.get(&g, "appletv", "outputs").unwrap()["current"].as_str(), t.targets(&g, "appletv", "outputs")), (Some("QSYM-RECEIVER"), vec!["samsungtv".to_string()]), "the sound plays through the TV for both");
         assert!(t.get(&g, "spotify", "volume").is_none(), "not a member, published nothing");
     }
 
@@ -288,10 +296,11 @@ mod tests {
     #[test]
     fn config_warnings_and_ids() {
         let mut g = living();
-        g.insert("bed".into(), Group { members: vec!["appletv".into()], volume: Some("hue".into()), ..Default::default() });
+        g.insert("bed".into(), Group { members: vec!["appletv".into()], volume: Some("hue".into()), outputs: Some("sonos".into()), ..Default::default() });
         g.insert("Bad Id".into(), Group::default());
         let d: Vec<(String, String)> = diagnostics(&g).into_iter().map(|d| (d.path, d.message)).collect();
         assert!(d.iter().any(|(p, m)| p == "groups.bed.volume" && m.contains("not a member")), "{d:?}");
+        assert!(d.iter().any(|(p, _)| p == "groups.bed.outputs"), "{d:?}");
         assert!(d.iter().any(|(p, m)| p == "groups.living-room.members" && m.contains("in group bed already")), "{d:?}");
         assert!(d.iter().any(|(p, _)| p == "groups.Bad Id"), "{d:?}");
         assert_eq!(group_of(&g, "appletv").map(|(id, _)| id), Some("bed"), "the first by id wins");
@@ -307,7 +316,7 @@ mod tests {
         assert!(regrouped(&prev, &next).is_empty());
         next.get_mut("living-room").unwrap().volume = None;
         let c = regrouped(&prev, &next);
-        assert_eq!(c.len(), 3, "volume, power, inputs: players are not grouped");
+        assert_eq!(c.len(), 4, "volume, power, inputs, outputs: players are not grouped");
         assert_eq!(c[0].keys, ["appletv", "samsungtv"]);
     }
 }

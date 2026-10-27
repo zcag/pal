@@ -154,7 +154,7 @@ export const CONTROL_RUN_MS = 15_000;
 
 /**
  * Controls (docs/design/controls.md): one device's view drives another
- * device's volume, power and inputs, and every player reaches one Now
+ * device's volume, power, inputs and sound output, and every player reaches one Now
  * Playing. A provider declares `controls` in pal.json, handles the ops in
  * its default export (`controls: { volume: { set, step, mute } }`) and
  * `publish`es the state when it changes; a consumer asks for its own
@@ -178,7 +178,7 @@ export const controls = {
     return runtime().onControls(({ changes }) => { for (const c of changes) cb({ control: c.control, provider: c.provider, mine: c.keys.includes(me) }); });
   },
   /**
-   * A view's `controls:*` action (`volumeRow`, `powerButton`, `inputsRow`,
+   * A view's `controls:*` action (`volumeRow`, `powerButton`, `inputsRow`, `outputsRow`,
    * or the extension's own keys spelled the same way) run on whoever
    * serves it: false when `action` is none of them, so a `pick` forwards
    * in a line. `values.value` is a slider's fraction.
@@ -198,6 +198,8 @@ export const controls = {
       case "volume:mute": await controls.run("volume", "mute", a.arg !== undefined ? a.arg === "true" : !(await v("volume"))?.muted); break;
       case "power:set": await controls.run("power", "set", a.arg !== undefined ? a.arg === "true" : !(await v("power"))?.on); break;
       case "inputs:set": if (a.arg) await controls.run("inputs", "set", a.arg); break;
+      case "outputs:set": if (a.arg) await controls.run("outputs", "set", a.arg); break;
+      case "outputs:reconnect": await controls.run("outputs", "reconnect"); break;
       case "player:play_pause": case "player:next": case "player:previous": await controls.run("player", a.op as "next"); break;
       case "player:seek": {
         const s = a.arg !== undefined ? Number(a.arg) : value * ((await v("player"))?.duration ?? NaN);

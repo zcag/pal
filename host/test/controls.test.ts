@@ -13,16 +13,17 @@ import type { Served, View } from "../../sdk/src/protocol.ts";
 import { checkView } from "../../sdk/src/view.ts";
 import { API, Host, Root, manifest, stored } from "./harness.ts";
 
-/** A TV: volume, power and inputs; every op republishes, the device name from its own settings (so a run outside its context would miss it). */
+/** A TV: volume, power, inputs and sound outputs; every op republishes, the device name from its own settings (so a run outside its context would miss it). */
 const TV = `
 import { controls, settings, storage } from "${API}";
-let level = 0.2, on = true, current = "hdmi1";
+let level = 0.2, on = true, current = "hdmi1", out = "qsym", moved = [];
 const publish = () => {
   const device = String(settings.get().device);
   return Promise.all([
     controls.publish("volume", { device, level }),
     controls.publish("power", { device, on }),
     controls.publish("inputs", { device, list: [{ id: "hdmi1", name: "Apple TV" }, { id: "hdmi2", name: "PS5" }], current }),
+    controls.publish("outputs", { device, list: [{ id: "internal", name: "TV Speaker" }, { id: "qsym", name: "Q-Symphony" }], current: out, reconnect: true }),
   ]);
 };
 await publish();
@@ -32,13 +33,14 @@ export default {
     volume: { set: async (l) => { level = l; await publish(); }, step: async (d) => { level = Math.round((level + d / 10) * 10) / 10; await publish(); }, mute: () => {} },
     power: { set: async (o) => { on = o; await storage.set("power", o); await publish(); } },
     inputs: { set: async (id) => { if (id === "nope") throw new Error("no such input"); current = id; await publish(); } },
+    outputs: { set: async (id) => { out = id; moved.push(id); await storage.set("moved", moved); await publish(); }, reconnect: async () => { moved.push("internal", out); await storage.set("moved", moved); } },
   },
 };
 `;
 
 /** A set-top box: its own volume and power, a remote view drawn from what it is served, the actions forwarded to \`controls.act\`, every change it hears kept in storage. */
 const BOX = `
-import { controls, storage, volumeRow, powerButton, inputsRow, withControls, column } from "${API}";
+import { controls, storage, volumeRow, powerButton, inputsRow, outputsRow, withControls, column } from "${API}";
 let heard = [];
 controls.onChange((c) => { heard.push(c); storage.set("heard", heard); });
 let on = true;
@@ -49,8 +51,8 @@ export default {
     remote: {
       title: "Remote",
       view: async () => {
-        const [v, p, i] = await Promise.all([controls.get("volume"), controls.get("power"), controls.get("inputs")]);
-        const nodes = [volumeRow(v, 400, { device: "Box" }), powerButton(p, 36, { labels: true }), inputsRow(i, 400)].filter(Boolean);
+        const [v, p, i, o] = await Promise.all([controls.get("volume"), controls.get("power"), controls.get("inputs"), controls.get("outputs")]);
+        const nodes = [volumeRow(v, 400, { device: "Box" }), powerButton(p, 36, { labels: true }), inputsRow(i, 400), outputsRow(o, 400)].filter(Boolean);
         return withControls({ id: "remote", tree: column(nodes, { key: "root" }), actions: [{ id: "controls:volume:step:1", title: "Volume up", shortcut: "=" }], keys: "actions" });
       },
       pick: async (_id, action, ctx) => {
@@ -83,7 +85,7 @@ describe("controls", () => {
   let host: Host;
   beforeAll(async () => {
     root = new Root({
-      tv: { "index.ts": TV, "pal.json": manifest("tv", { controls: ["volume", "power", "inputs"], settings: [{ kind: "text", id: "device", label: "Name", default: "TV" }] }) },
+      tv: { "index.ts": TV, "pal.json": manifest("tv", { controls: ["volume", "power", "inputs", "outputs"], settings: [{ kind: "text", id: "device", label: "Name", default: "TV" }] }) },
       box: { "index.ts": BOX, "pal.json": manifest("box", { controls: ["volume", "power"], palettes: { remote: { title: "Remote" } } }) },
       wtv: { "index.ts": WTV, "pal.json": manifest("wtv", { multi: true, controls: ["volume"] }) },
       // Declares a control it does not handle: a load warning, not a failure.
@@ -96,19 +98,23 @@ describe("controls", () => {
   test("ungrouped, a caller is served its own; a regroup hands its volume to the TV", async () => {
     expect((await get(host)).level).toBe(0.9);
     expect((await get(host)).provider).toEqual({ key: "box", device: "Box" });
-    host.setGroups({ living: { title: "Living room", members: ["box", "tv"], volume: "tv", inputs: "tv" } });
+    host.setGroups({ living: { title: "Living room", members: ["box", "tv"], volume: "tv", inputs: "tv", outputs: "tv" } });
     const v = await get(host);
     expect([v.level, v.provider]).toEqual([0.2, { key: "tv", device: "Living TV" }]);
     await host.until(() => ((stored.get("box\0heard") as unknown[]) ?? []).some((c: any) => c.provider === "" && c.mine));
   });
 
-  test("the box's view draws the TV's volume and inputs, and its slider sets the TV's volume in the TV's own context", async () => {
+  test("the box's view draws the TV's volume, inputs and sound outputs, and its slider sets the TV's volume in the TV's own context", async () => {
     const view = (await host.request<View>("view", { extension: "box", palette: "remote" }));
     const json = JSON.stringify(view.tree);
     expect(json).toContain('"controls:volume:set"');
     expect(json).toContain('"controls:inputs:set:hdmi2"');
     expect(json).toContain("Living TV");
-    expect(view.actions.map((a) => a.id)).toEqual(expect.arrayContaining(["controls:volume:step:1", "controls:volume:set", "controls:power:set:false", "controls:inputs:set:hdmi1"]));
+    expect(view.actions.map((a) => a.id)).toEqual(expect.arrayContaining(["controls:volume:step:1", "controls:volume:set", "controls:power:set:false", "controls:inputs:set:hdmi1", "controls:outputs:set:internal", "controls:outputs:reconnect"]));
+    expect(view.actions.find((a) => a.id === "controls:outputs:reconnect")?.title).toBe("Reconnect sound");
+    await host.pick("box", "remote", "remote", "controls:outputs:set:internal");
+    await host.pick("box", "remote", "remote", "controls:outputs:reconnect");
+    expect(stored.get("tv\0moved")).toEqual(["internal", "internal", "internal"]);
     await host.pick("box", "remote", "remote", "controls:volume:set", { values: { value: "0.35" } });
     expect((await get(host)).level).toBe(0.35);
     await host.pick("box", "remote", "remote", "controls:volume:step:1");
