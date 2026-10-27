@@ -2087,7 +2087,10 @@ The helpers the bundled extensions share, on the same import (`sdk/src/rows.ts`,
   shades, harmonies, contrast, the nearest name, a swatch); the sampler is
   `color`.
 - `tabs`: the browsers' open tabs: `tabs.active()`, `tabs.find(url)`,
-  `tabs.focus(tab)`.
+  `tabs.focus(tab)`, `tabs.pause(tab)`. A tab from a Chromium browser on
+  its DevTools port carries `media`: playing, audible, muted, and
+  `position`, the whole seconds into its longest video once it has
+  started (the Apple TV plays a YouTube tab from there and pauses it).
 - `openUrl(url, { app?, background? })`: a web address in a named
   browser (`open -a` on macOS, its command on Linux) and/or behind the app
   in front (`open -g`; the panel stays, with a toast); with neither, the

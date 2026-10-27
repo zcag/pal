@@ -1818,9 +1818,9 @@ results. Three sources are merged:
 - **DevTools protocol**: a Chromium browser (Chrome, Chromium, Brave,
   Edge, Vivaldi, Arc) started with `--remote-debugging-port=<port>`. The
   tab list is `http://127.0.0.1:<port>/json`; one WebSocket to the
-  browser then asks every page whether a media element is playing and
-  whether it is muted (the `playing` and `muted` tags) and which browser
-  window it is in. Chrome 136 and later ignore the port flag on the
+  browser then asks every page whether a media element is playing,
+  whether it is muted (the `playing` and `muted` tags), how far into its
+  longest video it is, and which browser window it is in. Chrome 136 and later ignore the port flag on the
   default profile: it needs `--user-data-dir` too.
 - **AppleScript** (macOS): the browsers in `apps` that are running, over
   one `osascript` run (JavaScript for Automation): Safari, and Chrome
@@ -1858,6 +1858,8 @@ Actions:
 | Copy URL | `⌘C` | copies the url |
 | Mute / Unmute | `⌘M` | DevTools tabs only: sets `muted` on every media element in the page, so it is the page's sound, not Chrome's tab mute |
 | Copy as markdown link | `⌘⇧C` | copies `[title](url)` |
+| Play on Apple TV | `⌘T` | a YouTube video, while the Apple TV extension is installed and on (`suggests`): from where the tab is once its video has started ("from 12:34", the url's `t` set to it), else the url as it is; `pal://appletv/play?url=` plays it and pauses the tab |
+| Play on Apple TV from the start | `⌘⇧T` | the same, a started video only, its `t` and `start` dropped |
 
 Close and mute keep the palette open and list again. A focus, close or
 mute that fails keeps the panel open with a toast carrying the reason.
@@ -4060,7 +4062,12 @@ Audio, Subtitles, Lyrics, Info.
 **Play on Apple TV** (`appletv-play`, input, inline at the root on a
 playable url) sends a link to the TV: a YouTube video at its start time, a
 Netflix title or an Apple TV+ page. It lists the link just copied, the browser tab in front, the
-clipboard history's links and what was played before. A newly copied link
+clipboard history's links and what was played before. The tab in front
+says whether it is playing or paused there, and a YouTube video it is
+partway through starts on the TV where the tab is (the DevTools probe's
+position; `cmd+enter` from the start), leading the list so the same video
+copied does not start over. Whatever starts on the TV, from any of these,
+pauses a browser tab playing the same video. A newly copied link
 is offered by the bar item (90 s), the remote's banner (`l`) and the empty
 root's Now section (10 min).
 

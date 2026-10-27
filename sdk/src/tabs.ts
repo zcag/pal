@@ -24,8 +24,8 @@ const conf = () => settings.get<Settings>(EXT);
 
 export type Source = "cdp" | "as" | "ff";
 export type Tab = { id: string; src: Source; browser: string; title: string; url: string; window: number; index: number; active: boolean; media?: Media };
-/** A web tab another extension may name or raise: what `find` and `active` answer and `focus` takes. */
-export type OpenTab = { id: string; title: string; url: string; browser: string };
+/** A web tab another extension may name or raise: what `find` and `active` answer and `focus` and `pause` take; `media` for a DevTools tab that answered the probe. */
+export type OpenTab = { id: string; title: string; url: string; browser: string; media?: Media };
 
 const MAC = process.platform === "darwin";
 /** The most a caller from another extension waits for the tab in front (the Create form is on its way up). */
@@ -46,12 +46,13 @@ const OSA_MS = 8000;
 export type Target = { id: string; type: string; title: string; url: string; webSocketDebuggerUrl?: string };
 /** What `/json/version` says about the browser. */
 export type Version = { Browser: string; "User-Agent"?: string; webSocketDebuggerUrl: string };
-/** What the media probe finds in a page; absent when the page could not be asked. */
-export type Media = { audible: boolean; muted: boolean; playing: boolean };
+/** What the media probe finds in a page; absent when the page could not be asked. `position`: whole seconds into the page's longest video, once it has started. */
+export type Media = { audible: boolean; muted: boolean; playing: boolean; position?: number };
 
-/** The probe run in each page: any media element playing, and whether every one is muted. */
-const PROBE = `(()=>{const m=[...document.querySelectorAll('video,audio')];const live=m.filter(e=>!e.paused&&!e.ended&&e.readyState>2);return {playing:live.length>0,audible:live.some(e=>!e.muted&&e.volume>0),muted:m.length>0&&m.every(e=>e.muted)}})()`;
+/** The probe run in each page: any media element playing, whether every one is muted, and how far into the longest video it is. */
+const PROBE = `(()=>{const m=[...document.querySelectorAll('video,audio')];const live=m.filter(e=>!e.paused&&!e.ended&&e.readyState>2);const v=[...document.querySelectorAll('video')].filter(e=>e.duration>0).sort((a,b)=>b.duration-a.duration)[0];const at=v&&!v.ended?Math.floor(v.currentTime):0;return {playing:live.length>0,audible:live.some(e=>!e.muted&&e.volume>0),muted:m.length>0&&m.every(e=>e.muted),...(at>0&&{position:at})}})()`;
 const MUTE = (on: boolean) => `[...document.querySelectorAll('video,audio')].forEach(e=>e.muted=${on});true`;
+const PAUSE = `[...document.querySelectorAll('video,audio')].forEach(e=>e.pause());true`;
 
 export class Cdp {
   constructor(readonly port: number, readonly host = "127.0.0.1") {}
@@ -106,6 +107,7 @@ export class Cdp {
   }
 
   mute(id: string, on: boolean, ms = 2000) { return this.session((s) => s.evaluate<boolean>(id, MUTE(on), ms)); }
+  pause(id: string, ms = 2000) { return this.session((s) => s.evaluate<boolean>(id, PAUSE, ms)); }
   bringToFront(id: string, ms = 2000) { return this.session((s) => s.attached(id, (sid) => s.call("Page.bringToFront", {}, sid, ms))); }
 }
 
@@ -349,7 +351,7 @@ export async function gather(s: Settings = conf()): Promise<Gathered> {
 export const known = (id: string): Tab | undefined => table.get(id);
 
 const isWeb = (url: string) => /^https?:\/\//.test(url);
-const openTab = (t: Tab): OpenTab => ({ id: t.id, title: t.title, url: t.url, browser: t.browser });
+const openTab = (t: Tab): OpenTab => ({ id: t.id, title: t.title, url: t.url, browser: t.browser, ...(t.media && { media: t.media }) });
 
 /**
  * The tab in front: the DevTools browser's first target (its most recently
@@ -414,4 +416,10 @@ export async function close(t: Tab): Promise<void> {
 export async function mute(t: Tab, on: boolean): Promise<void> {
   if (t.src !== "cdp") throw new Error("only a DevTools tab can be muted");
   await new Cdp(conf().port).mute(t.id.slice(4), on);
+}
+
+/** Pauses every media element in a DevTools tab (a `Tab`, or an `OpenTab` another extension was given). */
+export async function pause(tab: { id: string }): Promise<void> {
+  if (!tab.id.startsWith("cdp:")) throw new Error("only a DevTools tab can be paused");
+  await new Cdp(conf().port).pause(tab.id.slice(4));
 }
