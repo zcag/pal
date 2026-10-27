@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.17.4 · 2026-10-27
+
+- **Samsung TV, one remote over everything the TV tells**: the input on screen is lit and a chip jumps straight to HDMI 1–4 (you can name them), the sound output is a row of chips (TV Speaker, Q-Symphony, the soundbar) with Reconnect sound (⇧S) for when the soundbar goes quiet, the volume slider works on a soundbar too, and V opens a Picture page with the modes and sliders. W opens the copied link on the TV. It pairs the TV's IP Control once, with a second Allow on the TV.
+- **The Apple TV remote picks where the sound plays** when it shares a group with a TV that offers it (Settings › Groups › Sound plays through), and O opens the Samsung TV remote over it, and back.
+- **A YouTube video in the browser plays on the Apple TV** from where the tab is: Browser Tabs' Play on Apple TV, or L in the Apple TV remote.
+- **The app in front leads**: while a browser is in front, its tabs come first at the root for the word you type; Settings › App in front turns it off per palette.
+- **Fixed: the volume slider jumped** before settling while you dragged it.
+
 ## 0.17.3 · 2026-10-22
 
 - **A crowded sketchybar makes room**: when the items beside the notch would run into each other, the one nearest the collision shows just its icon until they fit, and gets its text back when there is room again. Counts, urgent items and items with no icon keep theirs.
