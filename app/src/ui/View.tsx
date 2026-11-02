@@ -104,8 +104,13 @@ export function View({ tree, label, autoFocus, rootRef, onAction, marked, onMark
   useImperativeHandle(rootRef, () => root.current as HTMLDivElement, []);
   useEffect(() => { if (autoFocus) root.current?.focus({ preventScroll: true }); }, [autoFocus]);
   const moves = useRef<Moves>({ els: new Map(), boxes: new Map(), anims: new Map(), moving: new Set(), gen: 0 }).current;
-  // The keys' cursor (`selected`) stays in view: a tree taller than the popover's cap scrolls to it, nearest edge, after each tree lands.
-  useEffect(() => { root.current?.querySelector<HTMLElement>("[data-selected]")?.scrollIntoView?.({ block: "nearest" }); }, [tree]);
+  // The keys' cursor (`selected`) is brought into view when it lands on another node, nearest edge; a redraw that keeps it leaves the user's scroll alone.
+  const shownSel = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const el = root.current?.querySelector<HTMLElement>("[data-selected]") ?? null;
+    if (el && el !== shownSel.current) el.scrollIntoView?.({ block: "nearest" });
+    shownSel.current = el;
+  }, [tree]);
   const marks = useMemo<Marks | null>(() => (marked || onMark ? { marked: new Set(marked), onMark } : null), [marked?.join("\0"), onMark]);
   const last = useRef<ViewNode | null>(null);
   if (last.current !== tree) {
