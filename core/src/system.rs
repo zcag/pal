@@ -346,7 +346,7 @@ mod platform {
 
     fn logout() -> Result<()> {
         match compositor() {
-            "hyprland" => sh("hyprctl", &["dispatch", "exit"]).map(drop),
+            "hyprland" => sh("hyprctl", &["dispatch", "hl.dsp.exit()"]).map(drop),
             "sway" => sh("swaymsg", &["exit"]).map(drop),
             _ => match std::env::var("XDG_SESSION_ID") {
                 Ok(id) => sh("loginctl", &["terminate-session", &id]).map(drop),
@@ -367,7 +367,7 @@ mod platform {
         match id {
             "sleep" => sh("systemctl", &["suspend"]).map(drop),
             "sleep-displays" => match compositor() {
-                "hyprland" => sh("hyprctl", &["dispatch", "dpms", "off"]).map(drop),
+                "hyprland" => sh("hyprctl", &["dispatch", r#"hl.dsp.dpms({ action = "off" })"#]).map(drop),
                 _ => sh("swaymsg", &["output", "*", "dpms", "off"]).map(drop),
             },
             "lock" => sh("loginctl", &["lock-session"]).map(drop),

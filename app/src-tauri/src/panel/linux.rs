@@ -4,14 +4,14 @@
 //!
 //! What the app cannot do itself on Wayland: `set_position` is a no-op and
 //! the cursor is unreadable, so placement, pinning and the map animation are
-//! the compositor's. Hyprland (0.56 syntax). Every pal window has the class
+//! the compositor's. Hyprland (0.57 syntax). Every pal window has the class
 //! `pal` (the binary name), so the rule keys on the title, which only the
 //! panel has: a class rule would float and pin the HUD (`pal HUD`) and the
 //! settings window (`pal Settings`, a normal tiled window) too.
 //!
 //! ```text
-//! windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, move (monitor_w*0.5-window_w*0.5) (monitor_h*0.2), match:title ^(pal)$
-//! bind = CTRL, space, exec, pal toggle
+//! hl.window_rule({ match = { title = "^(pal)$" }, float = true, pin = true, no_anim = true, border_size = 0, no_shadow = true, move = { "monitor_w*0.5-window_w*0.5", "monitor_h*0.2" } })
+//! hl.bind("CTRL + space", hl.dsp.exec_cmd("pal toggle"))
 //! ```
 
 use super::*;
@@ -101,7 +101,7 @@ pub fn hide(app: &AppHandle) {
 // that title like the panel's does, and places it at the bottom:
 //
 // ```text
-// windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, no_focus on, move (monitor_w*0.5-window_w*0.5) (monitor_h-window_h-8), match:title ^(pal HUD)$
+// hl.window_rule({ match = { title = "^(pal HUD)$" }, float = true, pin = true, no_anim = true, border_size = 0, no_shadow = true, no_focus = true, move = { "monitor_w*0.5-window_w*0.5", "monitor_h-window_h-8" } })
 // ```
 
 pub fn hud_install(window: &WebviewWindow) {
@@ -148,7 +148,7 @@ pub fn hud_hide(app: &AppHandle) {
 // the title `pal Large Type` and spans the monitor's width:
 //
 // ```text
-// windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, size monitor_w (monitor_h*0.5), move 0 (monitor_h*0.25), match:title ^(pal Large Type)$
+// hl.window_rule({ match = { title = "^(pal Large Type)$" }, float = true, pin = true, no_anim = true, border_size = 0, no_shadow = true, size = { "monitor_w", "monitor_h*0.5" }, move = { "0", "monitor_h*0.25" } })
 // ```
 
 pub fn large_install(window: &WebviewWindow) {
@@ -208,7 +208,7 @@ pub fn keycast_hide(app: &AppHandle) {
 // says):
 //
 // ```text
-// windowrule = float on, pin on, no_anim on, border_size 0, match:title ^(pal Bar)$
+// hl.window_rule({ match = { title = "^(pal Bar)$" }, float = true, pin = true, no_anim = true, border_size = 0 })
 // ```
 
 pub fn bar_install(window: &WebviewWindow) {

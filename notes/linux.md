@@ -885,3 +885,53 @@ cases). hornet the same evening: clippy clean, cargo 166 + 239, vitest
 5.4 GB with the debug profile and was removed after the daily binary was
 staged; the release build alone is 1.3 GB.
 
+## Hyprland 0.57 (marko, 2026-11-04)
+
+marko went to 0.57.1, whose config is Lua only (`/usr/include/hyprland/src/config/`
+has `lua` and no hyprlang). `hyprctl keyword` answers `unknown request`, and
+`hyprctl dispatch <text>` is `hl.dispatch(<text>)`, so `dispatch focuswindow
+address:x` is a Lua error (exit 7). pal now sends `hl.dsp.*` and needs 0.57; no
+fallback, since no 0.56 box was reachable to test one and the old strings would
+have to stay at every call site.
+
+- What still answers: the `-j` queries, `clients`, `monitors`, `workspaces`,
+  `activewindow`, with the same fields pal reads.
+- The syntax, from `/usr/share/hypr/stubs/hl.meta.lua` and the dispatcher source:
+  `hl.dsp.focus({ window })`, `hl.dsp.focus({ workspace })`,
+  `hl.dsp.window.close|float|fullscreen|move|resize`, `hl.dsp.dpms({ action })`,
+  `hl.dsp.exit()`; monitors are `hyprctl eval 'hl.monitor({ .. })'`.
+- `"ok"` does not mean the window exists: `hl.dsp.window.close` and friends answer
+  `ok` for an address they do not find (`hl.dsp.focus` answers `warning: ..: window
+  not found`). So `windows.rs` looks the address up first (`hyprland_selector`),
+  which keeps `NotFound` and keeps an id from reaching Lua unchecked.
+- `window.fullscreen` takes a window now and is a toggle.
+- A locked session (hyprlock) answers `ok` to `hl.dsp.focus` and moves nothing, new
+  windows take no focus either (`FocusState.cpp`, `isSessionLocked`). To test focus
+  on a locked box, run a nested compositor: `Hyprland --config x.lua` with
+  `WAYLAND_DISPLAY` set to the outer one; it has its own instance signature, and
+  `hl.dsp.exit()` ends it.
+- A guard for any script here: an empty address in `window = "address:"` answers
+  `ok`, and a dispatcher without `window` hits the active window. Stop if the
+  throwaway window did not appear.
+
+Verified with `pal_core::windows` driven by a throwaway example: on a nested 0.57.1
+list, displays, spaces, set_frame, focus between two windows, minimise, unminimise,
+fullscreen both ways, close, and `NotFound` for a stale id on each verb; the same on
+marko's own instance with its own throwaway windows, except that focus cannot move
+there while locked. `dpms off`/`on`, `hl.monitor` and `exit` on the nested one only.
+Not run: 0.56.
+
+### The daily instance, since 2026-11-04
+
+`usr/` of the deb's staging tree (`target/release/bundle/deb/pal_*/data/usr`) as a
+prefix under `~/.local/share/pal`: `bin/{pal,pal-bun}` and `lib/pal/{host,sdk,extensions,surface-kit}`.
+tauri's `resource_dir` is `<exe dir>/../lib/pal` first (tauri-utils
+`platform.rs`, `resource_dir_from`), so this needs no sudo and no checkout: nothing
+loads from `~/proj/pal` any more, and a pull can no longer break the running app
+(the failure in "The daily instance" above). `pal.service` and `~/.local/bin/pal`
+stay as they were. It does not update itself, the updater only handles AppImages.
+To rebuild, with the extension repos as `PAL_EXTENSION_REPOS` (or beside the checkout):
+
+```sh
+cd app && PAL_BUNDLE=local NO_STRIP=true npm run tauri build -- --bundles deb --config '{"bundle":{"createUpdaterArtifacts":false}}'
+```

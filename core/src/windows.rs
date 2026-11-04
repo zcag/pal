@@ -32,12 +32,12 @@
 //!   with [`focused`] on every activation and on the panel's show; the
 //!   windows in it come first by recency, the rest follow in
 //!   CoreGraphics' front to back order ([`order_by_history`]).
-//! - **Linux**: Hyprland (`hyprctl clients -j`, `dispatch focuswindow` /
-//!   `closewindow`, minimise = move to the `special:minimized` workspace,
-//!   full screen = `focuswindow` then `dispatch fullscreen 0`, which only
-//!   takes the active window;
-//!   frames from `clients -j`, set with `movewindowpixel exact` /
-//!   `resizewindowpixel exact` after floating a tiled window; displays from
+//! - **Linux**: Hyprland 0.57+ (`hyprctl clients -j`, dispatch is Lua:
+//!   `hl.dsp.focus` / `hl.dsp.window.close`, minimise = `hl.dsp.window.move`
+//!   to the `special:minimized` workspace, full screen = focus then
+//!   `hl.dsp.window.fullscreen`; frames from `clients -j`, set with
+//!   `hl.dsp.window.resize` / `hl.dsp.window.move` after floating a tiled
+//!   window; displays from
 //!   `monitors -j` with `reserved` taken out; focused = `activewindow -j`),
 //!   Sway (`swaymsg -t get_tree`, `[con_id=N] focus` / `kill` / `move
 //!   scratchpad` / `fullscreen toggle`; `floating enable`, `move absolute
@@ -58,7 +58,7 @@
 //! public call to switch, so `go_space` posts the Dock swipe gesture at a
 //! velocity that skips the slide (yabai's way with SIP on) and then raises
 //! the window used there last (the focus history picks which). Linux: Hyprland's
-//! `workspaces -j` / `dispatch workspace`, Sway's `get_workspaces` /
+//! `workspaces -j` / `hl.dsp.focus`, Sway's `get_workspaces` /
 //! `workspace`, X11's `wmctrl -d` / `-s`.
 //!
 //! [`app_icon_source`] gives the path [`crate::icons::app_icon`] renders: the
@@ -1202,6 +1202,18 @@ mod platform {
         Ok(text)
     }
 
+    /// Runs `hl.dsp.<call>`: `hyprctl dispatch` evaluates Lua since 0.57.
+    fn dispatch(call: &str) -> Result<()> {
+        hyprctl(&["dispatch", &format!("hl.dsp.{call}")]).map(drop)
+    }
+
+    /// `address:<id>` for a window that exists: `hl.dsp.window.*` answers
+    /// "ok" for an address it does not find, and the id ends up inside Lua.
+    fn hyprland_selector(id: &str) -> Result<String> {
+        hyprland_client(id)?.ok_or_else(|| Error::NotFound(id.into()))?;
+        Ok(format!("address:{id}"))
+    }
+
     /// `swaymsg` exits 0 with `[{"success": false, "error": ...}]` on a bad command.
     fn swaymsg(cmd: &str) -> Result<()> {
         let out = run("swaymsg", &["-t", "command", cmd])?;
@@ -1233,9 +1245,9 @@ mod platform {
                     // Back onto the workspace in front, which also focuses it.
                     let ws: serde_json::Value = serde_json::from_str(&hyprctl(&["activeworkspace", "-j"])?).unwrap_or_default();
                     let ws = ws.get("id").and_then(|i| i.as_i64()).ok_or_else(|| Error::Failed("no active workspace".into()))?;
-                    hyprctl(&["dispatch", "movetoworkspace", &format!("{ws},address:{id}")])?;
+                    dispatch(&format!(r#"window.move({{ workspace = "{ws}", window = "address:{id}" }})"#))?;
                 }
-                hyprctl(&["dispatch", "focuswindow", &format!("address:{id}")]).map(drop)
+                dispatch(&format!(r#"focus({{ window = "address:{id}" }})"#))
             }
             Backend::Sway => {
                 let w = find(id)?;
@@ -1254,7 +1266,7 @@ mod platform {
 
     pub fn close(id: &str) -> Result<()> {
         match need()? {
-            Backend::Hyprland => hyprctl(&["dispatch", "closewindow", &format!("address:{id}")]).map(drop),
+            Backend::Hyprland => dispatch(&format!(r#"window.close({{ window = "{}" }})"#, hyprland_selector(id)?)),
             Backend::Sway => swaymsg(&format!("[con_id={id}] kill")),
             Backend::X11 => run("wmctrl", &["-i", "-c", id]).map(drop),
         }
@@ -1262,20 +1274,20 @@ mod platform {
 
     pub fn minimize(id: &str) -> Result<()> {
         match need()? {
-            Backend::Hyprland => hyprctl(&["dispatch", "movetoworkspacesilent", &format!("special:minimized,address:{id}")]).map(drop),
+            Backend::Hyprland => dispatch(&format!(r#"window.move({{ workspace = "special:minimized", follow = false, window = "{}" }})"#, hyprland_selector(id)?)),
             Backend::Sway => swaymsg(&format!("[con_id={id}] move scratchpad")),
             Backend::X11 if has("xdotool") => run("xdotool", &["windowminimize", id]).map(drop),
             Backend::X11 => Err(Error::Unavailable("minimise on X11 needs xdotool".into())),
         }
     }
 
-    /// Hyprland's `fullscreen` dispatcher takes no window: the window is
-    /// focused first, which is what the verb means anyway.
+    /// Hyprland focuses the window first, which is what the verb means.
     pub fn fullscreen(id: &str) -> Result<()> {
         match need()? {
             Backend::Hyprland => {
-                hyprctl(&["dispatch", "focuswindow", &format!("address:{id}")])?;
-                hyprctl(&["dispatch", "fullscreen", "0"]).map(drop)
+                let window = hyprland_selector(id)?;
+                dispatch(&format!(r#"focus({{ window = "{window}" }})"#))?;
+                dispatch(&format!(r#"window.fullscreen({{ mode = "fullscreen", window = "{window}" }})"#))
             }
             Backend::Sway => swaymsg(&format!("[con_id={id}] fullscreen toggle")),
             Backend::X11 => run("wmctrl", &["-i", "-r", id, "-b", "toggle,fullscreen"]).map(drop),
@@ -1294,7 +1306,7 @@ mod platform {
     }
 
     /// A tiled window is floated first: an exact frame means nothing inside
-    /// a tiling layout (Hyprland ignores `movewindowpixel` for it, Sway
+    /// a tiling layout (Hyprland ignores `hl.dsp.window.move` for it, Sway
     /// would resize the split).
     pub fn set_frame(id: &str, r: Rect) -> Result<()> {
         let (x, y, w, h) = (r.x.round() as i64, r.y.round() as i64, r.w.round().max(1.0) as i64, r.h.round().max(1.0) as i64);
@@ -1302,10 +1314,10 @@ mod platform {
             Backend::Hyprland => {
                 let c = hyprland_client(id)?.ok_or_else(|| Error::NotFound(id.into()))?;
                 if c["floating"].as_bool() != Some(true) {
-                    hyprctl(&["dispatch", "setfloating", &format!("address:{id}")])?;
+                    dispatch(&format!(r#"window.float({{ action = "enable", window = "address:{id}" }})"#))?;
                 }
-                hyprctl(&["dispatch", "resizewindowpixel", &format!("exact {w} {h},address:{id}")])?;
-                hyprctl(&["dispatch", "movewindowpixel", &format!("exact {x} {y},address:{id}")]).map(drop)
+                dispatch(&format!(r#"window.resize({{ x = {w}, y = {h}, window = "address:{id}" }})"#))?;
+                dispatch(&format!(r#"window.move({{ x = {x}, y = {y}, window = "address:{id}" }})"#))
             }
             Backend::Sway => {
                 swaymsg(&format!("[con_id={id}] floating enable"))?;
@@ -1343,7 +1355,7 @@ mod platform {
 
     pub fn go_space(_spaces: &[Space], target: &Space) -> Result<()> {
         match need()? {
-            Backend::Hyprland => hyprctl(&["dispatch", "workspace", &target.id]).map(drop),
+            Backend::Hyprland => dispatch(&format!(r#"focus({{ workspace = "{}" }})"#, target.id)),
             Backend::Sway => swaymsg(&format!("workspace {}", target.name.as_deref().unwrap_or(&target.id))),
             Backend::X11 => run("wmctrl", &["-s", &target.id]).map(drop),
         }

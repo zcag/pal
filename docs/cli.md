@@ -294,13 +294,13 @@ that is a tap, and pal switches to the previous window (one further per
 `next` taken meanwhile, one back per `prev`) without showing anything;
 after it the `commit` runs the row under the cursor. Hyprland:
 
-```
-bind  = ALT, Tab, exec, pal switch
-bind  = ALT SHIFT, Tab, exec, pal switch prev
-bindr = ALT, Alt_L, exec, pal switch commit
+```lua
+hl.bind("ALT + Tab", hl.dsp.exec_cmd("pal switch"))
+hl.bind("ALT + SHIFT + Tab", hl.dsp.exec_cmd("pal switch prev"))
+hl.bind("ALT + Alt_L", hl.dsp.exec_cmd("pal switch commit"), { release = true })
 ```
 
-`bindr` fires on the key's release, so letting go of Alt is the commit.
+`release = true` fires on the key's release, so letting go of Alt is the commit.
 The same commands work on macOS (a Karabiner or skhd user can drive it
 too); begun from the CLI a hold never watches the modifiers, so `commit`
 is the only release.

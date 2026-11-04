@@ -1168,9 +1168,9 @@ Only commands this machine can run are listed:
 | command | macOS | Linux |
 | --- | --- | --- |
 | Sleep | `pmset sleepnow` | `systemctl suspend` |
-| Sleep Displays | `pmset displaysleepnow` | Hyprland (`hyprctl dispatch dpms off`) or Sway (`swaymsg output * dpms off`) only |
+| Sleep Displays | `pmset displaysleepnow` | Hyprland (`hl.dsp.dpms`) or Sway (`swaymsg output * dpms off`) only |
 | Lock Screen | the login framework's immediate lock, falling back to the Cmd+Ctrl+Q keystroke (which needs Accessibility) | `loginctl lock-session` |
-| Log Out | System Events | `hyprctl dispatch exit`, `swaymsg exit`, else `loginctl terminate-session` |
+| Log Out | System Events | `hl.dsp.exit`, `swaymsg exit`, else `loginctl terminate-session` |
 | Restart, Shut Down | System Events | `systemctl reboot`, `systemctl poweroff` |
 | Empty Trash | Finder | `gio trash --empty` |
 | Toggle Dark Mode | System Events appearance | `gsettings` `color-scheme` between `default` and `prefer-dark` |
@@ -1303,8 +1303,8 @@ Minimize run over all of them; Focus is one window.
   name), focusing falls back to activating the app, and close and minimise
   fail with "needs Accessibility permission". Focus shows the same
   one-time prompt and toast as paste when the permission is missing.
-- **Linux**: the backend is detected, not configured. Hyprland when
-  `hyprctl` and an instance signature exist (the newest
+- **Linux**: the backend is detected, not configured. Hyprland 0.57 or
+  newer when `hyprctl` and an instance signature exist (the newest
   `$XDG_RUNTIME_DIR/hypr/*` when the variable is missing, so a
   service-started pal works); Sway on `SWAYSOCK`; X11 on `DISPLAY` plus
   `wmctrl`. Hyprland has no minimise, so pal parks the window on the
@@ -1344,7 +1344,7 @@ the slide (instant), and then raises the window used there last (the
 focus history, else the biggest, never a hidden app's) so the space comes
 up with it in front. Posting the swipe needs the Accessibility permission
 like paste (the HUD says so when it is missing). Linux asks the
-compositor (`hyprctl dispatch workspace`, `swaymsg workspace`,
+compositor (`hl.dsp.focus`, `swaymsg workspace`,
 `wmctrl -s`).
 
 Names: `spaces = ["web", "term", "misc"]` names the desktops by number
@@ -1523,11 +1523,11 @@ the screen's edge; both leave a window larger than the screen where it is.
   toast as paste and asks once. The displays are `NSScreen`'s frames with
   `visibleFrame` for the usable part, so an auto-hidden menu bar or Dock
   gives the whole screen. Apps keep their minimum size and may round.
-- **Linux**: Hyprland (`movewindowpixel exact` / `resizewindowpixel exact`;
+- **Linux**: Hyprland (`hl.dsp.window.move` / `hl.dsp.window.resize`;
   a tiled window is floated first, since an exact frame means nothing
   inside the tiling layout; the display is `monitors -j` with `reserved`
-  taken out; Toggle Fullscreen is `focuswindow` then `dispatch fullscreen
-  0`, since that dispatcher takes no window), Sway (`floating enable`,
+  taken out; Toggle Fullscreen is `hl.dsp.focus` then
+  `hl.dsp.window.fullscreen`), Sway (`floating enable`,
   `move absolute position`, `resize set`, `fullscreen toggle`; the
   workspace rect is the usable part), or X11 (`wmctrl -i -r <id> -e`, `-b
   toggle,fullscreen`; `xrandr --listmonitors` for the displays, `wmctrl

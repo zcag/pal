@@ -68,10 +68,10 @@ X11, so under Wayland it only fires while an X11 client has focus. Bind
 pin and place the panel a fifth of the way down the screen and the HUD
 (the "Copied" capsule) at the bottom, plus the bind:
 
-```text
-windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, move (monitor_w*0.5-window_w*0.5) (monitor_h*0.2), match:title ^(pal)$
-windowrule = float on, pin on, no_anim on, border_size 0, no_shadow on, no_focus on, move (monitor_w*0.5-window_w*0.5) (monitor_h-window_h-8), match:title ^(pal HUD)$
-bind = CTRL, space, exec, pal toggle
+```lua
+hl.window_rule({ match = { title = "^(pal)$" }, float = true, pin = true, no_anim = true, border_size = 0, no_shadow = true, move = { "monitor_w*0.5-window_w*0.5", "monitor_h*0.2" } })
+hl.window_rule({ match = { title = "^(pal HUD)$" }, float = true, pin = true, no_anim = true, border_size = 0, no_shadow = true, no_focus = true, move = { "monitor_w*0.5-window_w*0.5", "monitor_h-window_h-8" } })
+hl.bind("CTRL + space", hl.dsp.exec_cmd("pal toggle"))
 ```
 
 The rules key on the window title, not the class: every pal window has
@@ -87,7 +87,7 @@ Autostart: `launch_at_login` writes and enables a `pal.service` user unit
 (`Restart=on-failure`, wanted by `graphical-session.target`), so a session
 that reaches that target (GNOME, KDE, Hyprland under uwsm) starts pal and
 relaunches it after a crash. Hyprland without uwsm reaches neither that
-target nor XDG autostart, so add `exec-once = pal` to `hyprland.conf`: the
+target nor XDG autostart, so start `pal` from `hyprland.lua` (`hl.exec_cmd("pal")` at startup): the
 hand-started pal moves itself under the unit at startup. Without systemd
 the setting writes `~/.config/autostart/pal.desktop` and nothing relaunches
 a crashed pal. See [Config](config.md#crash-relaunch).
