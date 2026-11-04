@@ -919,6 +919,8 @@ list, displays, spaces, set_frame, focus between two windows, minimise, unminimi
 fullscreen both ways, close, and `NotFound` for a stale id on each verb; the same on
 marko's own instance with its own throwaway windows, except that focus cannot move
 there while locked. `dpms off`/`on`, `hl.monitor` and `exit` on the nested one only.
+Through the installed app, `pal run windows/windows/<address> -a minimize|focus|close`
+on a throwaway window on marko's instance moved, restored and closed it.
 Not run: 0.56.
 
 ### The daily instance, since 2026-11-04
