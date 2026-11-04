@@ -361,7 +361,16 @@ esac
         )
         .unwrap();
         std::fs::set_permissions(&tool, std::fs::Permissions::from_mode(0o755)).unwrap();
+        wait_for_forks_to_drop_the_write_fd(&tool);
         SecretService::with_tool(tool)
+    }
+
+    #[cfg(target_os = "linux")]
+    fn wait_for_forks_to_drop_the_write_fd(tool: &std::path::Path) {
+        const ETXTBSY: i32 = 26;
+        while std::process::Command::new(tool).output().is_err_and(|e| e.raw_os_error() == Some(ETXTBSY)) {
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
     }
 
     #[test]
