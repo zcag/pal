@@ -42,6 +42,7 @@ mod media;
 mod mouse;
 mod ocr;
 mod registry;
+mod remote;
 mod reserve;
 mod selection;
 mod settings;
@@ -446,6 +447,8 @@ pub fn run() {
             theme::theme_status,
             theme::theme_open,
             theme::theme_open_dir,
+            remote::remote_status,
+            remote::remote_replace_token,
         ])
         .on_page_load(move |webview, payload| {
             // The panel's page: the settings window loads later and on demand.
@@ -526,6 +529,7 @@ pub fn run() {
             features::install(app.handle());
             sidebar::install(app.handle());
             media::install(app.handle());
+            remote::install(app.handle());
             host::Host::start(app.handle());
             // Icons and favicons are cached forever otherwise; a month is
             // long enough that a daily app never refetches.

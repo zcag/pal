@@ -252,6 +252,7 @@ fn on_reload(app: &AppHandle, loaded: Loaded) {
     crate::mouse::apply_config(app, &prev, &loaded.config);
     crate::theme::apply_config(app, &prev, &loaded.config);
     crate::compact::apply_config(app, &prev, &loaded.config);
+    crate::remote::apply_config(app, &prev, &loaded.config);
     crate::store::apply_config(app, &prev, &loaded.config);
     crate::account::config_changed(app);
     if prev.features != loaded.config.features || prev.palettes != loaded.config.palettes {

@@ -98,16 +98,21 @@ pub const ACCOUNT: &str = "pal://account";
 /// file already held; Settings re-reads (the "Add your key" field is filled).
 pub const CONFIG_SECRETS: &str = "pal://secrets";
 
-/// Emit to every window; a failure (the payload does not serialise) is a
+/// Emit to every window and every remote page; a failure (the payload does not serialise) is a
 /// bug worth a log line, never an error for the caller.
 pub fn emit<S: Serialize + Clone>(app: &AppHandle, event: &str, payload: S) {
+    crate::remote::send(event, None, &payload);
     if let Err(e) = app.emit(event, payload) {
         eprintln!("event\t{event}\temit failed\t{e}");
     }
 }
 
-/// Emit to one window by label; same failure handling as `emit`.
+/// Emit to one window by label, or to the one remote page a remote label
+/// names; same failure handling as `emit`.
 pub fn emit_to<S: Serialize + Clone>(app: &AppHandle, window: &str, event: &str, payload: S) {
+    if crate::remote::is_remote(window) {
+        return crate::remote::send(event, Some(window), &payload);
+    }
     if let Err(e) = app.emit_to(window, event, payload) {
         eprintln!("event\t{event}\temit to {window} failed\t{e}");
     }

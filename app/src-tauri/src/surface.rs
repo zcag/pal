@@ -69,7 +69,7 @@ fn csp(uri: &tauri::http::Uri) -> String {
     CSP.replace("'self'", &format!("'self' {origin}"))
 }
 
-async fn respond(app: &AppHandle, req: &Request<Vec<u8>>) -> Response<Vec<u8>> {
+pub(crate) async fn respond(app: &AppHandle, req: &Request<Vec<u8>>) -> Response<Vec<u8>> {
     let b = Response::builder()
         .header(header::CONTENT_SECURITY_POLICY, csp(req.uri()))
         .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")

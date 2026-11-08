@@ -1053,8 +1053,8 @@ pub fn opened(app: &AppHandle, window: &str, key: &str) {
 /// The page entered a palette (`enter()` in Launcher.tsx: a row, a push,
 /// an alias, a palette hotkey's open); `palette` is `extension/palette`.
 #[tauri::command(async)]
-pub fn usage_opened(app: AppHandle, window: tauri::Window, palette: String) {
-    opened(&app, window.label(), &palette);
+pub fn usage_opened(app: AppHandle, caller: crate::remote::Caller, palette: String) {
+    opened(&app, caller.label(), &palette);
 }
 
 // ---- missing targets -------------------------------------------------------

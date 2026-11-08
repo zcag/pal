@@ -89,6 +89,12 @@ impl Table {
         self.settle()
     }
 
+    /// A remote page went away: its slot with it.
+    pub fn forget(&mut self, window: &str) -> Vec<Change> {
+        self.slots.remove(window);
+        self.settle()
+    }
+
     /// The windows a push for `extension`/`palette`-or-`bar` (and `id`) should reach: the visible ones with that level on top.
     pub fn targets(&self, extension: &str, palette: Option<&str>, bar: Option<&str>, id: Option<&str>) -> Vec<String> {
         self.slots.iter().filter(|(_, s)| s.visible && s.open.as_ref().is_some_and(|o| o.takes(extension, palette, bar, id))).map(|(w, _)| w.clone()).collect()
@@ -127,10 +133,10 @@ impl Table {
     }
 }
 
-/// The bar popover (420 px, bar/popover.rs) and the sidebar (320 by
-/// default, sidebar.rs) are the compact surfaces.
+/// The bar popover (420 px, bar/popover.rs), the sidebar (320 by
+/// default, sidebar.rs) and a remote bar page are the compact surfaces.
 pub(crate) fn is_compact(window: &str) -> bool {
-    window == crate::bar::popover::WINDOW || window == crate::sidebar::WINDOW
+    window == crate::bar::popover::WINDOW || window == crate::sidebar::WINDOW || crate::remote::page_of(window) == Some("bar")
 }
 
 pub struct Views(Mutex<Table>);
@@ -184,14 +190,20 @@ fn announce(app: &AppHandle, changes: Vec<Change>) {
 
 /// The page of `window` reports its top view level, or none.
 #[tauri::command]
-pub fn view_open(app: AppHandle, window: tauri::Window, open: Option<Open>) {
-    let changes = with(&app, |t| t.report(window.label(), open));
+pub fn view_open(app: AppHandle, caller: crate::remote::Caller, open: Option<Open>) {
+    let changes = with(&app, |t| t.report(caller.label(), open));
     announce(&app, changes);
 }
 
 /// The shell shows or hides `window` (lib.rs, bar/popover.rs); `clear` when the page starts over.
 pub fn set_visible(app: &AppHandle, window: &str, visible: bool, clear: bool) {
     let changes = with(app, |t| t.set_visible(window, visible, clear));
+    announce(app, changes);
+}
+
+/// A remote page disconnected: what it showed closes.
+pub fn report_gone(app: &AppHandle, window: &str) {
+    let changes = with(app, |t| t.forget(window));
     announce(app, changes);
 }
 

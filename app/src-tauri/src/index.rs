@@ -1178,7 +1178,7 @@ pub struct PickRequest {
 /// `window` is the one the pick came from (the panel, or the bar popover):
 /// a hiding effect hides that one.
 #[tauri::command]
-pub async fn pick(app: AppHandle, window: tauri::Window, req: PickRequest, host: State<'_, Arc<Host>>) -> Result<Value, String> {
+pub async fn pick(app: AppHandle, caller: crate::remote::Caller, req: PickRequest, host: State<'_, Arc<Host>>) -> Result<Value, String> {
     let PickRequest { source, id, action, query, args, values, ids } = req;
     if source == welcome::source() {
         return welcome::pick(&app, &id).await;
@@ -1197,7 +1197,7 @@ pub async fn pick(app: AppHandle, window: tauri::Window, req: PickRequest, host:
     } else if source == fallback::source() {
         fallback::pick(&app, &id, &query).await?
     } else {
-        run_pick_from(&app, &host, &source, &Pick { id: &id, action: action.as_deref(), args: args.as_ref(), values: values.as_ref(), ids: ids.as_deref() }, window.label()).await?
+        run_pick_from(&app, &host, &source, &Pick { id: &id, action: action.as_deref(), args: args.as_ref(), values: values.as_ref(), ids: ids.as_deref() }, caller.label()).await?
     };
     let history_on = settings::config(&app).general.search_history;
     let frecency = app.state::<Mutex<Frecency>>();

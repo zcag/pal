@@ -48,6 +48,7 @@ use serde_json::Value;
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
 use super::{drawn, entry, split_key, Rect};
+use crate::remote::Caller;
 use crate::{events, lock, panel, settings};
 
 pub const WINDOW: &str = "bar";
@@ -709,43 +710,54 @@ pub fn set_height(app: &AppHandle, height: f64) {
 // The popover page runs in two windows (`bar`, and the sidebar's
 // `sidebar`); each command goes to the one that called by its label.
 
-/// Whether the calling window is the sidebar's (else the popover).
-fn from_sidebar(window: &tauri::Window) -> bool {
-    window.label() == crate::sidebar::WINDOW
+/// Which page called: the sidebar, the popover, or a remote page's bar
+/// sheet (docs/design/remote.md), which sizes, shows and hides itself.
+enum From {
+    Sidebar,
+    Popover,
+    Remote,
+}
+
+fn from(caller: &Caller) -> From {
+    match caller.label() {
+        crate::sidebar::WINDOW => From::Sidebar,
+        l if crate::remote::is_remote(l) => From::Remote,
+        _ => From::Popover,
+    }
 }
 
 #[tauri::command]
-pub fn bar_hide(app: AppHandle, window: tauri::Window) {
-    if from_sidebar(&window) {
-        crate::sidebar::hide(&app);
-    } else {
-        hide(&app);
+pub fn bar_hide(app: AppHandle, caller: Caller) {
+    match from(&caller) {
+        From::Sidebar => crate::sidebar::hide(&app),
+        From::Popover => hide(&app),
+        From::Remote => crate::views::set_visible(&app, caller.label(), false, false),
     }
 }
 
 /// The page drew a fresh item at its size: the veiled popover fades in (`show`).
 #[tauri::command]
-pub fn bar_ready(app: AppHandle, window: tauri::Window) {
-    if !from_sidebar(&window) {
+pub fn bar_ready(app: AppHandle, caller: Caller) {
+    if let From::Popover = from(&caller) {
         REVEAL_GEN.fetch_add(1, std::sync::atomic::Ordering::SeqCst); // the fallback stands down
         panel::bar_reveal(&app, WINDOW);
     }
 }
 
 #[tauri::command]
-pub fn bar_size(app: AppHandle, window: tauri::Window, height: f64) {
-    if from_sidebar(&window) {
-        crate::sidebar::set_height(&app, height);
-    } else {
-        set_height(&app, height);
+pub fn bar_size(app: AppHandle, caller: Caller, height: f64) {
+    match from(&caller) {
+        From::Sidebar => crate::sidebar::set_height(&app, height),
+        From::Popover => set_height(&app, height),
+        From::Remote => {}
     }
 }
 
 /// A click into a peeking sidebar: engaged (the popover's peek engages
 /// from its item, never from the page).
 #[tauri::command]
-pub fn bar_engage(app: AppHandle, window: tauri::Window) {
-    if from_sidebar(&window) {
+pub fn bar_engage(app: AppHandle, caller: Caller) {
+    if let From::Sidebar = from(&caller) {
         crate::sidebar::on_click(&app);
     }
 }
@@ -756,19 +768,21 @@ pub fn bar_engage(app: AppHandle, window: tauri::Window) {
 /// The sidebar has no item: its rows are a palette level's, picked the
 /// usual way (`index::pick`), so nothing of its reaches here.
 #[tauri::command]
-pub async fn bar_action(app: AppHandle, window: tauri::Window, key: String, action: String, values: Option<Value>, ids: Option<Vec<String>>) -> Result<Value, String> {
-    if from_sidebar(&window) {
-        return Err(format!("{key}: the sidebar has no bar item to act on"));
-    }
+pub async fn bar_action(app: AppHandle, caller: Caller, key: String, action: String, values: Option<Value>, ids: Option<Vec<String>>) -> Result<Value, String> {
+    let window = match from(&caller) {
+        From::Sidebar => return Err(format!("{key}: the sidebar has no bar item to act on")),
+        From::Popover => WINDOW,
+        From::Remote => caller.label(),
+    };
     let anchor = lock(&app.state::<Popover>().anchors).get(&key).map_or("hotkey", |(_, a)| a);
-    super::action(&app, &key, &action, anchor, WINDOW, values, ids).await
+    super::action(&app, &key, &action, anchor, window, values, ids).await
 }
 
 /// `cmd+r` in the popover: render the item again; in the sidebar, list
 /// its palette again.
 #[tauri::command]
-pub fn bar_refresh(app: AppHandle, window: tauri::Window, key: String) {
-    if from_sidebar(&window) {
+pub fn bar_refresh(app: AppHandle, caller: Caller, key: String) {
+    if let From::Sidebar = from(&caller) {
         crate::sidebar::refresh(&app);
     } else {
         super::render(&app, &key, "update");

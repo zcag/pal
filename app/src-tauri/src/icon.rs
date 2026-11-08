@@ -31,7 +31,7 @@ pub fn register(b: Builder<Wry>) -> Builder<Wry> {
     })
 }
 
-fn respond(app: &AppHandle, req: &Request<Vec<u8>>) -> Response<Vec<u8>> {
+pub(crate) fn respond(app: &AppHandle, req: &Request<Vec<u8>>) -> Response<Vec<u8>> {
     let r = match png(app, req) {
         Some(bytes) => Response::builder().header(header::CONTENT_TYPE, "image/png").header(header::CACHE_CONTROL, "max-age=3600").body(bytes),
         None => Response::builder().status(StatusCode::NOT_FOUND).body(Vec::new()),

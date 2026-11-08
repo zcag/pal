@@ -82,9 +82,31 @@ pub struct Config {
     /// which registries to follow (`docs/registry.md`). pal writes it from
     /// Settings, the Store and the CLI; editing by hand is fine too.
     pub store: StoreConfig,
+    /// Serving pal's UI to a browser on another device (`docs/design/remote.md`).
+    pub remote: Remote,
     #[serde(flatten, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(skip)]
     pub extra: BTreeMap<String, toml::Value>,
+}
+
+/// `[remote]`: pal's UI served to a browser on another device
+/// (`docs/design/remote.md`). Off by default; a page from one of your own
+/// tailnet devices needs nothing more, any other needs the token, which is
+/// kept in pal's data folder rather than here (the file syncs and is backed up).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default)]
+#[schemars(extend("additionalProperties" = false))]
+pub struct Remote {
+    /// Serve the UI on `port`.
+    pub enabled: bool,
+    /// The port the UI is served on, on every address of this machine.
+    pub port: u16,
+}
+
+impl Default for Remote {
+    fn default() -> Self {
+        Self { enabled: false, port: 7373 }
+    }
 }
 
 /// `[store]`.

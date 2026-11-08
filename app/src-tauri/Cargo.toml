@@ -46,6 +46,9 @@ libc = "0.2"
 notify = "8"
 # snippet expansion: `{uuid}` in an expanded snippet (expansion.rs)
 uuid = { version = "1", features = ["v4"] }
+# remote: the UI served to a browser on another device (remote.rs)
+axum = { version = "0.8", features = ["ws"] }
+futures-util = "0.3"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2.1" }

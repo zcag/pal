@@ -89,6 +89,9 @@ fn copied_text(copy: &clipboard::Copy) -> String {
 /// lands there. Harmless on a window that was not up (an item hotkey
 /// fired).
 async fn hide_first(app: &AppHandle, window: &str) -> Result<(), String> {
+    if crate::remote::is_remote(window) {
+        return Ok(());
+    }
     let handle = app.clone();
     let hide: fn(&AppHandle) = match window {
         crate::bar::popover::WINDOW => crate::bar::popover::hide,
@@ -129,9 +132,47 @@ pub async fn apply(app: &AppHandle, envelope: Value) -> Result<Value, String> {
     apply_from(app, envelope, crate::WINDOW).await
 }
 
-/// The effects for a pick from `window` (the panel, or the bar popover):
-/// whatever hides, hides that one.
+/// The effects that belong to the device in hand when a remote page picks
+/// (docs/design/remote.md, "Where an effect lands"): the page runs them.
+const DEVICE: [&str; 3] = ["copy", "hud", "large_type"];
+
+/// A remote page's pick: what is the device's moves under `client` for the
+/// page to run (the clipboard, a URL opened in the browser, the HUD and
+/// Large Type drawn in the page); the rest stays and runs on this machine.
+/// A path or an app given to `open` is this machine's; a URL is the device's.
+fn split_for_device(mut envelope: Value) -> Value {
+    let Some(obj) = envelope.as_object_mut() else { return envelope };
+    let mut client = serde_json::Map::new();
+    for k in DEVICE {
+        if let Some(v) = obj.remove(k) {
+            client.insert(k.to_string(), v);
+        }
+    }
+    let is_url = |s: &str| url::Url::parse(s).is_ok_and(|u| u.scheme() != "file" && u.scheme().len() > 1);
+    let urls: Vec<Value> = match obj.get("open") {
+        Some(Value::String(s)) => vec![Value::String(s.clone())],
+        Some(Value::Array(a)) => a.clone(),
+        _ => Vec::new(),
+    };
+    let (device, here): (Vec<Value>, Vec<Value>) = urls.into_iter().partition(|v| v.as_str().is_some_and(is_url));
+    if !device.is_empty() {
+        client.insert("open".into(), Value::Array(device));
+        if here.is_empty() {
+            obj.remove("open");
+        } else {
+            obj.insert("open".into(), Value::Array(here));
+        }
+    }
+    if !client.is_empty() {
+        obj.insert("client".into(), Value::Object(client));
+    }
+    envelope
+}
+
+/// The effects for a pick from `window` (the panel, the bar popover, or a
+/// remote page): whatever hides, hides that one.
 pub async fn apply_from(app: &AppHandle, envelope: Value, window: &str) -> Result<Value, String> {
+    let envelope = if crate::remote::is_remote(window) { split_for_device(envelope) } else { envelope };
     if let Some(what) = envelope.get("copy") {
         let copy: clipboard::Copy = serde_json::from_value(what.clone()).map_err(|e| format!("bad copy effect: {e}"))?;
         let feedback = copied_text(&copy);
@@ -268,6 +309,20 @@ mod tests {
         assert_eq!(t.as_object().unwrap().len(), 1, "a toast and nothing else: the pick's own effects are dropped");
     }
 
+
+    #[test]
+    fn a_remote_pick_hands_the_device_its_effects() {
+        let e = split_for_device(json!({ "copy": "x", "hud": "Saved", "open": ["https://a.example", "/tmp/f.txt"], "paste": { "text": "y" } }));
+        assert_eq!(e["client"], json!({ "copy": "x", "hud": "Saved", "open": ["https://a.example"] }));
+        assert_eq!(e["open"], json!(["/tmp/f.txt"]), "a path opens on this machine");
+        assert_eq!(e["paste"], json!({ "text": "y" }), "a paste is this machine's");
+        assert!(e.get("copy").is_none());
+        let only_url = split_for_device(json!({ "open": "https://a.example" }));
+        assert!(only_url.get("open").is_none());
+        assert_eq!(only_url["client"]["open"], json!(["https://a.example"]));
+        let none = split_for_device(json!({ "keep": true }));
+        assert!(none.get("client").is_none());
+    }
 
     #[test]
     fn layout_feedback_is_the_title_or_the_reason() {
