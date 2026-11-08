@@ -101,11 +101,17 @@ pub struct Remote {
     pub enabled: bool,
     /// The port the UI is served on, on every address of this machine.
     pub port: u16,
+    /// The address other devices open, when a name in front of pal serves it
+    /// (`https://pal.lan`); empty, Settings shows `http://<hostname>:<port>`.
+    pub address: String,
+    /// Reverse proxies in front of pal (an address, a CIDR, or
+    /// `docker:<container>`) whose `X-Forwarded-For` names the device.
+    pub trusted_proxies: Vec<String>,
 }
 
 impl Default for Remote {
     fn default() -> Self {
-        Self { enabled: false, port: 7373 }
+        Self { enabled: false, port: 7373, address: String::new(), trusted_proxies: Vec::new() }
     }
 }
 

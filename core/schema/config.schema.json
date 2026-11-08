@@ -1101,6 +1101,11 @@
       "additionalProperties": false,
       "description": "`[remote]`: pal's UI served to a browser on another device\n(`docs/design/remote.md`). Off by default; a page from one of your own\ntailnet devices needs nothing more, any other needs the token, which is\nkept in pal's data folder rather than here (the file syncs and is backed up).",
       "properties": {
+        "address": {
+          "default": "",
+          "description": "The address other devices open, when a name in front of pal serves it\n(`https://pal.lan`); empty, Settings shows `http://<hostname>:<port>`.",
+          "type": "string"
+        },
         "enabled": {
           "default": false,
           "description": "Serve the UI on `port`.",
@@ -1113,6 +1118,14 @@
           "maximum": 65535,
           "minimum": 0,
           "type": "integer"
+        },
+        "trusted_proxies": {
+          "default": [],
+          "description": "Reverse proxies in front of pal (an address, a CIDR, or\n`docker:<container>`) whose `X-Forwarded-For` names the device.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         }
       },
       "type": "object"
@@ -1380,8 +1393,10 @@
     "remote": {
       "$ref": "#/$defs/Remote",
       "default": {
+        "address": "",
         "enabled": false,
-        "port": 7373
+        "port": 7373,
+        "trusted_proxies": []
       },
       "description": "Serving pal's UI to a browser on another device (`docs/design/remote.md`)."
     },

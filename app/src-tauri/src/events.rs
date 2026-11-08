@@ -4,7 +4,8 @@
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
-/// The panel is showing: `Shown { t0, palette?, keep, hold? }` (lib.rs).
+/// To the panel's page (this machine's, never a remote one): the panel is
+/// showing, `Shown { t0, palette?, keep, hold? }` (lib.rs).
 /// `t0` is the show's wall-clock start, for the paint mark; `palette` is
 /// `extension/palette` to open straight into; `hold` that the switcher
 /// opened it (the page lists flat, cursor on row 2).
@@ -24,7 +25,8 @@ pub const CONFIG: &str = "pal://config";
 /// (`{ method, params }`), plus `{ method: "host/exit" }` when it went down.
 pub const HOST: &str = "pal://host";
 /// The HUD window's text: `{ text }`; the page shows it with the brief's
-/// motion (hud.rs).
+/// motion (hud.rs). Remote pages hear every line too, and a remote pick's
+/// own (`client.hud`) is raised on its page alone (app/src/remote.ts).
 pub const HUD: &str = "pal://hud";
 /// The Large Type window's text: `{ text }` (large.rs).
 pub const LARGE: &str = "pal://large";
@@ -50,12 +52,12 @@ pub const SETTINGS: &str = "pal://settings";
 /// sidebar's window gets the same, `sidebar: true` and its palette as
 /// the menu (sidebar.rs).
 pub const BAR: &str = "pal://bar";
-/// To one window's page: a push for the view level it has on top
-/// (`ViewUpdate` in sdk/src/protocol.ts: `{ extension, palette | bar, id?,
 /// The bar's `web` target changed what it draws: the whole strip a remote
 /// page draws, `{ items: [{ key, item, look, position }] }` in strip order,
 /// what `bar_web_items` answers (bar/web.rs).
 pub const BAR_STRIP: &str = "pal://bar/strip";
+/// To one window's page: a push for the view level it has on top
+/// (`ViewUpdate` in sdk/src/protocol.ts: `{ extension, palette | bar, id?,
 /// spec }`), applied in place (views.rs).
 pub const VIEW: &str = "pal://view";
 /// To the page that asked: rows a streaming `list` showed early

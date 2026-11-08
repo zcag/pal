@@ -69,6 +69,9 @@ impl<'de, R: Runtime> CommandArg<'de, R> for Caller {
 // ---- connections ---------------------------------------------------------
 
 struct Conn {
+    /// Which socket holds the label: a page that reconnects takes it over
+    /// while its old socket may still be closing.
+    gen: u64,
     tx: mpsc::UnboundedSender<Message>,
     events: HashSet<String>,
 }
@@ -177,16 +180,96 @@ struct Auth {
     token: Option<String>,
 }
 
-/// Whether the request may in: from one of the user's own tailnet devices,
-/// or with the token (the query's, else the cookie's). This machine is no
-/// exception: a reverse proxy on it would let anyone in as loopback.
+/// Whether the request may in: with the token (the query's, else the
+/// cookie's), or from one of the user's own tailnet devices when the page
+/// is named for this machine. This machine is no exception: a reverse proxy
+/// on it would let anyone in as loopback. Behind a proxy in
+/// `[remote] trusted_proxies` the device is the last `X-Forwarded-For` hop.
 async fn allowed(app: &AppHandle, peer: IpAddr, headers: &HeaderMap, query: Option<&str>) -> bool {
     let token = token(app);
     let given = query.map(str::to_string).or_else(|| cookie(headers));
     if !token.is_empty() && given.as_deref().is_some_and(|g| eq(g.as_bytes(), token.as_bytes())) {
         return true;
     }
-    tailnet::own(peer).await
+    let proxies = crate::settings::config(app).remote.trusted_proxies;
+    named_for_us(headers) && tailnet::own(proxy::client(&proxies, peer, headers).await).await
+}
+
+/// Whether the page's host could be this machine's own name: an address, a
+/// bare hostname, a tailnet or a `.lan` name. A page on another site that
+/// rebinds its own name to this machine sends that name, and trust by
+/// address must not let it in.
+fn named_for_us(headers: &HeaderMap) -> bool {
+    let Some(host) = headers.get(header::HOST).and_then(|h| h.to_str().ok()) else { return false };
+    let host = host.rsplit_once(':').filter(|(_, p)| p.bytes().all(|b| b.is_ascii_digit())).map_or(host, |(h, _)| h).trim_matches(['[', ']']).to_ascii_lowercase();
+    host.parse::<IpAddr>().is_ok() || !host.contains('.') || host.ends_with(".ts.net") || host.ends_with(".lan")
+}
+
+/// Whether a browser says another site's page opened this (`Origin` not the
+/// page's own host): a socket a foreign page opens carries the device's
+/// address, which proves the device, not the page.
+fn from_another_site(headers: &HeaderMap) -> bool {
+    let (Some(origin), Some(host)) = (headers.get(header::ORIGIN).and_then(|h| h.to_str().ok()), headers.get(header::HOST).and_then(|h| h.to_str().ok())) else { return false };
+    url::Url::parse(origin).ok().is_none_or(|u| u.host_str().map(|h| u.port().map_or(h.to_string(), |p| format!("{h}:{p}"))).as_deref() != Some(host))
+}
+
+mod proxy {
+    use std::net::IpAddr;
+    use std::sync::Mutex;
+    use std::time::{Duration, Instant};
+
+    use axum::http::HeaderMap;
+
+    static CONTAINERS: Mutex<Option<(Instant, Vec<IpAddr>)>> = Mutex::new(None);
+
+    /// The device behind `peer`: the last `X-Forwarded-For` hop when `peer`
+    /// is a trusted proxy (an address, a CIDR, or `docker:<container>`),
+    /// else `peer`.
+    pub async fn client(trusted: &[String], peer: IpAddr, headers: &HeaderMap) -> IpAddr {
+        if !trusts(trusted, peer).await {
+            return peer;
+        }
+        headers.get("x-forwarded-for").and_then(|h| h.to_str().ok()).and_then(|v| v.rsplit(',').next()).and_then(|ip| ip.trim().parse().ok()).unwrap_or(peer)
+    }
+
+    async fn trusts(trusted: &[String], ip: IpAddr) -> bool {
+        if trusted.iter().any(|t| t.parse::<IpAddr>().is_ok_and(|a| a == ip) || cidr(t, ip)) {
+            return true;
+        }
+        let names: Vec<&str> = trusted.iter().filter_map(|t| t.strip_prefix("docker:")).collect();
+        !names.is_empty() && containers(&names).await.contains(&ip)
+    }
+
+    fn cidr(spec: &str, ip: IpAddr) -> bool {
+        let Some((net, bits)) = spec.split_once('/') else { return false };
+        let (Ok(net), Ok(bits)) = (net.parse::<IpAddr>(), bits.parse::<u32>()) else { return false };
+        match (net, ip) {
+            (IpAddr::V4(n), IpAddr::V4(i)) if bits <= 32 => bits == 0 || (u32::from(n) ^ u32::from(i)) >> (32 - bits) == 0,
+            (IpAddr::V6(n), IpAddr::V6(i)) if bits <= 128 => bits == 0 || (u128::from(n) ^ u128::from(i)) >> (128 - bits) == 0,
+            _ => false,
+        }
+    }
+
+    /// The containers' addresses (`docker inspect`), looked up again after a minute.
+    async fn containers(names: &[&str]) -> Vec<IpAddr> {
+        if let Some((_, ips)) = crate::lock(&CONTAINERS).as_ref().filter(|(at, _)| at.elapsed() < Duration::from_secs(60)) {
+            return ips.clone();
+        }
+        let out = tokio::process::Command::new("docker").args(["inspect", "-f", "{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}"]).args(names).output().await;
+        let ips: Vec<IpAddr> = out.ok().map(|o| String::from_utf8_lossy(&o.stdout).split_whitespace().filter_map(|s| s.parse().ok()).collect()).unwrap_or_default();
+        *crate::lock(&CONTAINERS) = Some((Instant::now(), ips.clone()));
+        ips
+    }
+
+    #[cfg(test)]
+    #[test]
+    fn a_cidr_holds_its_addresses() {
+        let ip = |s: &str| s.parse::<IpAddr>().unwrap();
+        assert!(cidr("172.18.0.0/16", ip("172.18.4.2")));
+        assert!(!cidr("172.18.0.0/16", ip("172.19.0.2")));
+        assert!(cidr("10.0.0.5/32", ip("10.0.0.5")));
+        assert!(!cidr("10.0.0.0/8", ip("::1")));
+    }
 }
 
 fn cookie(headers: &HeaderMap) -> Option<String> {
@@ -263,11 +346,17 @@ mod tailnet {
 
 // ---- routes --------------------------------------------------------------
 
-async fn gate(ctx: &Ctx, peer: SocketAddr, headers: &HeaderMap, token: Option<&str>) -> Result<(), Response> {
+/// The answer to a request that may not in.
+type Refusal = Box<Response>;
+
+async fn gate(ctx: &Ctx, peer: SocketAddr, headers: &HeaderMap, token: Option<&str>) -> Result<(), Refusal> {
+    if from_another_site(headers) {
+        return Err(Box::new((StatusCode::FORBIDDEN, "another site's page").into_response()));
+    }
     if allowed(&ctx.app, peer.ip(), headers, token).await {
         return Ok(());
     }
-    Err((StatusCode::UNAUTHORIZED, [(header::CONTENT_TYPE, "text/html; charset=utf-8")], SIGN_IN).into_response())
+    Err(Box::new((StatusCode::UNAUTHORIZED, [(header::CONTENT_TYPE, "text/html; charset=utf-8")], SIGN_IN).into_response()))
 }
 
 /// A response that sets the cookie when the request signed in with `?token=`.
@@ -282,7 +371,7 @@ fn remember(mut r: Response, token: Option<&str>) -> Response {
 
 async fn asset(State(ctx): State<Ctx>, ConnectInfo(peer): ConnectInfo<SocketAddr>, headers: HeaderMap, Query(auth): Query<Auth>, uri: Uri) -> Response {
     if let Err(r) = gate(&ctx, peer, &headers, auth.token.as_deref()).await {
-        return r;
+        return *r;
     }
     let path = match uri.path() {
         "/" => "/index.html",
@@ -322,10 +411,10 @@ fn frontend(app: &AppHandle, path: &str) -> Option<(String, Vec<u8>)> {
 
 /// `/__icon/<rest>` and `/__ext/<rest>` as the scheme `icon://localhost/<rest>`
 /// or `ext://localhost/<rest>` answers them.
-async fn scheme(ctx: &Ctx, peer: SocketAddr, headers: &HeaderMap, uri: &Uri, name: &str) -> Result<tauri::http::Request<Vec<u8>>, Response> {
+async fn scheme(ctx: &Ctx, peer: SocketAddr, headers: &HeaderMap, uri: &Uri, name: &str) -> Result<tauri::http::Request<Vec<u8>>, Refusal> {
     gate(ctx, peer, headers, None).await?;
     let rest = uri.path_and_query().map_or("", |p| p.as_str()).trim_start_matches(&format!("/__{name}/"));
-    tauri::http::Request::builder().uri(format!("{name}://localhost/{rest}")).body(Vec::new()).map_err(|_| StatusCode::BAD_REQUEST.into_response())
+    tauri::http::Request::builder().uri(format!("{name}://localhost/{rest}")).body(Vec::new()).map_err(|_| Box::new(StatusCode::BAD_REQUEST.into_response()))
 }
 
 fn convert(r: tauri::http::Response<Vec<u8>>) -> Response {
@@ -339,14 +428,14 @@ async fn icon(State(ctx): State<Ctx>, ConnectInfo(peer): ConnectInfo<SocketAddr>
             let app = ctx.app.clone();
             tauri::async_runtime::spawn_blocking(move || convert(crate::icon::respond(&app, &req))).await.unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
         }
-        Err(r) => r,
+        Err(r) => *r,
     }
 }
 
 async fn ext(State(ctx): State<Ctx>, ConnectInfo(peer): ConnectInfo<SocketAddr>, headers: HeaderMap, uri: Uri) -> Response {
     match scheme(&ctx, peer, &headers, &uri, "ext").await {
         Ok(req) => convert(crate::surface::respond(&ctx.app, &req).await),
-        Err(r) => r,
+        Err(r) => *r,
     }
 }
 
@@ -368,7 +457,7 @@ fn valid_label(label: &str) -> bool {
 
 async fn socket(State(ctx): State<Ctx>, ConnectInfo(peer): ConnectInfo<SocketAddr>, headers: HeaderMap, Query(join): Query<Join>, ws: WebSocketUpgrade) -> Response {
     if let Err(r) = gate(&ctx, peer, &headers, join.token.as_deref()).await {
-        return r;
+        return *r;
     }
     if !valid_label(&join.label) {
         return (StatusCode::BAD_REQUEST, "bad label").into_response();
@@ -392,9 +481,11 @@ async fn serve(app: AppHandle, label: String, socket: WebSocket) {
     use futures_util::{SinkExt, StreamExt};
     let (mut sink, mut stream) = socket.split();
     let (tx, mut rx) = mpsc::unbounded_channel::<Message>();
+    static GEN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let gen = GEN.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let first = {
         let mut conns = lock(&conns().0);
-        conns.insert(label.clone(), Conn { tx: tx.clone(), events: HashSet::new() });
+        conns.insert(label.clone(), Conn { gen, tx: tx.clone(), events: HashSet::new() });
         conns.len() == 1
     };
     eprintln!("remote\tconnected\t{label}");
@@ -440,12 +531,18 @@ async fn serve(app: AppHandle, label: String, socket: WebSocket) {
             Err(e) => eprintln!("remote\tbad message\t{label}\t{e}"),
         }
     }
-    let last = {
+    let (ours, last) = {
         let mut conns = lock(&conns().0);
-        conns.remove(&label);
-        conns.is_empty()
+        let ours = conns.get(&label).is_some_and(|c| c.gen == gen);
+        if ours {
+            conns.remove(&label);
+        }
+        (ours, conns.is_empty())
     };
     writer.abort();
+    if !ours {
+        return eprintln!("remote\treconnected\t{label}");
+    }
     crate::views::report_gone(&app, &label);
     crate::bar::popover::on_page_gone(&app, &label);
     if last {
@@ -490,6 +587,8 @@ pub struct Status {
     serving: bool,
     port: u16,
     url: String,
+    address: String,
+    trusted_proxies: Vec<String>,
     token: String,
     connected: usize,
 }
@@ -498,8 +597,8 @@ pub struct Status {
 pub fn remote_status(app: AppHandle) -> Status {
     let remote = crate::settings::config(&app).remote;
     let serving = lock(&app.state::<Server>().0).as_ref().is_some_and(|(_, t)| !t.inner().is_finished());
-    let host = hostname();
-    Status { enabled: remote.enabled, serving, port: remote.port, url: format!("http://{host}:{}", remote.port), token: token(&app), connected: lock(&conns().0).len() }
+    let url = if remote.address.is_empty() { format!("http://{}:{}", hostname(), remote.port) } else { remote.address.trim_end_matches('/').to_string() };
+    Status { enabled: remote.enabled, serving, port: remote.port, url, address: remote.address, trusted_proxies: remote.trusted_proxies, token: token(&app), connected: lock(&conns().0).len() }
 }
 
 /// Settings' Replace: a new token; every page signed in with the old one

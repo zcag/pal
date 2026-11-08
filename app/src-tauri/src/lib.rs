@@ -222,7 +222,7 @@ fn show_with(app: &AppHandle, palette: Option<String>, hold: Option<i32>) {
     if let Some(p) = &palette {
         store::opened(app, WINDOW, p);
     }
-    events::emit(app, events::SHOWN, Shown { t0, palette, keep, hold: hold.is_some(), steps: hold.unwrap_or(0) });
+    events::emit_to(app, WINDOW, events::SHOWN, Shown { t0, palette, keep, hold: hold.is_some(), steps: hold.unwrap_or(0) });
     // After the event: the live palettes list again off this thread; a file dialog in front and the Finder selection are looked for once per show.
     pershow::on_shown();
     index::on_shown(app, hold.is_some());

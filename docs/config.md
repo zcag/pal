@@ -573,6 +573,8 @@ data folder, not in this file.
 | --- | --- | --- | --- |
 | `enabled` | bool | `false` | Serve the UI on `port`. |
 | `port` | integer | `7373` | The port, on every address of this machine. |
+| `address` | string | `""` | The address other devices open when a name in front of pal serves it (`https://pal.lan`). Settings shows and copies it; empty, it shows `http://<hostname>:<port>`. |
+| `trusted_proxies` | list of strings | `[]` | Reverse proxies in front of pal, as an address, a CIDR or `docker:<container>`: behind one, the device is the last `X-Forwarded-For` hop, so tailnet sign-in still works through it (a `.lan` name served by Caddy). |
 
 ```toml
 [remote]
