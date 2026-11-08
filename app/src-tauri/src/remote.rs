@@ -217,9 +217,10 @@ fn named_for_us(headers: &HeaderMap) -> bool {
     host.parse::<IpAddr>().is_ok() || !host.contains('.') || host.ends_with(".ts.net") || host.ends_with(".lan")
 }
 
-/// Whether a browser says another site's page opened this (`Origin` not the
-/// page's own host): a socket a foreign page opens carries the device's
-/// address, which proves the device, not the page.
+/// Whether a browser says another site's page opened this socket (`Origin`
+/// not the page's own host): a socket a foreign page opens carries the
+/// device's address, which proves the device, not the page. Only the socket
+/// asks: a game's sandboxed frame loads its files as `Origin: null`.
 fn from_another_site(headers: &HeaderMap) -> bool {
     let (Some(origin), Some(host)) = (headers.get(header::ORIGIN).and_then(|h| h.to_str().ok()), headers.get(header::HOST).and_then(|h| h.to_str().ok())) else { return false };
     url::Url::parse(origin).ok().is_none_or(|u| u.host_str().map(|h| u.port().map_or(h.to_string(), |p| format!("{h}:{p}"))).as_deref() != Some(host))
@@ -362,9 +363,6 @@ mod tailnet {
 type Refusal = Box<Response>;
 
 async fn gate(ctx: &Ctx, peer: SocketAddr, headers: &HeaderMap, token: Option<&str>) -> Result<(), Refusal> {
-    if from_another_site(headers) {
-        return Err(Box::new((StatusCode::FORBIDDEN, "another site's page").into_response()));
-    }
     if allowed(&ctx.app, peer.ip(), headers, token).await {
         return Ok(());
     }
@@ -498,6 +496,9 @@ fn valid_label(label: &str) -> bool {
 }
 
 async fn socket(State(ctx): State<Ctx>, ConnectInfo(peer): ConnectInfo<SocketAddr>, headers: HeaderMap, Query(join): Query<Join>, ws: WebSocketUpgrade) -> Response {
+    if from_another_site(&headers) {
+        return (StatusCode::FORBIDDEN, "another site's page").into_response();
+    }
     if let Err(r) = gate(&ctx, peer, &headers, join.token.as_deref()).await {
         return *r;
     }
