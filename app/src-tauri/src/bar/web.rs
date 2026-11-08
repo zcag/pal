@@ -64,10 +64,19 @@ fn send_soon(app: &AppHandle) {
     });
 }
 
-/// What `bar_web_items` and `pal://bar/strip` carry.
+/// What `bar_web_items` and `pal://bar/strip` carry: the items that take a
+/// slot, and every registered item by key and title (`all`, those hidden by
+/// their rules included), for a page that lets someone pick what shows.
 #[derive(Debug, Clone, Serialize)]
 pub struct Strip {
     pub items: Vec<StripItem>,
+    pub all: Vec<Named>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct Named {
+    pub key: String,
+    pub title: String,
 }
 
 /// One item on the strip: the item as `BarStrip` reads it (`BarStripItem`,
@@ -96,11 +105,13 @@ pub fn strip(drawn: &BTreeMap<String, Draw>) -> Strip {
             position: d.position.clone(),
         })
         .collect();
-    Strip { items }
+    Strip { items, all: Vec::new() }
 }
 
 fn current(app: &AppHandle) -> Strip {
-    strip(&lock(&app.state::<Bar>().web))
+    let mut s = strip(&lock(&app.state::<Bar>().web));
+    s.all = super::snapshot(app).into_iter().map(|(key, _)| Named { title: super::popover::title_of(app, &key), key }).collect();
+    s
 }
 
 /// `BarLook`'s file keys (`icon_size`) as the page's (`iconSize`).

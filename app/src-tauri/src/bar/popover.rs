@@ -425,7 +425,7 @@ pub(crate) fn arm(app: &AppHandle, after: Duration, then: impl FnOnce(&AppHandle
 
 /// The item's title for the popover: the manifest's, with the instance's
 /// label when it has one ("Unread (Work)", `Entry::instance`).
-fn title_of(app: &AppHandle, key: &str) -> String {
+pub(crate) fn title_of(app: &AppHandle, key: &str) -> String {
     let e = entry(app, key);
     let title = e.as_ref().map(|e| e.manifest.title.clone()).filter(|t| !t.is_empty()).unwrap_or_else(|| split_key(key).map_or(key.to_string(), |(_, id)| id.to_string()));
     super::labelled(Some(&title), e.and_then(|e| e.instance).as_deref()).unwrap_or(title)

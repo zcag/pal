@@ -24,7 +24,11 @@ html[data-shell="sheet"], html[data-shell="sheet"] body { background: var(--pal-
 .pal-remote__top { flex: none; display: flex; align-items: center; gap: var(--pal-space-1); height: 40px; padding: 0 var(--pal-space-2) 0 0; position: relative; z-index: 11; }
 .pal-remote__strip.g-bar { flex: 1; min-width: 0; height: 100%; background: none; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
 .pal-remote__strip::-webkit-scrollbar { display: none; }
-.pal-remote__items.g-mb { --g-mb-fg: var(--pal-fg); --g-mb-muted: var(--pal-fg-muted); display: inline-flex; justify-content: flex-start; min-width: 100%; height: 100%; padding: 0 var(--pal-space-2); background: none; -webkit-backdrop-filter: none; backdrop-filter: none; -webkit-font-smoothing: antialiased; }
+.pal-remote__items.g-mb { --g-mb-fg: var(--pal-fg); --g-mb-muted: var(--pal-fg-muted); display: flex; width: max-content; min-width: 100%; height: 100%; padding: 0 var(--pal-space-2); background: none; -webkit-backdrop-filter: none; backdrop-filter: none; -webkit-font-smoothing: antialiased; }
+/* Each item on the side its position says (bar-sides.ts): the sides share the strip, and a strip wider than the page scrolls whole. */
+.pal-remote__side { flex: 1 0 auto; display: flex; align-items: center; }
+.pal-remote__side[data-side="center"] { flex: none; }
+.pal-remote__side[data-side="right"] { justify-content: flex-end; }
 .pal-remote__item { flex: none; display: inline-flex; align-items: center; height: 30px; padding: 0 var(--pal-space-2); border: 0; border-radius: var(--pal-radius-control); background: transparent; color: inherit; font: inherit; cursor: pointer; transition: background var(--pal-dur-fast) var(--pal-ease); }
 .pal-remote__item .g-mb__item { margin-left: 0; height: auto; }
 .pal-remote__item:hover, .pal-remote__item[data-open] { background: var(--pal-selection); }
@@ -46,7 +50,6 @@ html[data-remote="offline"] .pal-remote__link { opacity: 1; transform: none; ani
 @media (min-width: 760px) and (min-height: 560px) {
   html[data-shell="remote"] body { background: var(--pal-bg-sunken); }
   .pal-remote__top { height: 32px; background: var(--pal-bg-glass); -webkit-backdrop-filter: var(--pal-backdrop); backdrop-filter: var(--pal-backdrop); border-bottom: 1px solid var(--pal-line); }
-  .pal-remote__items.g-mb { justify-content: safe flex-end; }
   .pal-remote__strip.g-bar { mask-image: none; }
   .pal-remote__item { height: 26px; }
   .pal-remote__settings { width: 28px; height: 28px; }

@@ -13,14 +13,15 @@ html[data-embed="panel"] .pal-remote__main .pal-panel { --pal-footer-room: var(-
 html[data-embed="panel"] .pal-remote__main .pal-panel__footer { padding-bottom: 0; }
 html[data-embed][data-transparent] .pal-remote__main > .pal-panel { background: transparent; }
 
-html[data-embed="bar"] .pal-remote__top { height: 36px; padding: 0; background: none; border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
+/* A quiet strip inside someone else's page: 26px (embed-shell.ts STRIP_H, which <pal-bar> takes as its height), the items smaller and muted until hovered. */
+html[data-embed="bar"] .pal-remote__top { height: 26px; padding: 0; background: none; border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
 html[data-embed="bar"] .pal-remote__strip.g-bar { mask-image: none; }
-/* The menu bar's side whatever the frame's height (it grows under an open sheet, which would flip the media query in remote.css); `safe` keeps a strip wider than the frame scrollable from its first item. */
-html[data-embed="bar"] .pal-remote__items.g-mb { background: none; justify-content: safe flex-end; }
-html[data-embed="bar"] .pal-remote__item { height: 28px; }
+html[data-embed="bar"] .pal-remote__items.g-mb { background: none; padding: 0 var(--pal-space-1); }
+html[data-embed="bar"] .pal-remote__item { height: 22px; padding: 0 6px; zoom: 0.85; opacity: 0.78; transition: background var(--pal-dur-fast) var(--pal-ease), opacity var(--pal-dur-fast) var(--pal-ease); }
+html[data-embed="bar"] .pal-remote__item:hover, html[data-embed="bar"] .pal-remote__item[data-open] { opacity: 1; }
 html[data-embed="bar"] .pal-remote-sheet__scrim { background: transparent; animation: none; }
 html[data-embed="bar"] .pal-remote-sheet__card {
-  top: 40px;
+  top: 30px;
   right: auto;
   bottom: auto;
   left: clamp(4px, calc(var(--pal-sheet-x) - 210px), calc(100vw - min(420px, 100vw - 8px) - 4px));

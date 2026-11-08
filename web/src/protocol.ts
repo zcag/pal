@@ -19,6 +19,8 @@ export type EmbedEvents = {
   /** A bar item's popover opened or closed (`<pal-bar>`). */
   "bar-open": { key: string; title: string };
   "bar-close": Record<string, never>;
+  /** Every item the bar has (`<pal-bar>`), by key as `pal bar list` prints it, those `hide` leaves out included: sent once ready and whenever the set changes, for a host that lets someone pick. */
+  "bar-items": { key: string; title: string }[];
   /**
    * The app would hide pal here: Escape with nothing left to back out of
    * (`escape`, also `<pal-bar>`'s with no sheet open), or a pick that hides
@@ -32,12 +34,15 @@ export type ToPal =
   | { pal: "embed"; hello: true }
   | { pal: "embed"; call: "focus" | "reset" | "close" }
   | { pal: "embed"; call: "open"; palette: string }
-  | { pal: "embed"; call: "query"; text: string };
+  | { pal: "embed"; call: "query"; text: string }
+  /** `<pal-bar>`'s `hide`, changed: these keys leave the strip. */
+  | { pal: "embed"; call: "hide"; keys: string[] };
 
 /** Pal to host. */
 export type FromPal =
   | { pal: "embed"; ready: true }
-  | { pal: "embed"; size: number }
+  /** The frame's height; `strip`, the strip's own, which `<pal-bar>` takes as its height (the frame grows past it under a sheet). */
+  | { pal: "embed"; size: number; strip?: number }
   /** The scheme pal draws in: the frame takes it, or the browser paints an opaque backdrop behind a page whose scheme differs from its frame's. */
   | { pal: "embed"; scheme: "light" | "dark" }
   | { [K in keyof EmbedEvents]: { pal: "embed"; event: K; detail: EmbedEvents[K] } }[keyof EmbedEvents];
@@ -47,4 +52,4 @@ export const isToPal = (data: unknown): data is ToPal => tagged(data) && ("hello
 export const isFromPal = (data: unknown): data is FromPal => tagged(data) && ("ready" in data || "size" in data || "scheme" in data || "event" in data);
 
 /** The frame's query for each element attribute it carries (`embed`, the kind, is set apart). */
-export const PARAMS = ["token", "palette", "theme", "links", "transparent"] as const;
+export const PARAMS = ["token", "palette", "theme", "links", "transparent", "hide"] as const;

@@ -55,8 +55,10 @@ abstract class PalFrame extends HTMLElement {
     clearInterval(this.#hello);
   }
 
-  attributeChangedCallback(_: string, before: string | null, after: string | null) {
-    if (before !== after && this.isConnected) this.#load();
+  attributeChangedCallback(name: string, before: string | null, after: string | null) {
+    if (before === after || !this.isConnected) return;
+    if (name === "hide" && this.#ready) this.#send({ pal: "embed", call: "hide", keys: (after ?? "").split(",").map((k) => k.trim()).filter(Boolean) });
+    else this.#load();
   }
 
   /** The search field focused. */
@@ -66,7 +68,7 @@ abstract class PalFrame extends HTMLElement {
 
   protected send(msg: ToPal) { this.#send(msg); }
   /** The page's own height for its content (`<pal-bar>` with a sheet open). */
-  protected resized(height: number) { this.frame.style.height = `${height}px`; }
+  protected resized(height: number, _strip?: number) { this.frame.style.height = `${height}px`; }
 
   #load() {
     const origin = this.origin;
@@ -106,7 +108,7 @@ abstract class PalFrame extends HTMLElement {
       this.#ready = true;
       clearInterval(this.#hello);
       for (const q of this.#queue.splice(0)) this.#send(q);
-    } else if ("size" in m) this.resized(m.size);
+    } else if ("size" in m) this.resized(m.size, m.strip);
     else if ("scheme" in m) this.frame.style.colorScheme = m.scheme;
     else this.dispatchEvent(new CustomEvent(`pal-${m.event}`, { detail: m.detail, bubbles: true, composed: true }));
   };
@@ -132,13 +134,16 @@ export class PalPanel extends PalFrame {
 }
 
 /**
- * The bar's items as a strip; a tap opens the item's popover under it,
- * drawn over the page below the element (the frame grows downward, the
- * element keeps its height). Same attributes as `<pal-panel>` but `palette`.
+ * The bar's items as a strip, each on the side its `position` says; a tap
+ * opens the item's popover under it, drawn over the page below the element
+ * (the frame grows downward, the element keeps the strip's height, which
+ * the page tells). Same attributes as `<pal-panel>` but `palette`, plus
+ * `hide` (item keys, comma-separated, that leave the strip; changed live).
+ * `pal-bar-items` lists every item for a host that lets someone pick.
  */
 export class PalBar extends PalFrame {
   protected readonly kind = "bar";
-  static css = ":host { height: 36px; } iframe { position: absolute; inset: 0 0 auto; height: 36px; z-index: 2147483000; }";
+  static css = ":host { height: 26px; } iframe { position: absolute; inset: 0 0 auto; height: 100%; z-index: 2147483000; }";
 
   #open = false;
 
@@ -160,6 +165,11 @@ export class PalBar extends PalFrame {
 
   /** The open popover closed. */
   close() { this.send({ pal: "embed", call: "close" }); }
+
+  protected resized(height: number, strip?: number) {
+    super.resized(height);
+    if (strip) this.style.height = `${strip}px`;
+  }
 
   #outside = (e: PointerEvent) => { if (this.#open && !e.composedPath().includes(this)) this.close(); };
 }

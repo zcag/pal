@@ -11,12 +11,16 @@ import { historyLayers } from "./remote-history";
 import { isSheetMessage, sheetSrc } from "./sheet";
 import { schemeInForce } from "./theme";
 import { Presence } from "./ui";
+import { bySide, hiddenKeys, type Side } from "./bar-sides";
 import { MenubarItem, defaultLook, shapeItem, type BarLook, type BarStripItem } from "./ui/BarStrip";
 import { touchFirst, useMedia } from "./ui/touch";
 import { POPOVER_W } from "./ui/popover-size";
 
-/** `bar_web_items` and `pal://bar/strip`: the bar's items as the web target draws them, in order. */
-export type WebStrip = { items: { key: string; item: BarStripItem; look?: Partial<BarLook> }[] };
+/** `bar_web_items` and `pal://bar/strip`: the bar's items as the web target draws them, in order, each with its configured `position`; `all`, every item by key and title. */
+export type WebStrip = { items: { key: string; item: BarStripItem; look?: Partial<BarLook>; position?: string }[]; all?: { key: string; title: string }[] };
+
+const SIDES: Side[] = ["left", "center", "right"];
+const NONE: { key: string; title: string }[] = [];
 
 /** The scheme the tokens are drawn in, followed as the theme pin or the OS flips. */
 function useScheme(): "light" | "dark" {
@@ -33,15 +37,15 @@ function useScheme(): "light" | "dark" {
 }
 
 /** The strip's items: asked once, then every `pal://bar/strip`; none while the command is not there, or the page draws no strip. */
-function useStrip(on: boolean): WebStrip["items"] {
-  const [items, setItems] = useState<WebStrip["items"]>([]);
+function useStrip(on: boolean): WebStrip {
+  const [strip, setStrip] = useState<WebStrip>({ items: [] });
   useEffect(() => {
     if (!on) return;
-    invoke<WebStrip>("bar_web_items").then((s) => setItems(s?.items ?? []), () => setItems([]));
-    const un = listen<WebStrip>("pal://bar/strip", (e) => setItems(e.payload?.items ?? []));
+    invoke<WebStrip>("bar_web_items").then((s) => setStrip(s ?? { items: [] }), () => setStrip({ items: [] }));
+    const un = listen<WebStrip>("pal://bar/strip", (e) => setStrip(e.payload ?? { items: [] }));
     return () => { un.then((f) => f()); };
   }, [on]);
-  return items;
+  return strip;
 }
 
 /**
@@ -91,7 +95,9 @@ const strip = embed?.kind !== "panel", panel = embed?.kind !== "bar";
 
 export default function RemoteShell() {
   const scheme = useScheme();
-  const items = useStrip(strip);
+  const { items, all = NONE } = useStrip(strip);
+  const [hidden, setHidden] = useState(() => hiddenKeys(new URLSearchParams(location.search).get("hide")));
+  const onHide = useCallback((keys: string[]) => setHidden(new Set(keys)), []);
   useViewportHeight();
   const touch = useMemo(touchFirst, []);
   const narrow = useMedia(NARROW);
@@ -144,18 +150,18 @@ export default function RemoteShell() {
     return () => window.removeEventListener("keydown", esc);
   }, [sheet, close, embed]);
 
-  useEmbedShell(embed, { app, sheet, height, close, scheme });
+  useEmbedShell(embed, { app, sheet, height, close, scheme, onHide, all });
   const remote = useMemo<AppRemote>(() => ({ touch, narrow, onGlance: glance, onLayers: setPanelLayers, handle: app, home: embed?.palette, onPick: embed ? (item, action) => emitHost("pick", picked(item, action)) : undefined, onDismiss: embed ? (reason) => emitHost("dismiss", { reason }) : undefined }), [touch, narrow, glance]);
   /** A mouse wheel scrolls a strip wider than the page sideways, as a trackpad does. */
   const sideways = (e: WheelEvent<HTMLDivElement>) => { if (!e.deltaX && e.deltaY) e.currentTarget.scrollLeft += e.deltaY; };
-  const shaped = items.map((it) => { const look = { ...defaultLook, ...it.look }; return { key: it.key, look, item: shapeItem(it.item, look) }; }).filter((it) => !it.item.hidden);
+  const shaped = bySide(items.filter((it) => !hidden.has(it.key)).map((it) => { const look = { ...defaultLook, ...it.look }; return { key: it.key, look, position: it.position, item: shapeItem(it.item, look) }; }).filter((it) => !it.item.hidden));
 
   return (
     <div className="pal-remote" data-sheet={sheet ? "" : undefined}>
       {strip && <header className="pal-remote__top">
         <div className="g-bar pal-remote__strip" data-theme={scheme} role="toolbar" aria-label="Bar items" onWheel={sideways}>
           <div className="g-mb pal-remote__items">
-            {shaped.map(({ key, look, item }) => (
+            {SIDES.map((side) => <div key={side} className="pal-remote__side" data-side={side}>{shaped[side].map(({ key, look, item }) => (
               <button
                 key={key}
                 type="button"
@@ -167,7 +173,7 @@ export default function RemoteShell() {
               >
                 <MenubarItem item={item} look={look} dark={scheme === "dark"} />
               </button>
-            ))}
+            ))}</div>)}
           </div>
         </div>
         <span className="pal-remote__link" aria-hidden title="Reconnecting to pal" />

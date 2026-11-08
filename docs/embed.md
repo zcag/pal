@@ -57,9 +57,14 @@ Or from a bundler: `npm i @zcag/pal-web`, then `import "@zcag/pal-web"`.
 the panel in the app leaves it at its start instead. Its height is yours
 (440px unless you style it).
 
-**`<pal-bar>`**: the bar's items as a strip, live. A click opens the
-item's popover under it, drawn over your page; the element keeps its own
-height (36px), and a click outside the popover or Escape closes it.
+**`<pal-bar>`**: the bar's items as a quiet strip, live, each item on the
+side its `position` in `[bar.items]` says (`left`; `center`, or
+sketchybar's `q` and `e` either side of the notch; anything else on the
+right, as the menu bar draws it), in its `order`. A strip wider than the
+element scrolls sideways (a mouse wheel too). The element's height is the
+strip's, which pal tells it (26px today), so your page needs no number.
+A click opens the item's popover under it, drawn over your page, and a
+click outside the popover or Escape closes it.
 
 | attribute | on | what |
 | --- | --- | --- |
@@ -69,6 +74,7 @@ height (36px), and a click outside the popover or Escape closes it.
 | `theme` | both | `light` or `dark` over pal's own theme. |
 | `links` | both | `host`: a URL a pick opens is only told (`pal-open`), for your app to open; otherwise pal opens it in a new tab and still tells. |
 | `transparent` | panel | The panel draws no background of its own. |
+| `hide` | bar | Item keys, comma-separated, as `pal bar list` prints them (`hide="dpi/bypass,audio/volume"`), that leave the strip; any other item, a new one included, shows. Changing it applies at once, without reloading the frame. |
 
 | method | on | what |
 | --- | --- | --- |
@@ -88,6 +94,7 @@ Events are `CustomEvent`s that bubble out of the element, with this `detail`:
 | `pal-open` | `{ url }`: a URL a pick opens. |
 | `pal-bar-open` | `{ key, title }`: an item's popover opened. |
 | `pal-bar-close` | `{}`: it closed. |
+| `pal-bar-items` | `[{ key, title }]`: every item the bar has, those `hide` leaves out included, once the strip is up and again whenever the set changes; for a picker that writes `hide`. |
 | `pal-dismiss` | `{ reason: "escape" \| "pick" }`: where the app would hide pal. `escape`: Escape with nothing left to back out of (a level, the query, the actions), or in `<pal-bar>` with no sheet open; `pick`: a pick that hides the panel (a copy, an open). A host showing pal in an overlay closes it. |
 
 What a pick does on the machine (pasting, moving windows, opening a file
