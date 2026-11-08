@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.18.0 · 2026-11-08
+
+- **pal in a browser**: turn on Settings › General › Remote and open pal from your phone or another computer, running against the machine it is on: the panel as the home screen, your bar items as a strip on top with their popovers as sheets, Settings, and the games. What you copy and the links you open land on the device in your hand; pasting, windows and files act on the machine. Your own tailnet devices get in as they are, anything else signs in once with a token, and it can sit behind a name like `https://pal.lan`. Add it to your phone's home screen to use it as an app.
+- **Bar items on Linux**: they draw on a browser page's strip, so a Linux pal's bar items are there to use for the first time.
+- **pal inside your web app**: `<pal-panel>` and `<pal-bar>` from `@zcag/pal-web` put your palettes and bar items in a site you allow under Settings › General › Remote, with what you pick, copy and open handed to the page.
+- **Spotify plays on the TV**: T in the Now Playing view (⌘T on its row) moves the playback to a TV on the device list, or opens Spotify on the Apple TV first; the lyrics view opened from the commands follows the song.
+- **Fixed: a tap on a touch screen ran the highlighted row** instead of the one tapped.
+- **Fixed: the microphone item failed when no input was the default**; its popover now lists the inputs to pick from.
+- **Fixed: Hyprland 0.57** windows and displays (window verbs and arranging monitors), and an Apple TV start time past an hour reading 62:05.
+
 ## 0.17.4 · 2026-10-27
 
 - **Samsung TV, one remote over everything the TV tells**: the input on screen is lit and a chip jumps straight to HDMI 1–4 (you can name them), the sound output is a row of chips (TV Speaker, Q-Symphony, the soundbar) with Reconnect sound (⇧S) for when the soundbar goes quiet, the volume slider works on a soundbar too, and V opens a Picture page with the modes and sliders. W opens the copied link on the TV. It pairs the TV's IP Control once, with a second Allow on the TV.
