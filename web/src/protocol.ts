@@ -19,6 +19,12 @@ export type EmbedEvents = {
   /** A bar item's popover opened or closed (`<pal-bar>`). */
   "bar-open": { key: string; title: string };
   "bar-close": Record<string, never>;
+  /**
+   * The app would hide pal here: Escape with nothing left to back out of
+   * (`escape`, also `<pal-bar>`'s with no sheet open), or a pick that hides
+   * the panel (`pick`). A host showing pal in an overlay closes it.
+   */
+  dismiss: { reason: "escape" | "pick" };
 };
 
 /** Host to pal. */

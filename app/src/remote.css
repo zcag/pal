@@ -46,7 +46,7 @@ html[data-remote="offline"] .pal-remote__link { opacity: 1; transform: none; ani
 @media (min-width: 760px) and (min-height: 560px) {
   html[data-shell="remote"] body { background: var(--pal-bg-sunken); }
   .pal-remote__top { height: 32px; background: var(--pal-bg-glass); -webkit-backdrop-filter: var(--pal-backdrop); backdrop-filter: var(--pal-backdrop); border-bottom: 1px solid var(--pal-line); }
-  .pal-remote__items.g-mb { justify-content: flex-end; }
+  .pal-remote__items.g-mb { justify-content: safe flex-end; }
   .pal-remote__strip.g-bar { mask-image: none; }
   .pal-remote__item { height: 26px; }
   .pal-remote__settings { width: 28px; height: 28px; }

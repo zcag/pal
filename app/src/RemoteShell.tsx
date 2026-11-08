@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type WheelEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import App, { type AppRemote, type EmbedHandle } from "./App";
@@ -133,20 +133,27 @@ export default function RemoteShell() {
   useEffect(() => { if (!sheet) setHeight(null); }, [sheet]);
   const scaled = fit.scale < 1 ? { width: POPOVER_W, height: `${100 / fit.scale}%`, transform: `scale(${fit.scale})`, transformOrigin: "0 0" } : undefined;
   useEffect(() => {
-    if (!sheet) return;
+    if (!sheet) {
+      if (embed?.kind !== "bar") return;
+      const esc = (e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); emitHost("dismiss", { reason: "escape" }); } };
+      window.addEventListener("keydown", esc);
+      return () => window.removeEventListener("keydown", esc);
+    }
     const esc = (e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); close(); } };
     window.addEventListener("keydown", esc);
     return () => window.removeEventListener("keydown", esc);
-  }, [sheet, close]);
+  }, [sheet, close, embed]);
 
   useEmbedShell(embed, { app, sheet, height, close, scheme });
-  const remote = useMemo<AppRemote>(() => ({ touch, narrow, onGlance: glance, onLayers: setPanelLayers, handle: app, home: embed?.palette, onPick: embed ? (item, action) => emitHost("pick", picked(item, action)) : undefined }), [touch, narrow, glance]);
+  const remote = useMemo<AppRemote>(() => ({ touch, narrow, onGlance: glance, onLayers: setPanelLayers, handle: app, home: embed?.palette, onPick: embed ? (item, action) => emitHost("pick", picked(item, action)) : undefined, onDismiss: embed ? (reason) => emitHost("dismiss", { reason }) : undefined }), [touch, narrow, glance]);
+  /** A mouse wheel scrolls a strip wider than the page sideways, as a trackpad does. */
+  const sideways = (e: WheelEvent<HTMLDivElement>) => { if (!e.deltaX && e.deltaY) e.currentTarget.scrollLeft += e.deltaY; };
   const shaped = items.map((it) => { const look = { ...defaultLook, ...it.look }; return { key: it.key, look, item: shapeItem(it.item, look) }; }).filter((it) => !it.item.hidden);
 
   return (
     <div className="pal-remote" data-sheet={sheet ? "" : undefined}>
       {strip && <header className="pal-remote__top">
-        <div className="g-bar pal-remote__strip" data-theme={scheme} role="toolbar" aria-label="Bar items">
+        <div className="g-bar pal-remote__strip" data-theme={scheme} role="toolbar" aria-label="Bar items" onWheel={sideways}>
           <div className="g-mb pal-remote__items">
             {shaped.map(({ key, look, item }) => (
               <button

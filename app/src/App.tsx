@@ -35,6 +35,8 @@ export type AppRemote = {
   onPick?: (item: Item, action?: string) => void;
   /** A glance card opened: the item's sheet on the page, not the popover on the machine. */
   onGlance: (key: string, line?: number) => void;
+  /** Where the app would hide the panel (App `hide`): Escape at the root, or a pick that hides. An embed tells its host. */
+  onDismiss?: (reason: "escape" | "pick") => void;
   /** Too narrow for the panel's layout (a phone): no detail pane beside the list (Launcher `narrow`). */
   narrow: boolean;
 };
@@ -45,8 +47,11 @@ export default function App({ remote }: { remote?: AppRemote }) {
   const start = remote?.home;
   const reset = useCallback(() => { launcher.current?.reset(); if (start) launcher.current?.open(start); }, [start]);
   const hide = useCallback(() => { if (home) reset(); else invoke("hide"); }, [home, reset]);
+  const dismiss = remote?.onDismiss;
+  const escaped = useCallback(() => { dismiss?.("escape"); hide(); }, [dismiss, hide]);
+  const picked = useCallback(() => { dismiss?.("pick"); hide(); }, [dismiss, hide]);
   useImperativeHandle(remote?.handle, () => ({ back: () => launcher.current?.back(), open: (p) => launcher.current?.open(p), type: (q) => launcher.current?.type(q), focus: () => launcher.current?.focus(true), reset }), [reset]);
-  const { sources, version, bump, showing, search, inline, fallback, lateFallback, suggest, history, dialog, forget, detail, view, pick: corePick, refresh } = useCore(hide);
+  const { sources, version, bump, showing, search, inline, fallback, lateFallback, suggest, history, dialog, forget, detail, view, pick: corePick, refresh } = useCore(picked);
   const told = remote?.onPick;
   const pick = useCallback<LauncherProps["onPick"]>((item, query, action, ctx) => { told?.(item, action); return corePick(item, query, action, ctx); }, [corePick, told]);
   const prefs = usePrefs();
@@ -164,7 +169,7 @@ export default function App({ remote }: { remote?: AppRemote }) {
 
   return (
     <>
-      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} lateFallback={lateFallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} onViewOpen={viewOpen} surface={surface} onCompact={() => invoke("settings_set", { key: "general.compact", value: !prefs.compact }).catch(() => {})} onPanelMode={(palette, mode) => invoke<PanelMode>("panel_mode", { palette, mode })} onPanelFit={panelFit} onHoldDrawn={() => invoke("panel_reveal").catch(() => {})} glance={glance} onGlance={remote?.onGlance ?? glanceOpen} missing={missingInfo} onInstallMissing={installMissing} onOpened={opened} asking={!!ask} touch={remote?.touch} narrow={remote?.narrow} onLayers={remote?.onLayers} />
+      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} lateFallback={lateFallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={escaped} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} onViewOpen={viewOpen} surface={surface} onCompact={() => invoke("settings_set", { key: "general.compact", value: !prefs.compact }).catch(() => {})} onPanelMode={(palette, mode) => invoke<PanelMode>("panel_mode", { palette, mode })} onPanelFit={panelFit} onHoldDrawn={() => invoke("panel_reveal").catch(() => {})} glance={glance} onGlance={remote?.onGlance ?? glanceOpen} missing={missingInfo} onInstallMissing={installMissing} onOpened={opened} asking={!!ask} touch={remote?.touch} narrow={remote?.narrow} onLayers={remote?.onLayers} />
       {panel && createPortal(<Presence show={!!ask}>{ask && <Confirm title={ask.title} message={ask.message} action={ask.ok} onConfirm={() => answer(true)} onCancel={() => answer(false)} />}</Presence>, panel)}
     </>
   );

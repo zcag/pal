@@ -15,7 +15,8 @@ html[data-embed][data-transparent] .pal-remote__main > .pal-panel { background: 
 
 html[data-embed="bar"] .pal-remote__top { height: 36px; padding: 0; background: none; border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
 html[data-embed="bar"] .pal-remote__strip.g-bar { mask-image: none; }
-html[data-embed="bar"] .pal-remote__items.g-mb { background: none; }
+/* The menu bar's side whatever the frame's height (it grows under an open sheet, which would flip the media query in remote.css); `safe` keeps a strip wider than the frame scrollable from its first item. */
+html[data-embed="bar"] .pal-remote__items.g-mb { background: none; justify-content: safe flex-end; }
 html[data-embed="bar"] .pal-remote__item { height: 28px; }
 html[data-embed="bar"] .pal-remote-sheet__scrim { background: transparent; animation: none; }
 html[data-embed="bar"] .pal-remote-sheet__card {

@@ -88,6 +88,7 @@ Events are `CustomEvent`s that bubble out of the element, with this `detail`:
 | `pal-open` | `{ url }`: a URL a pick opens. |
 | `pal-bar-open` | `{ key, title }`: an item's popover opened. |
 | `pal-bar-close` | `{}`: it closed. |
+| `pal-dismiss` | `{ reason: "escape" \| "pick" }`: where the app would hide pal. `escape`: Escape with nothing left to back out of (a level, the query, the actions), or in `<pal-bar>` with no sheet open; `pick`: a pick that hides the panel (a copy, an open). A host showing pal in an overlay closes it. |
 
 What a pick does on the machine (pasting, moving windows, opening a file
 or an app) still happens there, as on the remote page
