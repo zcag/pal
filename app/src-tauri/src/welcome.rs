@@ -264,14 +264,8 @@ pub async fn pick(app: &AppHandle, id: &str, window: &str) -> Result<Value, Stri
     let data = data_dir(app);
     match id {
         // Straight to the recorder, not the Overview: the row promised the hotkey.
-        HOTKEY => {
-            settings::open_at(app, Some("shortcuts"), Some("shortcuts:hotkey"));
-            Ok(json!({ "hide": true }))
-        }
-        SWITCHER | SIDEBAR => {
-            settings::open_at(app, Some("features"), Some(if id == SWITCHER { "features:switcher" } else { "features:sidebar" }));
-            Ok(json!({ "hide": true }))
-        }
+        HOTKEY => Ok(settings::open_for(app, window, Some("shortcuts"), Some("shortcuts:hotkey"))),
+        SWITCHER | SIDEBAR => Ok(settings::open_for(app, window, Some("features"), Some(if id == SWITCHER { "features:switcher" } else { "features:sidebar" }))),
         EXTENSIONS => effects::apply_from(app, json!({ "open": EXTENSIONS_GUIDE }), window).await,
         PICK => effects::apply_from(app, crate::store::store_envelope(app), window).await,
         GITHUB => effects::apply_from(app, json!({ "open": REPO }), window).await,

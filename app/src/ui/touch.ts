@@ -1,8 +1,22 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { isRemote } from "../remote";
 
 /** A remote page on a touch screen (its main pointer a finger): rows take long presses and carry an actions button, and nothing raises the keyboard unasked. Never inside the app. */
 export const touchFirst = () => isRemote() && typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+
+/** Whether the media query matches, followed as it changes. */
+export function useMedia(query: string): boolean {
+  const [on, setOn] = useState(() => typeof matchMedia === "function" && matchMedia(query).matches);
+  useEffect(() => {
+    if (typeof matchMedia !== "function") return;
+    const mq = matchMedia(query);
+    const read = () => setOn(mq.matches);
+    read();
+    mq.addEventListener("change", read);
+    return () => mq.removeEventListener("change", read);
+  }, [query]);
+  return on;
+}
 
 /** Whether a field may take focus on its own: with a keyboard at hand, not where it would raise a phone's. */
 export const typesFirst = () => !touchFirst();

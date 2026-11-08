@@ -1,6 +1,7 @@
 import { useState } from "react";
 import iconUrl from "../../design/icon.svg";
 import { relativeDate } from "./format";
+import { copyText } from "../remote";
 import { ArmedButton, SettingsGroup, SettingsRow } from "./SettingsField";
 import type { SettingsIndexEntry } from "./SettingsTypes";
 
@@ -98,28 +99,12 @@ export const aboutIndex: SettingsIndexEntry[] = [
   { page: "about", label: "Licences", hint: "About", anchor: "about:licences" },
 ];
 
-/** The clipboard, on a click: the async API first, the selection command where a webview refuses it. */
-export function copyText(text: string) {
-  const fallback = () => {
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.setAttribute("readonly", "");
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    try { document.execCommand("copy"); } finally { ta.remove(); }
-  };
-  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(fallback);
-  else fallback();
-}
-
 /** One report's row: when, what, and the actions (open, reveal, copy the path). */
 function ReportRow({ label, which, at, what, path, onOpen, onReveal }: { label: string; which: ReportKind; at: number; what: string; path?: string; onOpen?: (which: ReportKind) => void; onReveal?: (which: ReportKind) => void }) {
   const [copied, setCopied] = useState(false);
   const copy = () => {
     if (!path) return;
-    copyText(path);
+    void copyText(path);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
@@ -159,7 +144,7 @@ export function SettingsAbout({ version, file, links, onCheckUpdates, extensionU
   const copyDiagnostics = async () => {
     if (!diagnosticsText) return;
     try {
-      copyText(await diagnosticsText());
+      void copyText(await diagnosticsText());
       setCopied("done");
     } catch {
       setCopied("failed");

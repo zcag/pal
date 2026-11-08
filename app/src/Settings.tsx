@@ -724,7 +724,7 @@ export default function Settings() {
   return (
     <LocalKeys.Provider value={isLocal}>
     <AbsentKeys.Provider value={isAbsent}>
-    <SettingsWindow page={page} onPage={setPage} aside={aside} index={index} onJump={onJump} diagnostics={view.diagnostics} file={fileName} onOpenDiagnostic={() => invoke("settings_open_file").catch(fail)} mac={isMac} attention={attention}>
+    <SettingsWindow page={page} onPage={setPage} aside={aside} index={index} onJump={onJump} diagnostics={view.diagnostics} file={fileName} onOpenDiagnostic={() => invoke("settings_open_file").catch(fail)} mac={isMac} attention={attention} inner={page === "extensions" && ext ? () => setExt(undefined) : page === "bar" && barKey ? () => setBarKey(undefined) : undefined}>
       {page === "overview" && (
         <SettingsOverview
           version={view.version}

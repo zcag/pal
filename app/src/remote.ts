@@ -18,7 +18,7 @@ type Reply = { resolve: (v: unknown) => void; reject: (e: unknown) => void };
 type Incoming = { id: number; ok?: unknown; err?: unknown } | { event: string; target: string | null; payload: unknown };
 
 /** The effects a remote pick hands the device (`effects::split_for_device`). */
-export type ClientEffects = { copy?: string | { text: string }; open?: string[]; hud?: string; large_type?: string };
+export type ClientEffects = { copy?: string | { text: string }; open?: string[]; hud?: string; large_type?: string; settings?: { page?: string | null; anchor?: string | null } };
 
 /** Which page this document is, as the shell names a remote one: `main`, `bar` or `settings`. */
 export function pageOf(search: string): "main" | "bar" | "settings" {
@@ -116,6 +116,7 @@ export function install(): void {
     for (const url of client.open ?? []) openUrl(url);
     if (client.hud !== undefined) deliver("pal://hud", null, { text: client.hud });
     if (client.large_type !== undefined) deliver("pal://large", null, { text: client.large_type });
+    if (client.settings) settingsAt(client.settings.page, client.settings.anchor);
   };
 
   const onMessage = (msg: Incoming) => {
@@ -163,6 +164,15 @@ export function install(): void {
   });
 
   const nav = (search: string) => { location.search = search; };
+  /** This pal's Settings, on `page` at `anchor`: in the tab the page is in, or a new one for a page framed by another site. */
+  const settingsAt = (page?: string | null, anchor?: string | null) => {
+    const q = new URLSearchParams({ settings: "" });
+    if (page) q.set("page", page);
+    if (anchor) q.set("anchor", anchor);
+    const ours = (() => { try { return window.top!.location.origin === location.origin ? window.top! : null; } catch { return null; } })();
+    if (ours) ours.location.href = `/?${q}`;
+    else window.open(`/?${q}`, "_blank", "noopener");
+  };
   const openUrl = (url: string) => { if (!device.open?.(url)) window.open(url, "_blank", "noopener"); };
   /** Commands that move the calling window: the window is the browser tab here, so the page answers them. */
   const PAGE_COMMANDS: Record<string, (args: Record<string, unknown>) => unknown> = {
@@ -170,7 +180,7 @@ export function install(): void {
     panel_fit: () => null,
     panel_reveal: () => null,
     large_hide: () => null,
-    settings_open: () => nav("?settings"),
+    settings_open: () => settingsAt(),
     settings_close: () => (history.length > 1 ? history.back() : nav("")),
     settings_open_link: ({ url }) => {
       if (!/^https?:\/\//.test(String(url))) throw new Error(`not a web link: ${url}`);

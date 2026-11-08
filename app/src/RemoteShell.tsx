@@ -12,7 +12,7 @@ import { isSheetMessage, sheetSrc } from "./sheet";
 import { schemeInForce } from "./theme";
 import { Presence } from "./ui";
 import { MenubarItem, defaultLook, shapeItem, type BarLook, type BarStripItem } from "./ui/BarStrip";
-import { touchFirst } from "./ui/touch";
+import { touchFirst, useMedia } from "./ui/touch";
 import { POPOVER_W } from "./ui/popover-size";
 
 /** `bar_web_items` and `pal://bar/strip`: the bar's items as the web target draws them, in order. */
@@ -59,18 +59,6 @@ function useSheetScale() {
     ro.current.observe(el);
   }, []);
   return { ref, scale: Math.min(1, room / POPOVER_W) };
-}
-
-/** Whether `query` matches, followed as it changes. */
-function useMedia(query: string) {
-  const [on, setOn] = useState(() => matchMedia(query).matches);
-  useEffect(() => {
-    const mq = matchMedia(query);
-    const read = () => setOn(mq.matches);
-    mq.addEventListener("change", read);
-    return () => mq.removeEventListener("change", read);
-  }, [query]);
-  return on;
 }
 
 /** The page's height as the keyboard leaves it: iOS keeps the layout viewport and shrinks only the visual one. */

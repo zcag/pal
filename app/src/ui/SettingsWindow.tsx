@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { SettingsDiagnostics } from "./SettingsDiagnostics";
 import { isMac } from "./keys";
+import { useMedia } from "./touch";
+import { historyLayers } from "../remote-history";
 import type { Diagnostic, SettingsIndexEntry, SettingsPage } from "./SettingsTypes";
 
 /* The tab icons: 18px line drawings on the toolbar, one per page. */
@@ -47,23 +49,13 @@ export type SettingsWindowProps = {
   mac?: boolean;
   /** Something on a page needs doing: the Overview tab carries a dot. */
   attention?: number;
+  /** A pane open inside the page (an extension's, a bar item's): on a phone it is a history entry too, and the browser's back closes it with this. */
+  inner?: () => void;
   children: ReactNode;
 };
 
 /** Narrower than this (a phone), the pages are a list to drill into rather than tabs. */
 const NARROW = "(max-width: 640px)";
-
-function useNarrow(): boolean {
-  const [narrow, setNarrow] = useState(() => typeof matchMedia === "function" && matchMedia(NARROW).matches);
-  useEffect(() => {
-    if (typeof matchMedia !== "function") return;
-    const mq = matchMedia(NARROW);
-    const on = () => setNarrow(mq.matches);
-    mq.addEventListener("change", on);
-    return () => mq.removeEventListener("change", on);
-  }, []);
-  return narrow;
-}
 
 /** How long the jumped-to row stays lit. */
 const FLASH_MS = 1600;
@@ -91,7 +83,7 @@ export function flashAnchor(anchor: string): boolean {
  * Keys: `/` focuses the search, cmd+1..9 (ctrl off macOS) switch pages,
  * arrows move the tabs and the hits, Escape clears the search.
  */
-export function SettingsWindow({ page, onPage, aside, index = [], onJump, diagnostics = [], file, onOpenDiagnostic, mac, attention = 0, children }: SettingsWindowProps) {
+export function SettingsWindow({ page, onPage, aside, index = [], onJump, diagnostics = [], file, onOpenDiagnostic, mac, attention = 0, inner, children }: SettingsWindowProps) {
   const [query, setQuery] = useState("");
   const tabs = useRef<HTMLDivElement>(null);
   const results = useRef<HTMLDivElement>(null);
@@ -101,25 +93,26 @@ export function SettingsWindow({ page, onPage, aside, index = [], onJump, diagno
   const hits = q ? index.filter((e) => { const hay = `${e.label} ${e.hint ?? ""} ${e.keywords ?? ""} ${pageTitle(e.page)}`.toLowerCase(); return words.every((w) => hay.includes(w)); }).slice(0, 30) : [];
   const current = settingsPages.find((p) => p.id === page) ?? settingsPages[0];
 
-  // Narrow, the pages are a list; a page opened from it is a history entry, so the browser's back is the list again.
-  const narrow = useNarrow();
-  const [listing, setListing] = useState(true);
-  const drilled = useRef(false);
+  // Narrow, the pages are a list; a page opened from it, and a pane opened inside that, are history entries, so the browser's back is one step up. A window opened on a page (`?page=`) starts on it.
+  const narrow = useMedia(NARROW);
+  const [listing, setListing] = useState(() => typeof location === "undefined" || !new URLSearchParams(location.search).has("page"));
+  const layers = useMemo(() => historyLayers({ push: () => history.pushState({ settings: true }, ""), go: (n) => history.go(n) }), []);
+  const close = useRef(inner);
+  close.current = inner;
+  useEffect(() => { if (narrow) layers.sync((listing ? 0 : 1) + (!listing && inner ? 1 : 0)); }, [narrow, layers, listing, !!inner]);
   useEffect(() => {
     if (!narrow) return;
-    const back = () => { drilled.current = false; setListing(true); };
+    const back = () => { if (!layers.popped()) return; if (close.current) close.current(); else setListing(true); };
     window.addEventListener("popstate", back);
     return () => window.removeEventListener("popstate", back);
-  }, [narrow]);
+  }, [narrow, layers]);
   const open = (p: SettingsPage) => {
     onPage(p);
     if (!narrow || !listing) return;
-    history.pushState({ settings: p }, "");
-    drilled.current = true;
     setListing(false);
     content.current?.querySelector(".pal-settings-page")?.scrollTo(0, 0);
   };
-  const up = () => (drilled.current ? history.back() : setListing(true));
+  const up = () => setListing(true);
   const content = useRef<HTMLDivElement>(null);
 
   // The jump's landing: the page renders on the next commit, so the flash

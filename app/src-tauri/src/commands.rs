@@ -615,14 +615,8 @@ pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, values: Optio
     }
     let hide = || Ok(json!({ "hide": true }));
     match plan(id, action, values) {
-        Plan::Settings(page) => {
-            settings::open_page(app, page);
-            hide()
-        }
-        Plan::SettingsExtension(key) => {
-            settings::open_at(app, Some("extensions"), Some(&format!("extensions:{key}")));
-            hide()
-        }
+        Plan::Settings(page) => Ok(settings::open_for(app, window, page, None)),
+        Plan::SettingsExtension(key) => Ok(settings::open_for(app, window, Some("extensions"), Some(&format!("extensions:{key}")))),
         Plan::Open(url) => effects::apply_from(app, json!({ "open": url }), window).await,
         Plan::WhatsNew => effects::apply_from(app, json!({ "open": changelog_url(&app.package_info().version.to_string()) }), window).await,
         Plan::Store => {

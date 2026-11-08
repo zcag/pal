@@ -582,6 +582,17 @@ pub fn open_page(app: &AppHandle, page: Option<&str>) {
     open_at(app, page, None);
 }
 
+/// [`open_at`] for the page a pick came from, as the envelope it answers:
+/// a remote page opens its own Settings (`client.settings`, remote.ts),
+/// never the window on this machine.
+pub fn open_for(app: &AppHandle, window: &str, page: Option<&str>, anchor: Option<&str>) -> Value {
+    if crate::remote::is_remote(window) {
+        return json!({ "client": { "settings": { "page": page, "anchor": anchor } } });
+    }
+    open_at(app, page, anchor);
+    json!({ "hide": true })
+}
+
 /// [`open_page`] landing on `anchor`, a row's `data-anchor` on that page
 /// (`extensions:hello`): the page selects what it names and lights the
 /// row, as a search hit does.

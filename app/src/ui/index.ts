@@ -46,7 +46,7 @@ export { SettingsGroups, groupsIndex, isDevice, nextTitle, bindingsOnJoin, type 
 export { SettingsExtensions, extensionsIndex, byName, forgetText } from "./SettingsExtensions";
 export { needsOf, browseRows, registryLine, refsLine, originLine, statusText, buildLine, toMs, type ExtensionsStore, type Need } from "./SettingsStore";
 export { SettingsBar, barIndex, BAR_DEFAULTS } from "./SettingsBar";
-export { SettingsAbout, aboutIndex, copyText, installing, progressLine, type CrashReport, type PanicReport, type ReportKind, type UpdateInfo, type UpdateProgress } from "./SettingsAbout";
+export { SettingsAbout, aboutIndex, installing, progressLine, type CrashReport, type PanicReport, type ReportKind, type UpdateInfo, type UpdateProgress } from "./SettingsAbout";
 export { SettingsList, type SettingsListItem } from "./SettingsList";
 export { SettingsField, SettingsRow, SettingsGroup, SettingsDivider, SettingsDisclosure, SettingsSwitch, SettingsHotkey, SettingsSegment, SettingsSelect, LocalKeys, AbsentKeys, LocalNote, localMatcher, keySegments, quoteKey } from "./SettingsField";
 export { SettingsAccount, accountIndex, byDay, summary, type AccountState, type AccountDevice, type SyncRev, type RestoreTarget, type SettingsAccountProps } from "./SettingsAccount";
