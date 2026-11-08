@@ -167,6 +167,7 @@ fn apply(app: &AppHandle, remote: &pal_core::config::Remote) {
         .route("/__pal/ws", get(socket))
         .route("/__icon/{*rest}", get(icon))
         .route("/__ext/{*rest}", get(ext))
+        .route("/__pal/{*rest}", get(kit))
         .fallback(get(asset))
         .with_state(ctx);
     let task = tauri::async_runtime::spawn(async move {
@@ -422,10 +423,28 @@ fn frontend(app: &AppHandle, path: &str) -> Option<(String, Vec<u8>)> {
 
 /// `/__icon/<rest>` and `/__ext/<rest>` as the scheme `icon://localhost/<rest>`
 /// or `ext://localhost/<rest>` answers them.
-async fn scheme(ctx: &Ctx, peer: SocketAddr, headers: &HeaderMap, uri: &Uri, name: &str) -> Result<tauri::http::Request<Vec<u8>>, Refusal> {
+/// The request a scheme handler takes for `/<prefix>/<rest>`: `<to><rest>`.
+async fn scheme(ctx: &Ctx, peer: SocketAddr, headers: &HeaderMap, uri: &Uri, prefix: &str, to: &str) -> Result<tauri::http::Request<Vec<u8>>, Refusal> {
     gate(ctx, peer, headers, None).await?;
-    let rest = uri.path_and_query().map_or("", |p| p.as_str()).trim_start_matches(&format!("/__{name}/"));
-    tauri::http::Request::builder().uri(format!("{name}://localhost/{rest}")).body(Vec::new()).map_err(|_| Box::new(StatusCode::BAD_REQUEST.into_response()))
+    let rest = uri.path_and_query().map_or("", |p| p.as_str()).trim_start_matches(prefix);
+    tauri::http::Request::builder().uri(format!("{to}{rest}")).body(Vec::new()).map_err(|_| Box::new(StatusCode::BAD_REQUEST.into_response()))
+}
+
+/// `ext://`'s form with the extension as the first segment (`surface::target`).
+const EXT_BASE: &str = "http://ext.localhost/";
+
+/// A surface's answer with its CSP naming the page's real origin: the
+/// frame is sandboxed, so `'self'` matches nothing and the origin is
+/// spelled out, which over HTTP is this server's (`surface::csp`).
+fn surface_response(r: tauri::http::Response<Vec<u8>>, headers: &HeaderMap) -> Response {
+    let mut r = convert(r);
+    let proto = headers.get("x-forwarded-proto").and_then(|h| h.to_str().ok()).unwrap_or("http");
+    let host = headers.get(header::HOST).and_then(|h| h.to_str().ok()).unwrap_or_default();
+    let csp = r.headers().get(header::CONTENT_SECURITY_POLICY).and_then(|v| v.to_str().ok()).map(|v| v.replace(EXT_BASE.trim_end_matches('/'), &format!("{proto}://{host}")));
+    if let Some(v) = csp.and_then(|v| HeaderValue::from_str(&v).ok()) {
+        r.headers_mut().insert(header::CONTENT_SECURITY_POLICY, v);
+    }
+    r
 }
 
 fn convert(r: tauri::http::Response<Vec<u8>>) -> Response {
@@ -434,7 +453,7 @@ fn convert(r: tauri::http::Response<Vec<u8>>) -> Response {
 }
 
 async fn icon(State(ctx): State<Ctx>, ConnectInfo(peer): ConnectInfo<SocketAddr>, headers: HeaderMap, uri: Uri) -> Response {
-    match scheme(&ctx, peer, &headers, &uri, "icon").await {
+    match scheme(&ctx, peer, &headers, &uri, "/__icon/", "icon://localhost/").await {
         Ok(req) => {
             let app = ctx.app.clone();
             tauri::async_runtime::spawn_blocking(move || convert(crate::icon::respond(&app, &req))).await.unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
@@ -443,9 +462,21 @@ async fn icon(State(ctx): State<Ctx>, ConnectInfo(peer): ConnectInfo<SocketAddr>
     }
 }
 
+/// `/__ext/<extension>/<path>`: an extension's surface files. Over HTTP every
+/// surface shares this origin, so a page's `/__ext/<name>/` of a required
+/// extension reaches it by name like any other.
 async fn ext(State(ctx): State<Ctx>, ConnectInfo(peer): ConnectInfo<SocketAddr>, headers: HeaderMap, uri: Uri) -> Response {
-    match scheme(&ctx, peer, &headers, &uri, "ext").await {
-        Ok(req) => convert(crate::surface::respond(&ctx.app, &req).await),
+    match scheme(&ctx, peer, &headers, &uri, "/__ext/", EXT_BASE).await {
+        Ok(req) => surface_response(crate::surface::respond(&ctx.app, &req).await, &headers),
+        Err(r) => *r,
+    }
+}
+
+/// `/__pal/<path>`: the surface kit, which a surface page asks for at its
+/// origin's root (`/__pal/surface.js`, `/__pal/tokens.css`).
+async fn kit(State(ctx): State<Ctx>, ConnectInfo(peer): ConnectInfo<SocketAddr>, headers: HeaderMap, uri: Uri) -> Response {
+    match scheme(&ctx, peer, &headers, &uri, "/", EXT_BASE).await {
+        Ok(req) => surface_response(crate::surface::respond(&ctx.app, &req).await, &headers),
         Err(r) => *r,
     }
 }

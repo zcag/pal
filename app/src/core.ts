@@ -11,6 +11,7 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { FALLBACK, NOW, mergeDetail, sourceKey, staysOpen, toItem, toLiveHits, toView, type Ctx, type Effect, type Source, type SourceInfo, type WireHit, type WireItem } from "./items";
 import type { Hit } from "./ui";
+import { schemeBase } from "./ui/icons";
 import { MOUNT_EVENT } from "./ui/View";
 import type { Detail, Item, ViewSpec } from "./ui/types";
 
@@ -63,14 +64,6 @@ export function useLiveViews(launcher: { current: LauncherHandle | null }): (ope
   return useCallback((open: ViewOpen | null) => { invoke("view_open", { open }).catch(() => {}); }, []);
 }
 
-/** The `ext://` scheme's base (surface.rs), derived as `icon://`'s is (ui/icons.ts): `ext://localhost/` on macOS and Linux, `http://ext.localhost/` on Windows. */
-const extBase: string = (() => {
-  try {
-    return window.__TAURI_INTERNALS__?.convertFileSrc?.("", "ext") ?? "ext://localhost/";
-  } catch {
-    return "ext://localhost/";
-  }
-})();
 
 /**
  * A game surface's page and calls (docs/design/game-surface.md): the page
@@ -81,6 +74,7 @@ const extBase: string = (() => {
 export const surface: SurfaceBridge = {
   url: (extension, src) => {
     const name = extension.split("@")[0];
+    const extBase = schemeBase("ext");
     return extBase.startsWith("ext:") ? `ext://${name}/${src}` : `${extBase}${name}/${src}`;
   },
   call: (level, method, data) => invoke<unknown>("host_request", { method: "surface", params: { ...level, call: method, data } }).then((r) => (method === "send" ? (r as { reply?: unknown } | null)?.reply : r)),

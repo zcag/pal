@@ -7,19 +7,26 @@
  * Outside Tauri (the gallery in a plain browser) the requests just fail
  * and the icon falls back.
  */
-const base: string = (() => {
-  const i = window.__TAURI_INTERNALS__;
-  try {
-    return i?.convertFileSrc?.("", "icon") ?? "icon://localhost/";
-  } catch {
-    return "icon://localhost/";
-  }
-})();
+const bases = new Map<string, string>();
 
-export const appIconUrl = (path: string, size: number) => `${base}app?path=${encodeURIComponent(path)}&size=${size}`;
-export const faviconUrl = (url: string, size: number) => `${base}favicon?url=${encodeURIComponent(url)}&size=${size}`;
+/** The base of the app's `scheme` (`icon`, `ext`), asked of `convertFileSrc` on first use: a remote page's stand-in (remote.ts) may be installed after this module loads, since a shared chunk evaluates before the entry's own body. */
+export function schemeBase(scheme: string): string {
+  let b = bases.get(scheme);
+  if (b === undefined) {
+    try {
+      b = window.__TAURI_INTERNALS__?.convertFileSrc?.("", scheme) ?? `${scheme}://localhost/`;
+    } catch {
+      b = `${scheme}://localhost/`;
+    }
+    bases.set(scheme, b);
+  }
+  return b;
+}
+
+export const appIconUrl = (path: string, size: number) => `${schemeBase("icon")}app?path=${encodeURIComponent(path)}&size=${size}`;
+export const faviconUrl = (url: string, size: number) => `${schemeBase("icon")}favicon?url=${encodeURIComponent(url)}&size=${size}`;
 /** One of an installed extension's store screenshots, as is (`<root>/<ext>/screenshots/<file>`). */
-export const screenshotUrl = (ext: string, file: string) => `${base}shot?ext=${encodeURIComponent(ext)}&file=${encodeURIComponent(file)}&size=0`;
+export const screenshotUrl = (ext: string, file: string) => `${schemeBase("icon")}shot?ext=${encodeURIComponent(ext)}&file=${encodeURIComponent(file)}&size=0`;
 
 /**
  * One private-use codepoint (U+E000-F8FF, U+F0000-FFFFD): a Nerd Font glyph,
