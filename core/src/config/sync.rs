@@ -22,7 +22,7 @@ use super::{ConfigFile, Error};
 
 /// Keys (and everything under them) that stay on this machine. `*` is any
 /// one segment. Hotkeys, where the bar draws, the menu bar icon, startup,
-/// usage sharing and paths (theme file, extension dirs); everything else
+/// usage sharing, serving to other devices and paths (theme file, extension dirs); everything else
 /// syncs. Extensions say theirs in the manifest ([`declared_local`]).
 pub const LOCAL: &[&str] = &[
     "general.hotkey",
@@ -43,6 +43,7 @@ pub const LOCAL: &[&str] = &[
     "features.*.hotkeys",
     "features.sidebar.hotkey",
     "features.sidebar.display",
+    "remote",
 ];
 
 /// A dotted key's segments, quotes resolved (`palettes."a.b".enabled` is

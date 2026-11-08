@@ -559,6 +559,26 @@ failed, if it did; Settings and `pal registry list` show both. A check that
 fails (unreachable, a bad signature, an index older than the cached one)
 never replaces the cached copy.
 
+## `[remote]`
+
+pal's panel, bar and Settings served to a browser on another device, a
+phone or another computer, running against this machine (Settings ›
+General › Remote; the design is `docs/design/remote.md`). A page from one
+of your own tailnet devices (Tailscale, the same user as this machine)
+gets in as it is; any other opens the address once with `?token=` and the
+token from Settings, and the browser keeps it. The token lives in pal's
+data folder, not in this file.
+
+| key | type | default | what |
+| --- | --- | --- | --- |
+| `enabled` | bool | `false` | Serve the UI on `port`. |
+| `port` | integer | `7373` | The port, on every address of this machine. |
+
+```toml
+[remote]
+enabled = true
+```
+
 ## `[instances]`
 
 One extension, several configured copies: two GitHub accounts, two Slack
@@ -716,6 +736,7 @@ one key), and Settings marks the rows that set them "this Mac only":
 | `general.extension_dirs`, `general.theme_file` | paths (a theme file's name is looked up in this machine's config dir) |
 | `bar.target`, `bar.sketchybar.position`, `bar.items.*.target`, `bar.items.*.position`, `bar.items.*.rules.*.position` | where the bar draws: sketchybar runs on one machine and not another |
 | `features.sidebar.display` | a display's name |
+| `remote` | serving pal to other devices is one machine's choice, and its port may be taken on another |
 
 On top of the table, an extension's, palette's, bar item's or feature's
 declared setting of kind `hotkey` or `path`, or one that says

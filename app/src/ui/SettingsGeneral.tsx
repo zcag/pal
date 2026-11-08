@@ -1,6 +1,7 @@
 import { Kbd } from "./Kbd";
 import { isMac } from "./keys";
 import { SettingsGroup, SettingsRow, SettingsSegment, SettingsSelect, SettingsSwitch } from "./SettingsField";
+import { SettingsRemote, remoteText, type RemoteProps } from "./SettingsRemote";
 import { SettingsThemeFile, type ThemeFileProps } from "./SettingsTheme";
 import { permissionRows, type ConfigFileInfo, type GeneralConfig, type PermissionId, type PermissionsStatus, type SettingsIndexEntry } from "./SettingsTypes";
 import { relativeDate, shortcutKeys } from "./format";
@@ -26,6 +27,8 @@ export type SettingsGeneralProps = {
   onOpenLink?: (url: string) => void;
   /** The Shortcuts page, where the hotkey and the switcher chord went: the pointer at the top of this one. */
   onOpenShortcuts?: () => void;
+  /** The Remote group (`[remote]`, docs/design/remote.md): `useRemote()` in Settings.tsx; left out without it. */
+  remote?: RemoteProps;
 };
 
 /**
@@ -107,10 +110,11 @@ export const generalIndex: SettingsIndexEntry[] = [
     anchor: r.anchor,
     keywords: `${r.label} ${r.description} ${r.keywords}`,
   })),
+  ...Object.values(remoteText).map((r): SettingsIndexEntry => ({ page: "general", label: r.label, hint: r.hint, anchor: r.anchor, keywords: `${r.label} ${r.description} ${r.keywords}` })),
 ];
 
 /** pal's own settings: how it looks, how it starts, what the OS lets it do, and the file behind all of it; the keys are the Shortcuts page's. */
-export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFile, permissions, onRequestPermission, onOpenOverview, themeFile, glanceItems, onOpenShortcuts, onOpenLink }: SettingsGeneralProps) {
+export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFile, permissions, onRequestPermission, onOpenOverview, themeFile, glanceItems, onOpenShortcuts, onOpenLink, remote }: SettingsGeneralProps) {
   const set = <K extends keyof GeneralConfig>(k: K, v: GeneralConfig[K]) => onChange({ ...value, [k]: v });
   const rows = permissionRows(permissions);
   const missing = rows.filter((r) => r.state === "missing");
@@ -214,6 +218,8 @@ export function SettingsGeneral({ value, onChange, file, onOpenFile, onRevealFil
           </SettingsRow>
         </SettingsGroup>
       )}
+
+      {remote && <SettingsRemote {...remote} />}
 
       <SettingsGroup title="Config file">
         <SettingsRow anchor={text.file.anchor} label={text.file.label} description={<>{text.file.description}{file.changed && <> Last picked up {relativeDate(file.changed)} ago.</>}</>}>

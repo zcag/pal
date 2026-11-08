@@ -94,7 +94,7 @@ pub fn press(app: &AppHandle, source: &Source, mods: Modifiers, back: bool) {
         Some(a) if a.source == *source => {
             if a.shown {
                 drop(active);
-                events::emit(app, events::SWITCH, json!({ "step": step }));
+                events::emit_to(app, crate::WINDOW, events::SWITCH, json!({ "step": step }));
             } else {
                 a.steps += step;
             }
@@ -168,7 +168,7 @@ pub fn commit(app: &AppHandle) {
             tokio::time::sleep(RELIST_TICK).await;
         }
         eprintln!("switcher\tcommit\t{}\twaited {:.0}ms", key_of(&source), t0.elapsed().as_secs_f64() * 1000.0);
-        events::emit(&app, events::SWITCH, json!({ "commit": true }));
+        events::emit_to(&app, crate::WINDOW, events::SWITCH, json!({ "commit": true }));
     });
 }
 

@@ -1097,6 +1097,26 @@
       },
       "type": "object"
     },
+    "Remote": {
+      "additionalProperties": false,
+      "description": "`[remote]`: pal's UI served to a browser on another device\n(`docs/design/remote.md`). Off by default; a page from one of your own\ntailnet devices needs nothing more, any other needs the token, which is\nkept in pal's data folder rather than here (the file syncs and is backed up).",
+      "properties": {
+        "enabled": {
+          "default": false,
+          "description": "Serve the UI on `port`.",
+          "type": "boolean"
+        },
+        "port": {
+          "default": 7373,
+          "description": "The port the UI is served on, on every address of this machine.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
     "Sidebar": {
       "additionalProperties": false,
       "description": "`[sidebar]`: one live palette docked to a screen edge, peeked when the\npointer rests there, engaged by a click, a key or its hotkey; every\nrow numbered so `cmd+N` runs it (`docs/design/switcher.md`). The hover\ntimings are `[bar]`'s. macOS only: read and validated on Linux, nothing\nbuilt.",
@@ -1356,6 +1376,14 @@
       "default": {},
       "description": "Per-palette settings, keyed by palette id.",
       "type": "object"
+    },
+    "remote": {
+      "$ref": "#/$defs/Remote",
+      "default": {
+        "enabled": false,
+        "port": 7373
+      },
+      "description": "Serving pal's UI to a browser on another device (`docs/design/remote.md`)."
     },
     "states": {
       "additionalProperties": {

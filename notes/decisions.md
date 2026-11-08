@@ -2411,3 +2411,12 @@ Cagdas: "when chrome is focused its items are ranked much much higher, so i can 
 - **A manifest field, not a Browser Tabs special case**: `front` (bundle ids) under a palette; Browser Tabs names the browsers. Any palette tied to an app (Slack, Obsidian) can say the same.
 - **Only rows that have the word, but over exact names**: `FRONT_BONUS` (2000) goes on top of the word bonus, above the whole ladder (1775 at most), so in Chrome `github` is the GitHub tab before the GitHub extension. A tab that only scatters the letters gets nothing, so `slack` in Chrome with no Slack tab is still the Slack app. The empty root is untouched.
 - Settings has it as a per-palette switch ("App in front"), `[palettes.<id>] front = false`. No `PROTOCOL` bump: an older app ignores the field, and the extension works the same without it.
+
+## Remote: pal in a browser (2026-11-08)
+
+- The whole UI served to a browser on another device, against the pal that runs there (docs/design/remote.md). The seam is pages-to-shell only: the pal on marko stays the whole pal (core, host, index, extensions), a phone is one more set of pages. Splitting host from shell was rejected: the `core/...` capabilities and the extensions' own spawns would act on two machines.
+- No command table: Tauri's `Webview::on_message` and `AppHandle::invoke_key()` are public, so a socket call goes into the same handlers with the panel's webview and a local url; the only per-command knowledge is the page-side list of commands that move the calling window (the browser tab is that window), in `remote.ts`.
+- The page stands in for Tauri's runtime (`__TAURI_INTERNALS__`, as `@tauri-apps/api/mocks` does), so no page changed its imports. Tauri's mocks module was not used: it drops listen targets and `emitTo`.
+- `Caller` replaces `tauri::Window` in the 9 commands that read the calling window's label; a remote label is `remote:<id>:<page>`, so views, the store's per-show record and the effects key by it unchanged.
+- Effects are split by where the person is: copy, URL opens, HUD and Large Type run on the device; paste, focus, layouts, spaces, dialogs and path opens run on the machine. `SHOWN` and `SWITCH` went from emit-to-all to the panel's page: they were always about this machine's panel.
+- Auth: own tailnet devices (same Tailscale user) or a token kept in the data folder, not in config.toml (the file syncs). Loopback is not trusted, since a reverse proxy on the box would make everyone loopback. `[remote]` is a machine-local key for sync.

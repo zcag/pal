@@ -57,6 +57,7 @@ pub fn celebrate(app: &AppHandle, text: &str) {
 fn show_with(app: &AppHandle, text: &str, celebrate: bool) {
     let n = SHOWS.fetch_add(1, Ordering::Relaxed) + 1;
     events::emit_to(app, WINDOW, events::HUD, Payload { text, celebrate });
+    crate::remote::send(events::HUD, None, &Payload { text, celebrate });
     let handle = app.clone();
     if let Err(e) = app.run_on_main_thread(move || {
         place(&handle);

@@ -24,6 +24,8 @@ import { screenshotUrl } from "./ui/icons";
 import { iconOf } from "./items";
 import { listed, ok, store, useStore, type Status, type StoreState } from "./store";
 import type { ExtensionsStore } from "./ui/SettingsStore";
+import { useRemote } from "./ui/SettingsRemote";
+import { copyText } from "./remote";
 
 // ---- what the core sends (settings.rs `View`, pal_core::config::Config) ----
 
@@ -490,6 +492,7 @@ export default function Settings() {
 
   /** The theme file picker's state (General): fetched and written by its own hook, since the file lives outside the config. */
   const themeFile = useThemeFile();
+  const remote = useRemote((text) => { void copyText(text); });
 
   /** One key to the file; `undefined` removes it. The local copy moves at once; a refused write (the core's error, `Contended` after its retry included) shows in the title bar and the file's state comes back. */
   const write = useCallback((key: string[], value: unknown) => {
@@ -761,6 +764,7 @@ export default function Settings() {
           glanceItems={barItems.map((b) => ({ key: b.key, title: b.glanceOnly ? b.title : `${b.extTitle} › ${b.title}` }))}
           onOpenShortcuts={() => go("shortcuts", "shortcuts:hotkey")}
           onOpenLink={openLink}
+          remote={remote}
         />
       )}
       {page === "shortcuts" && (
