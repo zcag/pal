@@ -58,9 +58,10 @@ the panel in the app leaves it at its start instead. Its height is yours
 (440px unless you style it).
 
 **`<pal-bar>`**: the bar's items as a quiet strip, live, each item on the
-side its `position` in `[bar.items]` says (`left`; `center`, or
-sketchybar's `q` and `e` either side of the notch; anything else on the
-right, as the menu bar draws it), in its `order`. A strip wider than the
+side its `position` in `[bar.items]` says, in its `order`: `left`, then
+sketchybar's `q` and `e` (the notch's sides; a page has no notch, so they
+follow the left items), `center` in the middle, and anything else on the
+right, as the menu bar draws it. A strip wider than the
 element scrolls sideways (a mouse wheel too). The element's height is the
 strip's, which pal tells it (26px today), so your page needs no number.
 A click opens the item's popover under it, drawn over your page, and a
