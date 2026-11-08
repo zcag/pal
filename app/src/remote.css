@@ -8,6 +8,8 @@
 
 html[data-shell], html[data-shell] body { background: var(--pal-bg); color-scheme: var(--pal-scheme); -webkit-tap-highlight-color: transparent; }
 html[data-shell="remote"] body { overflow: hidden; }
+/* A phone drawn at a popover's width (remote.ts `fitViewport`) rounds its viewport a pixel past the page: nothing scrolls sideways for it. */
+html[data-shell] { overflow-x: hidden; }
 html[data-shell="sheet"], html[data-shell="sheet"] body { background: var(--pal-bg-elevated); }
 
 /* ---- The home: the strip, the panel under it --------------------------------- */
