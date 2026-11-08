@@ -45,7 +45,7 @@ export default function App({ remote }: { remote?: AppRemote }) {
   const start = remote?.home;
   const reset = useCallback(() => { launcher.current?.reset(); if (start) launcher.current?.open(start); }, [start]);
   const hide = useCallback(() => { if (home) reset(); else invoke("hide"); }, [home, reset]);
-  useImperativeHandle(remote?.handle, () => ({ back: () => launcher.current?.back(), open: (p) => launcher.current?.open(p), type: (q) => launcher.current?.type(q), focus: () => launcher.current?.focus(), reset }), [reset]);
+  useImperativeHandle(remote?.handle, () => ({ back: () => launcher.current?.back(), open: (p) => launcher.current?.open(p), type: (q) => launcher.current?.type(q), focus: () => launcher.current?.focus(true), reset }), [reset]);
   const { sources, version, bump, showing, search, inline, fallback, lateFallback, suggest, history, dialog, forget, detail, view, pick: corePick, refresh } = useCore(hide);
   const told = remote?.onPick;
   const pick = useCallback<LauncherProps["onPick"]>((item, query, action, ctx) => { told?.(item, action); return corePick(item, query, action, ctx); }, [corePick, told]);

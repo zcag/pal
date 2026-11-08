@@ -245,7 +245,8 @@ export type LauncherHandle = {
   /** A toast from outside a pick (a `pal://toast` link while the panel is up). */
   toast(spec: ToastSpec): void;
   /** Focus back on the search box (after a card outside the Launcher closes). */
-  focus(): void;
+  /** `asked`: someone asked for the field (a host page's `focus()`), so a touch screen raises its keyboard too. */
+  focus(asked?: boolean): void;
   /** The bottom level swapped for `level` (the bar popover opening on an item): the stack dropped, or kept with only the bottom replaced (`inPlace`, the item rendered again while showing). */
   start(level: Level, inPlace?: boolean): void;
   /** The panel was shown again where it was (pop to root kept the level): what depends on the moment is asked again (the Now section, the history). */
@@ -979,7 +980,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   // `applyEffect` closes over this render's stack, so the handle is rebuilt per render (cheap: an object).
   const apply = (item: Item, effect: Effect, args?: unknown) => applyEffect(item, effect, args !== undefined ? { args } : undefined);
   const goBack = () => (confirming ? closeConfirm() : actionsOpen ? closeActions() : nav.depth > 1 ? pop() : undefined);
-  useImperativeHandle(ref, () => ({ reset, open: openPalette, switch: switchTo, start, type, focus, filter, apply, shown, toast: setToast, update, trigger, missing: missingFromLink, back: goBack }));
+  useImperativeHandle(ref, () => ({ reset, open: openPalette, switch: switchTo, start, type, focus: (asked?: boolean) => (asked && !surfaceRef.current ? input.current?.focus() : focus()), filter, apply, shown, toast: setToast, update, trigger, missing: missingFromLink, back: goBack }));
   const layers = nav.depth - 1 + (actionsOpen || confirming ? 1 : 0);
   const onLayers = props.onLayers;
   useEffect(() => { onLayers?.(layers); }, [layers, onLayers]);
