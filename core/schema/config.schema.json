@@ -1106,6 +1106,14 @@
           "description": "The address other devices open, when a name in front of pal serves it\n(`https://pal.lan`); empty, Settings shows `http://<hostname>:<port>`.",
           "type": "string"
         },
+        "embed_origins": {
+          "default": [],
+          "description": "Other sites allowed to show pal inside their pages (`https://app.example`),\neach with its own token (`docs/embed.md`); empty, no other site can.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "enabled": {
           "default": false,
           "description": "Serve the UI on `port`.",
@@ -1394,6 +1402,7 @@
       "$ref": "#/$defs/Remote",
       "default": {
         "address": "",
+        "embed_origins": [],
         "enabled": false,
         "port": 7373,
         "trusted_proxies": []

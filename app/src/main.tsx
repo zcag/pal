@@ -2,10 +2,12 @@ import "./remote-boot";
 import type { ComponentType } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import { embedOf } from "./embed";
 import { isRemote } from "./remote";
 import { followTheme } from "./theme";
 import "./styles.css";
 import "./remote.css";
+import "./embed.css";
 
 // `?gallery` in a plain browser renders the component review page instead of
 // the launcher; `?settings` is the settings window, `?hud` the HUD window,
@@ -28,6 +30,10 @@ if (!gallery) followTheme();
 // In a browser on another device (remote.ts) the panel's page is the remote shell around it, and every page is told so for its layout (remote.css); a bar item's page there is a sheet in that shell's frame.
 const remote = isRemote();
 if (remote) document.documentElement.dataset.shell = bar ? "sheet" : "remote";
+// Framed by another site (embed.ts): which embed, and whether it lets the host's page show through.
+const embed = remote ? embedOf(location.search) : null;
+if (embed) document.documentElement.dataset.embed = embed.kind;
+if (remote && params.has("transparent")) document.documentElement.dataset.transparent = "";
 
 const page: Promise<{ default: ComponentType }> = gallery ? import("./gallery/Gallery") : settings ? import("./Settings") : hud ? import("./HudPage") : large ? import("./LargePage") : keycast ? import("./KeycastPage") : bar ? import("./BarPage") : remote ? import("./RemoteShell") : Promise.resolve({ default: App });
 page.then(({ default: Page }) => ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(<Page />));

@@ -190,6 +190,7 @@ fn apply(app: &AppHandle, remote: &pal_core::config::Remote) {
 #[derive(Deserialize)]
 struct Auth {
     token: Option<String>,
+    embed: Option<String>,
 }
 
 /// Whether the request may in: with the token (the query's, else the
@@ -199,12 +200,13 @@ struct Auth {
 /// `[remote] trusted_proxies` the device is the last `X-Forwarded-For` hop.
 async fn allowed(app: &AppHandle, peer: IpAddr, headers: &HeaderMap, query: Option<&str>) -> bool {
     let token = token(app);
+    let remote = crate::settings::config(app).remote;
     let given = query.map(str::to_string).or_else(|| cookie(headers));
-    if !token.is_empty() && given.as_deref().is_some_and(|g| eq(g.as_bytes(), token.as_bytes())) {
+    let known = |g: &str| eq(g.as_bytes(), token.as_bytes()) || embed_origins(&remote.embed_origins).any(|o| eq(g.as_bytes(), embed_token(&token, &o).as_bytes()));
+    if !token.is_empty() && given.as_deref().is_some_and(known) {
         return true;
     }
-    let proxies = crate::settings::config(app).remote.trusted_proxies;
-    named_for_us(headers) && tailnet::own(proxy::client(&proxies, peer, headers).await).await
+    named_for_us(headers) && tailnet::own(proxy::client(&remote.trusted_proxies, peer, headers).await).await
 }
 
 /// Whether the page's host could be this machine's own name: an address, a
@@ -286,7 +288,34 @@ mod proxy {
 }
 
 fn cookie(headers: &HeaderMap) -> Option<String> {
-    headers.get_all(header::COOKIE).iter().filter_map(|v| v.to_str().ok()).flat_map(|v| v.split(';')).find_map(|c| c.trim().strip_prefix(&format!("{COOKIE}=")).map(str::to_string))
+    let named = |c: &str, name: &str| c.strip_prefix(name).and_then(|v| v.strip_prefix('=')).map(str::to_string);
+    headers.get_all(header::COOKIE).iter().filter_map(|v| v.to_str().ok()).flat_map(|v| v.split(';')).find_map(|c| named(c.trim(), COOKIE).or_else(|| named(c.trim(), EMBED_COOKIE)))
+}
+
+// ---- other sites' pages ----------------------------------------------------
+
+/// The cookie a page framed by another site keeps its token in: partitioned
+/// by that site, the one kind a browser keeps for a third-party frame.
+const EMBED_COOKIE: &str = "pal_embed";
+
+/// The origins allowed to frame the pages (`[remote] embed_origins`), each
+/// as `scheme://host[:port]`; anything that does not parse as one is
+/// dropped, so nothing in the list can add to the header it goes in.
+fn embed_origins(list: &[String]) -> impl Iterator<Item = String> + '_ {
+    list.iter().filter_map(|o| url::Url::parse(o.trim()).ok()).filter(|u| matches!(u.scheme(), "http" | "https") && u.host().is_some()).map(|u| u.origin().ascii_serialization())
+}
+
+/// Who may frame the pages: pal's own (a bar item's sheet) and the allowed origins.
+fn frame_ancestors(list: &[String]) -> String {
+    std::iter::once("frame-ancestors 'self'".to_string()).chain(embed_origins(list)).collect::<Vec<_>>().join(" ")
+}
+
+/// An allowed origin's own token: the token and the origin hashed, so a
+/// site holds a key no other was given, removing the origin revokes it and
+/// Replace changes it with the token.
+fn embed_token(token: &str, origin: &str) -> String {
+    use sha2::Digest;
+    sha2::Sha256::digest(format!("pal-embed\n{token}\n{origin}")).iter().take(16).map(|b| format!("{b:02x}")).collect()
 }
 
 /// Constant-time equality, so the token is not read off the answer's timing.
@@ -370,28 +399,37 @@ async fn gate(ctx: &Ctx, peer: SocketAddr, headers: &HeaderMap, token: Option<&s
 }
 
 /// A response that sets the cookie when the request signed in with `?token=`.
-fn remember(mut r: Response, token: Option<&str>) -> Response {
+/// An embed (`?embed`, framed by another site) keeps it partitioned instead.
+fn remember(mut r: Response, token: Option<&str>, embed: bool) -> Response {
     if let Some(t) = token {
-        if let Ok(v) = HeaderValue::from_str(&format!("{COOKIE}={t}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Strict")) {
+        let c = if embed { format!("{EMBED_COOKIE}={t}; Path=/; Max-Age=31536000; HttpOnly; Secure; SameSite=None; Partitioned") } else { format!("{COOKIE}={t}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Strict") };
+        if let Ok(v) = HeaderValue::from_str(&c) {
             r.headers_mut().append(header::SET_COOKIE, v);
         }
     }
     r
 }
 
+/// Every page and its refusal say who may frame them (`frame_ancestors`).
 async fn asset(State(ctx): State<Ctx>, ConnectInfo(peer): ConnectInfo<SocketAddr>, headers: HeaderMap, Query(auth): Query<Auth>, uri: Uri) -> Response {
-    if let Err(r) = gate(&ctx, peer, &headers, auth.token.as_deref()).await {
-        return *r;
+    let mut r = match gate(&ctx, peer, &headers, auth.token.as_deref()).await {
+        Err(r) => *r,
+        Ok(()) => {
+            let path = match uri.path() {
+                "/" => "/index.html",
+                p => p,
+            };
+            let r = match frontend(&ctx.app, path) {
+                Some((mime, bytes)) => ([(header::CONTENT_TYPE, mime), (header::CACHE_CONTROL, if path == "/index.html" { "no-cache".into() } else { "max-age=3600".to_string() })], bytes).into_response(),
+                None => StatusCode::NOT_FOUND.into_response(),
+            };
+            remember(r, auth.token.as_deref(), auth.embed.is_some())
+        }
+    };
+    if let Ok(v) = HeaderValue::from_str(&frame_ancestors(&crate::settings::config(&ctx.app).remote.embed_origins)) {
+        r.headers_mut().insert(header::CONTENT_SECURITY_POLICY, v);
     }
-    let path = match uri.path() {
-        "/" => "/index.html",
-        p => p,
-    };
-    let r = match frontend(&ctx.app, path) {
-        Some((mime, bytes)) => ([(header::CONTENT_TYPE, mime), (header::CACHE_CONTROL, if path == "/index.html" { "no-cache".into() } else { "max-age=3600".to_string() })], bytes).into_response(),
-        None => StatusCode::NOT_FOUND.into_response(),
-    };
-    remember(r, auth.token.as_deref())
+    r
 }
 
 /// A file of the frontend: the shell's embedded assets in a release build,
@@ -634,6 +672,15 @@ pub struct Status {
     trusted_proxies: Vec<String>,
     token: String,
     connected: usize,
+    /// `[remote] embed_origins` as written, and each one that parses with its own token.
+    embed_origins: Vec<String>,
+    embeds: Vec<Embed>,
+}
+
+#[derive(Serialize)]
+struct Embed {
+    origin: String,
+    token: String,
 }
 
 #[tauri::command]
@@ -641,7 +688,9 @@ pub fn remote_status(app: AppHandle) -> Status {
     let remote = crate::settings::config(&app).remote;
     let serving = lock(&app.state::<Server>().0).as_ref().is_some_and(|(_, t)| !t.inner().is_finished());
     let url = if remote.address.is_empty() { format!("http://{}:{}", hostname(), remote.port) } else { remote.address.trim_end_matches('/').to_string() };
-    Status { enabled: remote.enabled, serving, port: remote.port, url, address: remote.address, trusted_proxies: remote.trusted_proxies, token: token(&app), connected: lock(&conns().0).len() }
+    let token = token(&app);
+    let embeds = embed_origins(&remote.embed_origins).map(|origin| Embed { token: embed_token(&token, &origin), origin }).collect();
+    Status { enabled: remote.enabled, serving, port: remote.port, url, address: remote.address, trusted_proxies: remote.trusted_proxies, token, connected: lock(&conns().0).len(), embed_origins: remote.embed_origins, embeds }
 }
 
 /// Settings' Replace: a new token; every page signed in with the old one
@@ -681,5 +730,23 @@ mod tests {
         assert!(eq(b"abc", b"abc"));
         assert!(!eq(b"abc", b"abd"));
         assert!(!eq(b"abc", b"ab"));
+        h.insert(header::COOKIE, HeaderValue::from_static("pal_tokenx=no; pal_embed=e1"));
+        assert_eq!(cookie(&h).as_deref(), Some("e1"), "an embed's partitioned cookie, and no name that only starts like one");
+    }
+
+    #[test]
+    fn only_the_allowed_origins_frame_the_pages() {
+        assert_eq!(frame_ancestors(&[]), "frame-ancestors 'self'");
+        let list = ["https://app.example/".into(), "http://127.0.0.1:8080".into(), "https://x.example; script-src *".into(), "javascript:alert(1)".into(), "nonsense".into()];
+        assert_eq!(frame_ancestors(&list), "frame-ancestors 'self' https://app.example http://127.0.0.1:8080");
+    }
+
+    #[test]
+    fn each_origin_has_its_own_token() {
+        let a = embed_token("t", "https://a.example");
+        assert_eq!(a.len(), 32);
+        assert_eq!(a, embed_token("t", "https://a.example"));
+        assert_ne!(a, embed_token("t", "https://b.example"));
+        assert_ne!(a, embed_token("u", "https://a.example"), "Replace changes it");
     }
 }

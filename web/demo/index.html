@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>pal-web demo</title>
+  <style>
+    :root { color-scheme: light dark; --bg: #f4f4f1; --fg: #1d1d1b; --muted: #6b6b66; --card: #fff; --line: #0001; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #18181a; --fg: #ececea; --muted: #9a9a96; --card: #232326; --line: #fff2; } }
+    body { margin: 0; font: 15px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--fg); }
+    header { display: flex; align-items: center; gap: 16px; padding: 0 16px; height: 44px; border-bottom: 1px solid var(--line); background: var(--card); }
+    header b { flex: none; }
+    pal-bar { flex: 1; min-width: 0; }
+    main { display: grid; grid-template-columns: minmax(0, 620px) minmax(0, 1fr); gap: 24px; padding: 24px 16px; max-width: 1100px; }
+    @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+    pal-panel { height: 460px; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 30px #0002; }
+    .controls { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+    button, input { font: inherit; padding: 4px 10px; }
+    ol { margin: 0; padding: 0 0 0 20px; font: 13px/1.6 ui-monospace, monospace; color: var(--muted); max-height: 520px; overflow: auto; }
+    ol li b { color: var(--fg); }
+  </style>
+</head>
+<body>
+  <header>
+    <b>Acme app</b>
+    <pal-bar id="bar"></pal-bar>
+  </header>
+  <main>
+    <section>
+      <pal-panel id="panel" links="host"></pal-panel>
+      <div class="controls">
+        <button id="focus">focus()</button>
+        <input id="q" placeholder="query(text)">
+        <input id="palette" placeholder="open(ext/palette)">
+        <button id="reset">reset()</button>
+      </div>
+    </section>
+    <section>
+      <h3>Events</h3>
+      <ol id="log"></ol>
+    </section>
+  </main>
+  <script type="module">
+    // ?server=https://pal.lan&token=<this site's token from Settings>
+    import "../dist/index.js";
+    const q = new URLSearchParams(location.search);
+    const panel = document.getElementById("panel"), bar = document.getElementById("bar");
+    for (const el of [panel, bar]) {
+      if (q.get("token")) el.setAttribute("token", q.get("token"));
+      el.setAttribute("server", q.get("server") ?? "https://pal.lan");
+    }
+    const log = (name, detail) => {
+      const li = document.createElement("li");
+      li.innerHTML = `<b>${name}</b> `;
+      li.append(JSON.stringify(detail));
+      document.getElementById("log").prepend(li);
+    };
+    for (const name of ["pal-pick", "pal-hud", "pal-copy", "pal-open", "pal-bar-open", "pal-bar-close"]) document.addEventListener(name, (e) => log(name, e.detail));
+    document.addEventListener("pal-open", (e) => window.open(e.detail.url, "_blank", "noopener"));
+    document.getElementById("focus").onclick = () => panel.focus();
+    document.getElementById("reset").onclick = () => panel.reset();
+    document.getElementById("q").onkeydown = (e) => { if (e.key === "Enter") panel.query(e.target.value); };
+    document.getElementById("palette").onkeydown = (e) => { if (e.key === "Enter") panel.open(e.target.value); };
+  </script>
+</body>
+</html>

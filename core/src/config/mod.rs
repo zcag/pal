@@ -107,11 +107,14 @@ pub struct Remote {
     /// Reverse proxies in front of pal (an address, a CIDR, or
     /// `docker:<container>`) whose `X-Forwarded-For` names the device.
     pub trusted_proxies: Vec<String>,
+    /// Other sites allowed to show pal inside their pages (`https://app.example`),
+    /// each with its own token (`docs/embed.md`); empty, no other site can.
+    pub embed_origins: Vec<String>,
 }
 
 impl Default for Remote {
     fn default() -> Self {
-        Self { enabled: false, port: 7373, address: String::new(), trusted_proxies: Vec::new() }
+        Self { enabled: false, port: 7373, address: String::new(), trusted_proxies: Vec::new(), embed_origins: Vec::new() }
     }
 }
 

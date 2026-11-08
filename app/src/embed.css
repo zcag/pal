@@ -1,0 +1,36 @@
+/*
+ * A remote page framed by another site (docs/embed.md): <html data-embed>
+ * is `panel` or `bar` (main.tsx), <html data-transparent> lets the host's
+ * page show through the panel. Over remote.css, whose phone and desk
+ * layouts would follow the frame's size, not a screen's.
+ */
+html[data-embed], html[data-embed] body { background: transparent; overflow: hidden; }
+html[data-embed] .pal-remote { inset: 0; height: 100%; padding: 0; }
+
+html[data-embed="panel"] .pal-remote__main { padding: 0; align-items: stretch; }
+html[data-embed="panel"] .pal-remote__main > .pal-panel { width: 100%; height: 100%; border: 0; border-radius: var(--pal-radius-panel); box-shadow: none; background: var(--pal-bg); -webkit-backdrop-filter: none; backdrop-filter: none; }
+html[data-embed="panel"] .pal-remote__main .pal-panel { --pal-footer-room: var(--pal-footer-h); }
+html[data-embed="panel"] .pal-remote__main .pal-panel__footer { padding-bottom: 0; }
+html[data-embed][data-transparent] .pal-remote__main > .pal-panel { background: transparent; }
+
+html[data-embed="bar"] .pal-remote__top { height: 36px; padding: 0; background: none; border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
+html[data-embed="bar"] .pal-remote__strip.g-bar { mask-image: none; }
+html[data-embed="bar"] .pal-remote__items.g-mb { background: none; }
+html[data-embed="bar"] .pal-remote__item { height: 28px; }
+html[data-embed="bar"] .pal-remote-sheet__scrim { background: transparent; animation: none; }
+html[data-embed="bar"] .pal-remote-sheet__card {
+  top: 40px;
+  right: auto;
+  bottom: auto;
+  left: clamp(4px, calc(var(--pal-sheet-x) - 210px), calc(100vw - min(420px, 100vw - 8px) - 4px));
+  width: min(420px, calc(100vw - 8px));
+  height: var(--pal-sheet-h, 240px);
+  max-height: none;
+  padding: 0;
+  border-radius: var(--pal-radius-popover);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.18);
+  transform-origin: 50% 0;
+  animation: pal-drop var(--pal-dur-base) var(--pal-ease);
+}
+html[data-embed="bar"] .pal-remote-sheet__card::before { display: none; }
+html[data-embed="bar"] [data-exiting] > .pal-remote-sheet__card { transform: none; opacity: 0; transition: opacity var(--pal-dur-fast) var(--pal-ease-in); }

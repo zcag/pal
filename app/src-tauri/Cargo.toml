@@ -27,6 +27,7 @@ tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 tauri-plugin-autostart = "2"
 clap = { version = "4", features = ["derive"] }
 url = "2"
+sha2 = "0.10"
 # updates: the GitHub release manifest, checked on start and daily (updater.rs)
 tauri-plugin-updater = "2"
 tauri-plugin-window-state = "2"

@@ -147,6 +147,7 @@ jobs:
         run: |
           bunx tsc --noEmit
           bunx tsc --noEmit -p tsconfig.surface.json
+          bunx tsc --noEmit -p ../web
           bundled=$(bun ../app/scripts/extension-repos.mjs bundled-tests)
           # shellcheck disable=SC2086 # one path a line, none with a space
           bun test --parallel --reporter=junit --reporter-outfile="$RUNNER_TEMP/host-tests.xml" test/*.test.ts $bundled

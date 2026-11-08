@@ -1,0 +1,23 @@
+{
+  "name": "@zcag/pal-web",
+  "version": "0.1.0",
+  "description": "pal inside your web app: the panel and the bar of a pal server as custom elements.",
+  "license": "MIT",
+  "author": "Cagdas Salur",
+  "repository": { "type": "git", "url": "git+https://github.com/zcag/pal.git", "directory": "web" },
+  "homepage": "https://github.com/zcag/pal/blob/main/docs/embed.md",
+  "keywords": ["pal", "launcher", "palette", "web component", "embed"],
+  "type": "module",
+  "sideEffects": true,
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
+  "files": ["dist", "src", "README.md"],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "prepack": "npm run build"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3"
+  }
+}

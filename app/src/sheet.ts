@@ -1,3 +1,5 @@
+import type { FromPal } from "../../web/src/protocol";
+
 /**
  * A bar item's popover on a remote page is a sheet: a frame of `?bar&key=`
  * (its own connection, page `bar`) over the panel. The frame and the page
@@ -8,7 +10,9 @@
 export type SheetMessage =
   | { pal: "sheet"; size: number }
   | { pal: "sheet"; hide: true }
-  | { pal: "sheet"; event: "pal://hud" | "pal://large"; payload: unknown };
+  | { pal: "sheet"; event: "pal://hud" | "pal://large"; payload: unknown }
+  /** What an embed tells its host (embed.ts), from a sheet inside it. */
+  | { pal: "sheet"; embed: FromPal };
 
 /** The bar item this page is the sheet of (`?bar&key=`), when it is one. */
 export const sheetKey = (search: string): string | null => new URLSearchParams(search).get("key");

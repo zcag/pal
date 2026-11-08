@@ -11,9 +11,14 @@ import { POPOVER_MAX_H, popoverHeight } from "./ui/popover-size";
 import { installMissing, missingInfo, opened } from "./store";
 import { isRemote } from "./remote";
 import { sheetKey, toParent } from "./sheet";
+import { handOver, tellPick } from "./embed";
+import type { FromPal } from "../../web/src/protocol";
 
 /** A remote page's sheet for this bar item (`?bar&key=`, sheet.ts): it opens the item itself and hands its size and its hide to the page around it. */
 const sheet = isRemote() ? sheetKey(location.search) : null;
+
+/** What the sheet tells the page around it for its host, when that page is an embed (embed.ts). */
+const toEmbed = (m: FromPal) => toParent({ pal: "sheet", embed: m });
 
 const hide = () => {
   if (sheet !== null) toParent({ pal: "sheet", hide: true });
@@ -167,6 +172,7 @@ export default function BarPage() {
   useEffect(() => {
     if (sheet === null) return;
     invoke("bar_web_open", { key: sheet }).catch((e) => { mark(`bar web open ${sheet}: ${String(e)}`, 0); hide(); });
+    handOver(toEmbed, location.search);
     const fwd = (event: "pal://hud" | "pal://large") => listen(event, (e) => toParent({ pal: "sheet", event, payload: e.payload }));
     const uns = [fwd("pal://hud"), fwd("pal://large")];
     return () => { for (const un of uns) un.then((f) => f()); };
@@ -180,6 +186,7 @@ export default function BarPage() {
 
   // A row of the item's own level (a menu row, a view action, a form's submit) is `bar/action`; a palette level's rows are the usual pick.
   const pick = useCallback(async (item: Item, query: string, action?: string, ctx?: Ctx) => {
+    if (sheet !== null) tellPick(toEmbed, item, action);
     const key = showing.current?.key;
     if (item.source || !key || (item.palette !== key && item.palette !== barKey(key))) return core.pick(item, query, action, ctx);
     const t0 = performance.now();

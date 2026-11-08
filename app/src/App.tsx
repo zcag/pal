@@ -19,22 +19,32 @@ type Glance = NonNullable<LauncherProps["glance"]>;
 /** A confirm card the core asks for (`pal://confirm`, deeplink.rs); `null` drops the one up. */
 type Ask = { title: string; message?: string; ok: string; cancel: string; token: number };
 
+export type EmbedHandle = Pick<LauncherHandle, "back" | "open" | "type" | "focus" | "reset">;
+
 /** The panel as a remote page's home (RemoteShell): never hidden, so a pick that would hide it goes back to the root instead. */
 export type AppRemote = {
   /** A touch screen: rows carry their actions button and take a long press (Launcher `touch`). */
   touch: boolean;
   /** The layers over the root, for the page's history (Launcher `onLayers`). */
   onLayers: (layers: number) => void;
-  /** The browser's back: one layer off the top. */
-  handle: Ref<{ back(): void }>;
+  /** The browser's back (one layer off the top), and what a host page asks of an embed (embed.ts). */
+  handle: Ref<EmbedHandle>;
+  /** The palette the panel starts in and goes back to, for an embed that asked for one. */
+  home?: string;
+  /** Every pick, as it is made: an embed tells its host. */
+  onPick?: (item: Item, action?: string) => void;
 };
 
 export default function App({ remote }: { remote?: AppRemote }) {
   const launcher = useRef<LauncherHandle>(null);
   const home = !!remote;
-  const hide = useCallback(() => { if (home) launcher.current?.reset(); else invoke("hide"); }, [home]);
-  useImperativeHandle(remote?.handle, () => ({ back: () => launcher.current?.back() }), []);
-  const { sources, version, bump, showing, search, inline, fallback, lateFallback, suggest, history, dialog, forget, detail, view, pick, refresh } = useCore(hide);
+  const start = remote?.home;
+  const reset = useCallback(() => { launcher.current?.reset(); if (start) launcher.current?.open(start); }, [start]);
+  const hide = useCallback(() => { if (home) reset(); else invoke("hide"); }, [home, reset]);
+  useImperativeHandle(remote?.handle, () => ({ back: () => launcher.current?.back(), open: (p) => launcher.current?.open(p), type: (q) => launcher.current?.type(q), focus: () => launcher.current?.focus(), reset }), [reset]);
+  const { sources, version, bump, showing, search, inline, fallback, lateFallback, suggest, history, dialog, forget, detail, view, pick: corePick, refresh } = useCore(hide);
+  const told = remote?.onPick;
+  const pick = useCallback<LauncherProps["onPick"]>((item, query, action, ctx) => { told?.(item, action); return corePick(item, query, action, ctx); }, [corePick, told]);
   const prefs = usePrefs();
   // The glance strip's cards (glance.rs): read on every show and every few seconds, the bar items' last renders, so the strip says what the bar says.
   const [glance, setGlance] = useState<Glance>([]);
@@ -49,6 +59,7 @@ export default function App({ remote }: { remote?: AppRemote }) {
 
   // A remote home has no hotkey to show it: the index first listing, and the tab coming back into view, are its shows (the Now rows and the glance asked again).
   const listed = sources.length > 0;
+  useEffect(() => { if (listed && start) launcher.current?.open(start); }, [listed, start]);
   useEffect(() => {
     if (!home || !listed) return;
     const show = () => { if (document.visibilityState !== "visible") return; launcher.current?.shown(); window.dispatchEvent(new Event(SHOWN_EVENT)); };

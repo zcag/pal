@@ -17,6 +17,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { designAttr, designOf } from "./ui/designs";
+import { themeOf } from "./embed";
+import { isRemote } from "./remote";
 
 export type Theme = "system" | "light" | "dark";
 
@@ -83,12 +85,14 @@ export function applyThemeFile(t: ThemeFile | null, el: HTMLElement = document.d
 
 type ConfigEvent = { config?: { general?: { theme?: Theme; compact?: boolean; design?: string } } };
 
-/** Applies the theme now and keeps it applied; returns the stop function. */
+/** Applies the theme now and keeps it applied, or the one a remote page's address asks for (`?theme=`, an embed's); returns the stop function. */
 export function followTheme(): () => void {
-  invoke<Theme>("settings_theme").then(applyTheme).catch(() => {});
+  const asked = isRemote() ? themeOf(location.search) : null;
+  const apply = (t: Theme | undefined) => applyTheme(asked ?? t);
+  invoke<Theme>("settings_theme").then(apply).catch(() => {});
   invoke<{ compact?: boolean; design?: string }>("settings_general").then((g) => { applyDensity(g?.compact); applyDesign(g?.design); }).catch(() => {});
   invoke<ThemeFile>("theme_current").then(applyThemeFile).catch(() => {});
-  const un = listen<ConfigEvent>("pal://config", (e) => { applyTheme(e.payload.config?.general?.theme); applyDensity(e.payload.config?.general?.compact); applyDesign(e.payload.config?.general?.design); });
+  const un = listen<ConfigEvent>("pal://config", (e) => { apply(e.payload.config?.general?.theme); applyDensity(e.payload.config?.general?.compact); applyDesign(e.payload.config?.general?.design); });
   const unTheme = listen<ThemeFile>("pal://theme", (e) => applyThemeFile(e.payload));
   // While `system` is set the OS's flip changes which section applies.
   const mq = typeof matchMedia === "function" ? matchMedia("(prefers-color-scheme: dark)") : null;

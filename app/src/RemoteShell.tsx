@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import App from "./App";
+import App, { type AppRemote, type EmbedHandle } from "./App";
+import { embedOf, emitHost, passOn, picked, toHost } from "./embed";
+import { useEmbedShell } from "./embed-shell";
 import HudPage from "./HudPage";
 import LargePage from "./LargePage";
 import { raise } from "./remote";
@@ -29,14 +31,15 @@ function useScheme(): "light" | "dark" {
   return scheme;
 }
 
-/** The strip's items: asked once, then every `pal://bar/strip`; none while the command is not there. */
-function useStrip(): WebStrip["items"] {
+/** The strip's items: asked once, then every `pal://bar/strip`; none while the command is not there, or the page draws no strip. */
+function useStrip(on: boolean): WebStrip["items"] {
   const [items, setItems] = useState<WebStrip["items"]>([]);
   useEffect(() => {
+    if (!on) return;
     invoke<WebStrip>("bar_web_items").then((s) => setItems(s?.items ?? []), () => setItems([]));
     const un = listen<WebStrip>("pal://bar/strip", (e) => setItems(e.payload?.items ?? []));
     return () => { un.then((f) => f()); };
-  }, []);
+  }, [on]);
   return items;
 }
 
@@ -60,13 +63,20 @@ const SLIDERS = <svg viewBox="0 0 18 18" aria-hidden><path d="M3 5h12M3 9h12M3 1
  * never hidden, and the HUD and Large Type over it. A bar item opens as a
  * sheet (sheet.ts). Every layer (a level, the actions, a sheet) is a history
  * entry, so the browser's back pops one.
+ *
+ * Framed by another site (`?embed=`, embed.ts) it is the panel alone or the
+ * strip alone, with no Settings and no history of its own, and tells its
+ * host what happens (embed-shell.ts).
  */
+const embed = embedOf(location.search);
+const strip = embed?.kind !== "panel", panel = embed?.kind !== "bar";
+
 export default function RemoteShell() {
   const scheme = useScheme();
-  const items = useStrip();
+  const items = useStrip(strip);
   useViewportHeight();
   const touch = useMemo(touchFirst, []);
-  const app = useRef<{ back(): void }>(null);
+  const app = useRef<EmbedHandle>(null);
   const [sheet, setSheet] = useState<{ key: string; x: number; title: string } | null>(null);
   const [height, setHeight] = useState<number | null>(null);
   const [panelLayers, setPanelLayers] = useState(0);
@@ -74,7 +84,7 @@ export default function RemoteShell() {
   sheetUp.current = !!sheet;
 
   const close = useCallback(() => setSheet(null), []);
-  const history = useMemo(() => historyLayers({ push: () => window.history.pushState({ pal: true }, ""), go: (n) => window.history.go(n) }), []);
+  const history = useMemo(() => embed ? { sync() {}, popped: () => false } : historyLayers({ push: () => window.history.pushState({ pal: true }, ""), go: (n) => window.history.go(n) }), []);
   useEffect(() => { history.sync(panelLayers + (sheet ? 1 : 0)); }, [history, panelLayers, sheet]);
   useEffect(() => {
     const pop = () => { if (!history.popped()) return; if (sheetUp.current) close(); else app.current?.back(); };
@@ -88,6 +98,7 @@ export default function RemoteShell() {
       const m = e.data;
       if ("size" in m) setHeight(m.size);
       else if ("hide" in m) close();
+      else if ("embed" in m) { if (embed) toHost(m.embed); }
       else raise(m.event, m.payload);
     };
     window.addEventListener("message", on);
@@ -101,12 +112,13 @@ export default function RemoteShell() {
     return () => window.removeEventListener("keydown", esc);
   }, [sheet, close]);
 
-  const remote = useMemo(() => ({ touch, onLayers: setPanelLayers, handle: app }), [touch]);
+  useEmbedShell(embed, { app, sheet, height, close, scheme });
+  const remote = useMemo<AppRemote>(() => ({ touch, onLayers: setPanelLayers, handle: app, home: embed?.palette, onPick: embed ? (item, action) => emitHost("pick", picked(item, action)) : undefined }), [touch]);
   const shaped = items.map((it) => { const look = { ...defaultLook, ...it.look }; return { key: it.key, look, item: shapeItem(it.item, look) }; }).filter((it) => !it.item.hidden);
 
   return (
     <div className="pal-remote" data-sheet={sheet ? "" : undefined}>
-      <header className="pal-remote__top">
+      {strip && <header className="pal-remote__top">
         <div className="g-bar pal-remote__strip" data-theme={scheme} role="toolbar" aria-label="Bar items">
           <div className="g-mb pal-remote__items">
             {shaped.map(({ key, look, item }) => (
@@ -124,23 +136,23 @@ export default function RemoteShell() {
           </div>
         </div>
         <span className="pal-remote__link" aria-hidden title="Reconnecting to pal" />
-        <a className="pal-remote__settings" href="?settings" aria-label="Settings" title="Settings">{SLIDERS}</a>
-      </header>
-      <main className="pal-remote__main">
+        {!embed && <a className="pal-remote__settings" href="?settings" aria-label="Settings" title="Settings">{SLIDERS}</a>}
+      </header>}
+      {panel && <main className="pal-remote__main">
         <App remote={remote} />
-      </main>
+      </main>}
       <Presence show={!!sheet} dur="base">
         {sheet && (
           <div className="pal-remote-sheet" style={{ "--pal-sheet-x": `${sheet.x}px` } as CSSProperties}>
             <div className="pal-remote-sheet__scrim" onClick={close} aria-hidden />
             <div className="pal-remote-sheet__card" role="dialog" aria-label={sheet.title} data-sized={height !== null || undefined} style={height !== null ? ({ "--pal-sheet-h": `${height}px` } as CSSProperties) : undefined}>
-              <iframe key={sheet.key} className="pal-remote-sheet__frame" src={sheetSrc(sheet.key)} title={sheet.title} allow="clipboard-write" />
+              <iframe key={sheet.key} className="pal-remote-sheet__frame" src={sheetSrc(sheet.key) + (embed ? passOn(location.search) : "")} title={sheet.title} allow="clipboard-write" />
             </div>
           </div>
         )}
       </Presence>
-      <HudPage />
-      <LargePage />
+      {panel && <HudPage />}
+      {panel && <LargePage />}
     </div>
   );
 }

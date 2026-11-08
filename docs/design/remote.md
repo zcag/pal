@@ -152,7 +152,7 @@ is not optional.
 
 `[remote]`: `enabled` (false), `port` (7373), `token`. Settings › General
 has a Remote section: the switch, the port, the address to open (the
-machine's hostname, never localhost), the token with Copy and Replace.
+machine's hostname, never localhost), the token with Copy and Replace, and the sites allowed to frame pal (`embed_origins`, below).
 
 ## The page on a phone
 
@@ -164,22 +164,55 @@ machine's hostname, never localhost), the token with Copy and Replace.
 - Settings is `?settings`, reached from the page's menu.
 - The page installs as an app (a web manifest, the app's icon).
 
-## pal inside other web apps (later)
+## pal inside other web apps
 
-A web app that wants pal's palettes inside it has two shapes, in order of
-cost:
+Built as embedding by frame (the user doc is `docs/embed.md`). A web app
+puts `<pal-panel>` or `<pal-bar>` from `@zcag/pal-web` (`web/`, plain TS,
+no framework) in its page; each is an iframe of the pal server's own page
+in an embed mode, so the transport, the pages, the commands and auth are
+the remote page's, and nothing is implemented twice.
 
-1. **Embed a pal.** The same transport, consumed by a small package
-   (`@zcag/pal-web`): a `<pal-panel>` element that connects to a pal server
-   the user runs, renders the panel, and hands back picks. The app gets
-   pal's search over the user's own extensions. Needs CORS and a scoped
-   token per embedding app.
-2. **pal as a library.** The app ships its own extensions and runs the
-   host itself: a Node or Bun backend runs `host/` against a minimal core
-   (settings, storage, the index) and the page is the React panel. This
-   needs the parts of the shell that are not about a desktop (the index,
-   frecency, config, store) pulled out of the Tauri app into a crate the
-   server links, which is also what a headless `pal serve` needs.
+- **The page.** `?embed=panel` is RemoteShell with the panel alone,
+  `?embed=bar` with the strip alone (`embed.ts`, `embed-shell.ts`,
+  `embed.css`): no Settings link, no history entries of its own (they
+  would land in the host's history), `?palette=` as the panel's start and
+  where a pick returns, `?theme=` over the configured theme. A bar item
+  opens as the same sheet as on the remote page, drawn under the strip;
+  the frame grows over the host's page while it is open.
+- **Talking to the host.** `postMessage`, typed in `web/src/protocol.ts`,
+  which both sides import. The host speaks first (`hello`, repeated until
+  answered); the page answers only to that message's origin and posts to
+  no other, never `*`. The browser has already held that origin to the
+  allowed list (below), so the page needs no list of its own. The page
+  tells the host its height (the bar), its scheme (a frame whose scheme
+  differs from its page's gets an opaque backdrop), and `pick`, `hud`,
+  `copy`, `open`, `bar-open`, `bar-close`; the host calls `focus`,
+  `reset`, `open`, `query`, `close`. A sheet inside a bar embed hands its
+  picks, copies and opens up to the embed (`sheet.ts`), which passes them
+  on. Copies and URL opens are seen where the device's effects already run
+  (`remote.ts` `device`); `links=host` leaves a URL to the host.
+- **Who may frame.** `[remote] embed_origins`. Every page pal serves sends
+  `Content-Security-Policy: frame-ancestors 'self' <origins>`, so the
+  normal remote page is no longer frameable by anyone else either
+  (clickjacking), and an embed shows only inside a listed site. An entry
+  that does not parse as an origin is dropped, so the list cannot add to
+  the header.
+- **Tokens.** Each allowed origin has its own token, `sha256("pal-embed",
+  token, origin)` cut to 128 bits, so it needs no storage: a site never
+  holds the main token, taking it off the list revokes its token, and
+  Replace changes them all. Settings shows a Copy snippet per site. A
+  framed page gets no `SameSite=Strict` cookie, so with `?embed` the token
+  is kept in a partitioned cookie (`SameSite=None; Secure; Partitioned`)
+  and also rides on the socket's URL. That needs pal on https and a
+  browser that keeps partitioned cookies; Safari's handling is untested.
+  On the user's own tailnet devices no token is needed.
+- **The shell's own rows.** A pick on a welcome, fallback or pal command
+  row now runs its effects for the caller (`effects::apply_from`), so a
+  URL they open lands on the device, as an extension's does.
 
-Neither starts until the remote page is solid; the first rides entirely on
-this design, the second on extracting the shell's state from `AppHandle`.
+Left open: the package is not published yet (the snippet names jsdelivr);
+an embed token is accepted by any page, not only framed by its origin (it
+is a bearer token like the main one); a host cannot place a bar popover
+itself; and pal as a library (an app shipping its own extensions and
+running the host, which needs the shell's state pulled out of
+`AppHandle`) is still later.

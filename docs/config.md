@@ -575,6 +575,7 @@ data folder, not in this file.
 | `port` | integer | `7373` | The port, on every address of this machine. |
 | `address` | string | `""` | The address other devices open when a name in front of pal serves it (`https://pal.lan`). Settings shows and copies it; empty, it shows `http://<hostname>:<port>`. |
 | `trusted_proxies` | list of strings | `[]` | Reverse proxies in front of pal, as an address, a CIDR or `docker:<container>`: behind one, the device is the last `X-Forwarded-For` hop, so tailnet sign-in still works through it (a `.lan` name served by Caddy). |
+| `embed_origins` | list of strings | `[]` | Other sites that may show pal inside their pages (`https://app.example`), each with its own token ([pal inside other web apps](embed.md)). Every page says who may frame it (`Content-Security-Policy: frame-ancestors`): pal itself and these. |
 
 ```toml
 [remote]

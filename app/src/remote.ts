@@ -52,8 +52,13 @@ let local: ((event: string, payload: unknown) => void) | null = null;
 /** An event to this page's own listeners only, never the socket (a bar sheet's HUD line, handed up from its frame). */
 export const raise = (event: string, payload: unknown) => local?.(event, payload);
 
+/** What a page inside another site hands its host (embed.ts): a copy done, and a URL to open, which the page leaves alone when this answers true. */
+export const device: { copied?: (text: string) => void; open?: (url: string) => boolean } = {};
+
 export function install(): void {
   const label = `remote:${randomId()}:${pageOf(location.search)}`;
+  /** A token on the page's own address rides on the socket too: a page framed by another site may get no cookie. */
+  const token = new URLSearchParams(location.search).get("token");
   const callbacks = new Map<number, (data: unknown) => unknown>();
   const listeners = new Map<number, Listener>();
   const pending = new Map<number, Reply>();
@@ -82,8 +87,9 @@ export function install(): void {
       const text = typeof client.copy === "string" ? client.copy : client.copy.text;
       const ok = await copyText(text);
       if (client.hud === undefined) deliver("pal://hud", null, { text: ok ? "Copied" : "Could not copy here" });
+      if (ok) device.copied?.(text);
     }
-    for (const url of client.open ?? []) window.open(url, "_blank", "noopener");
+    for (const url of client.open ?? []) if (!device.open?.(url)) window.open(url, "_blank", "noopener");
     if (client.hud !== undefined) deliver("pal://hud", null, { text: client.hud });
     if (client.large_type !== undefined) deliver("pal://large", null, { text: client.large_type });
   };
@@ -104,7 +110,7 @@ export function install(): void {
   };
 
   const connect = () => {
-    const url = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/__pal/ws?label=${encodeURIComponent(label)}`;
+    const url = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/__pal/ws?label=${encodeURIComponent(label)}${token ? `&token=${encodeURIComponent(token)}` : ""}`;
     const ws = new WebSocket(url);
     socket = ws;
     ws.onopen = () => {
