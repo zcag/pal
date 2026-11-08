@@ -16,7 +16,7 @@
  * are items of their own), drawn from their properties.
  */
 import type { CSSProperties, ReactNode } from "react";
-import { appIconUrl } from "./icons";
+import { appIconUrl, servedSrc } from "./icons";
 import { clipText, cssOf, describeMenubar, describeSketchy, hasGlyph, labelSize, shapeItem, type MenubarDescribed } from "./bar-model";
 
 export { clipText, shapeItem };
@@ -111,7 +111,7 @@ const ControlCenter = () => (
 function MenubarImage({ d, item, textPx }: { d: MenubarDescribed; item: BarStripItem; textPx?: number }) {
   const ink = d.template || !d.ink ? "var(--g-mb-fg)" : d.ink;
   const alpha = d.alpha < 100 ? d.alpha / 100 : undefined;
-  const src = typeof item.icon === "object" && item.icon && "image" in item.icon ? item.icon.image : typeof item.icon === "object" && item.icon && "app" in item.icon ? appIconUrl(item.icon.app, 36) : undefined;
+  const src = typeof item.icon === "object" && item.icon && "image" in item.icon ? servedSrc(item.icon.image) : typeof item.icon === "object" && item.icon && "app" in item.icon ? appIconUrl(item.icon.app, 36) : undefined;
   const count = typeof item.badge === "number" ? ` ·${item.badge}` : "";
   const text = d.image_text ?? "";
   const [words, tail] = count && text.endsWith(count.trimStart()) ? [text.slice(0, text.length - count.trimStart().length), text.slice(text.length - count.trimStart().length)] : [text, ""];

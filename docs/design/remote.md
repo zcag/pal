@@ -106,7 +106,9 @@ device's goes back in the envelope under `client` (the page runs it after
 the pick resolves); the rest runs as today. A HUD line for a remote caller
 is an event to that connection, and HUD lines with no caller (a link's
 outcome, an extension's later `effects.run`) go to the local HUD and every
-connected page.
+connected page. Settings' web links (`settings_open_link`, answered by
+the page) and Copy deep link (`link_copy`, through `apply_from`) are the
+device's too.
 
 Capabilities that need someone at the machine (`color.sample`, `selection`,
 keycast, screen OCR) keep answering for the machine. Whether palettes built
@@ -160,6 +162,15 @@ machine's hostname, never localhost), the token with Copy and Replace, and the s
   search field focused on load only on a device with a keyboard.
 - Rows and actions take taps: tapping a row is Enter, a long press or the
   row's chevron opens its actions (the ⌘K panel) as a sheet.
+- Narrower than the panel (under 760 px, remote.css's phone layout) the
+  page asks for compact views (`{ compact }` on the socket,
+  `views::is_compact`), as in the bar popover, and shows no detail pane
+  beside the list (⌘I previews the row as a level). A phone narrower than
+  a popover (420 px) lays the page out at 420 and draws it to fit, so a
+  view's fixed widths (`POPOVER_W`) fit; a sheet narrower than that (in an
+  embed) draws its popover scaled the same way.
+- A glance card opens its item's sheet (`bar_web_open` with the card's
+  `line` for a line), not the popover on the machine.
 - Back is the browser's back (each level is a history entry).
 - Settings is `?settings`, reached from the page's menu.
 - The page installs as an app (a web manifest, the app's icon).

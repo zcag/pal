@@ -23,6 +23,10 @@ export function schemeBase(scheme: string): string {
   return b;
 }
 
+/** An `icon://localhost/` URL an extension spelled out (the SDK's `thumbnailUrl`, a clip's image) at this page's base for the scheme: the server's `/__icon/` on a remote page. */
+export const servedSrc = (src: string) => (src.startsWith(ICON_LOCAL) ? schemeBase("icon") + src.slice(ICON_LOCAL.length) : src);
+const ICON_LOCAL = "icon://localhost/";
+
 export const appIconUrl = (path: string, size: number) => `${schemeBase("icon")}app?path=${encodeURIComponent(path)}&size=${size}`;
 export const faviconUrl = (url: string, size: number) => `${schemeBase("icon")}favicon?url=${encodeURIComponent(url)}&size=${size}`;
 /** One of an installed extension's store screenshots, as is (`<root>/<ext>/screenshots/<file>`). */

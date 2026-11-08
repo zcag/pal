@@ -33,6 +33,10 @@ export type AppRemote = {
   home?: string;
   /** Every pick, as it is made: an embed tells its host. */
   onPick?: (item: Item, action?: string) => void;
+  /** A glance card opened: the item's sheet on the page, not the popover on the machine. */
+  onGlance: (key: string, line?: number) => void;
+  /** Too narrow for the panel's layout (a phone): no detail pane beside the list (Launcher `narrow`). */
+  narrow: boolean;
 };
 
 export default function App({ remote }: { remote?: AppRemote }) {
@@ -160,7 +164,7 @@ export default function App({ remote }: { remote?: AppRemote }) {
 
   return (
     <>
-      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} lateFallback={lateFallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} onViewOpen={viewOpen} surface={surface} onCompact={() => invoke("settings_set", { key: "general.compact", value: !prefs.compact }).catch(() => {})} onPanelMode={(palette, mode) => invoke<PanelMode>("panel_mode", { palette, mode })} onPanelFit={panelFit} onHoldDrawn={() => invoke("panel_reveal").catch(() => {})} glance={glance} onGlance={glanceOpen} missing={missingInfo} onInstallMissing={installMissing} onOpened={opened} asking={!!ask} touch={remote?.touch} onLayers={remote?.onLayers} />
+      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} lateFallback={lateFallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} onViewOpen={viewOpen} surface={surface} onCompact={() => invoke("settings_set", { key: "general.compact", value: !prefs.compact }).catch(() => {})} onPanelMode={(palette, mode) => invoke<PanelMode>("panel_mode", { palette, mode })} onPanelFit={panelFit} onHoldDrawn={() => invoke("panel_reveal").catch(() => {})} glance={glance} onGlance={remote?.onGlance ?? glanceOpen} missing={missingInfo} onInstallMissing={installMissing} onOpened={opened} asking={!!ask} touch={remote?.touch} narrow={remote?.narrow} onLayers={remote?.onLayers} />
       {panel && createPortal(<Presence show={!!ask}>{ask && <Confirm title={ask.title} message={ask.message} action={ask.ok} onConfirm={() => answer(true)} onCancel={() => answer(false)} />}</Presence>, panel)}
     </>
   );

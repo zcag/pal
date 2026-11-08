@@ -6,13 +6,14 @@ import { embedOf, emitHost, passOn, picked, toHost } from "./embed";
 import { useEmbedShell } from "./embed-shell";
 import HudPage from "./HudPage";
 import LargePage from "./LargePage";
-import { raise } from "./remote";
+import { NARROW, raise } from "./remote";
 import { historyLayers } from "./remote-history";
 import { isSheetMessage, sheetSrc } from "./sheet";
 import { schemeInForce } from "./theme";
 import { Presence } from "./ui";
 import { MenubarItem, defaultLook, shapeItem, type BarLook, type BarStripItem } from "./ui/BarStrip";
 import { touchFirst } from "./ui/touch";
+import { POPOVER_W } from "./ui/popover-size";
 
 /** `bar_web_items` and `pal://bar/strip`: the bar's items as the web target draws them, in order. */
 export type WebStrip = { items: { key: string; item: BarStripItem; look?: Partial<BarLook> }[] };
@@ -41,6 +42,35 @@ function useStrip(on: boolean): WebStrip["items"] {
     return () => { un.then((f) => f()); };
   }, [on]);
   return items;
+}
+
+/**
+ * How much a sheet's frame is drawn down: a popover is laid out for its
+ * 420 px (views measure against `POPOVER_W`), so a card narrower than that
+ * (a phone) draws the popover at its own width, scaled to fit.
+ */
+function useSheetScale() {
+  const [room, setRoom] = useState(POPOVER_W);
+  const ro = useRef<ResizeObserver | null>(null);
+  const ref = useCallback((el: HTMLElement | null) => {
+    ro.current?.disconnect();
+    if (!el) return;
+    ro.current = new ResizeObserver(() => setRoom(el.clientWidth));
+    ro.current.observe(el);
+  }, []);
+  return { ref, scale: Math.min(1, room / POPOVER_W) };
+}
+
+/** Whether `query` matches, followed as it changes. */
+function useMedia(query: string) {
+  const [on, setOn] = useState(() => matchMedia(query).matches);
+  useEffect(() => {
+    const mq = matchMedia(query);
+    const read = () => setOn(mq.matches);
+    mq.addEventListener("change", read);
+    return () => mq.removeEventListener("change", read);
+  }, [query]);
+  return on;
 }
 
 /** The page's height as the keyboard leaves it: iOS keeps the layout viewport and shrinks only the visual one. */
@@ -76,14 +106,22 @@ export default function RemoteShell() {
   const items = useStrip(strip);
   useViewportHeight();
   const touch = useMemo(touchFirst, []);
+  const narrow = useMedia(NARROW);
   const app = useRef<EmbedHandle>(null);
-  const [sheet, setSheet] = useState<{ key: string; x: number; title: string } | null>(null);
-  const [height, setHeight] = useState<number | null>(null);
+  const [sheet, setSheet] = useState<{ key: string; x: number; title: string; line?: number } | null>(null);
+  const [frameHeight, setHeight] = useState<number | null>(null);
+  const fit = useSheetScale();
+  const height = frameHeight === null ? null : frameHeight * fit.scale;
   const [panelLayers, setPanelLayers] = useState(0);
   const sheetUp = useRef(false);
   sheetUp.current = !!sheet;
 
   const close = useCallback(() => setSheet(null), []);
+  /** A glance card: its item's sheet (or the sheet of one of its lines), placed under the item on the strip when it is there. */
+  const glance = useCallback((key: string, line?: number) => {
+    const item = document.querySelector<HTMLElement>(`.pal-remote__item[data-key="${CSS.escape(key)}"]`), r = item?.getBoundingClientRect();
+    setSheet({ key, line, x: r ? r.left + r.width / 2 : window.innerWidth / 2, title: item?.getAttribute("aria-label") ?? key });
+  }, []);
   const history = useMemo(() => embed ? { sync() {}, popped: () => false } : historyLayers({ push: () => window.history.pushState({ pal: true }, ""), go: (n) => window.history.go(n) }), []);
   useEffect(() => { history.sync(panelLayers + (sheet ? 1 : 0)); }, [history, panelLayers, sheet]);
   useEffect(() => {
@@ -105,6 +143,7 @@ export default function RemoteShell() {
     return () => window.removeEventListener("message", on);
   }, [close]);
   useEffect(() => { if (!sheet) setHeight(null); }, [sheet]);
+  const scaled = fit.scale < 1 ? { width: POPOVER_W, height: `${100 / fit.scale}%`, transform: `scale(${fit.scale})`, transformOrigin: "0 0" } : undefined;
   useEffect(() => {
     if (!sheet) return;
     const esc = (e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); close(); } };
@@ -113,7 +152,7 @@ export default function RemoteShell() {
   }, [sheet, close]);
 
   useEmbedShell(embed, { app, sheet, height, close, scheme });
-  const remote = useMemo<AppRemote>(() => ({ touch, onLayers: setPanelLayers, handle: app, home: embed?.palette, onPick: embed ? (item, action) => emitHost("pick", picked(item, action)) : undefined }), [touch]);
+  const remote = useMemo<AppRemote>(() => ({ touch, narrow, onGlance: glance, onLayers: setPanelLayers, handle: app, home: embed?.palette, onPick: embed ? (item, action) => emitHost("pick", picked(item, action)) : undefined }), [touch, narrow, glance]);
   const shaped = items.map((it) => { const look = { ...defaultLook, ...it.look }; return { key: it.key, look, item: shapeItem(it.item, look) }; }).filter((it) => !it.item.hidden);
 
   return (
@@ -126,6 +165,7 @@ export default function RemoteShell() {
                 key={key}
                 type="button"
                 className="pal-remote__item"
+                data-key={key}
                 data-open={sheet?.key === key || undefined}
                 aria-label={item.title || item.tooltip || key}
                 onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setSheet(sheet?.key === key ? null : { key, x: r.left + r.width / 2, title: item.title || item.tooltip || key }); }}
@@ -145,8 +185,8 @@ export default function RemoteShell() {
         {sheet && (
           <div className="pal-remote-sheet" style={{ "--pal-sheet-x": `${sheet.x}px` } as CSSProperties}>
             <div className="pal-remote-sheet__scrim" onClick={close} aria-hidden />
-            <div className="pal-remote-sheet__card" role="dialog" aria-label={sheet.title} data-sized={height !== null || undefined} style={height !== null ? ({ "--pal-sheet-h": `${height}px` } as CSSProperties) : undefined}>
-              <iframe key={sheet.key} className="pal-remote-sheet__frame" src={sheetSrc(sheet.key) + (embed ? passOn(location.search) : "")} title={sheet.title} allow="clipboard-write" />
+            <div ref={fit.ref} className="pal-remote-sheet__card" role="dialog" aria-label={sheet.title} data-sized={height !== null || undefined} style={height !== null ? ({ "--pal-sheet-h": `${height}px` } as CSSProperties) : undefined}>
+              <iframe key={`${sheet.key}:${sheet.line}`} className="pal-remote-sheet__frame" src={sheetSrc(sheet.key, sheet.line) + (embed ? passOn(location.search) : "")} title={sheet.title} allow="clipboard-write" style={scaled} />
             </div>
           </div>
         )}

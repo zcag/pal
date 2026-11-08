@@ -396,7 +396,7 @@ impl Host {
 #[tauri::command]
 pub async fn host_request(
     host: tauri::State<'_, Arc<Host>>,
-    window: tauri::Window,
+    caller: crate::remote::Caller,
     method: String,
     params: Option<Value>,
 ) -> Result<Value, String> {
@@ -405,11 +405,11 @@ pub async fn host_request(
     // A streaming list (`stream: n`, the page's request number) is told where its partials go: this window, that request.
     if method == "list" {
         if let Some(n) = params.get("stream").filter(|n| n.is_u64()).cloned() {
-            params["stream"] = json!({ "window": window.label(), "n": n });
+            params["stream"] = json!({ "window": caller.label(), "n": n });
         }
     }
     // From the bar popover or the sidebar, a listing or a tree is drawn compact (`Ctx.compact`); the pick's flag is set in index.rs.
-    if crate::views::is_compact(window.label()) && matches!(method.as_str(), "list" | "view") {
+    if crate::views::is_compact(caller.label()) && matches!(method.as_str(), "list" | "view") {
         if let Value::Object(o) = &mut params {
             o.insert("compact".into(), Value::Bool(true));
         }

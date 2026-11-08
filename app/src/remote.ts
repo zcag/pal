@@ -10,6 +10,8 @@
  * tab: those are answered on the page (`PAGE_COMMANDS`).
  */
 
+import { POPOVER_W } from "./ui/popover-size";
+
 type Target = { kind: "Any" } | { kind: string; label: string };
 type Listener = { event: string; target: Target; handler: number };
 type Reply = { resolve: (v: unknown) => void; reject: (e: unknown) => void };
@@ -25,6 +27,9 @@ export function pageOf(search: string): "main" | "bar" | "settings" {
 }
 
 const randomId = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => (b % 36).toString(36)).join("");
+
+/** A page narrower than the panel's own layout (remote.css's phone layout): its views are drawn compact, as in the bar popover. */
+export const NARROW = "(max-width: 759px)";
 
 /** Whether this document runs in a browser against a pal server rather than inside the app. */
 export const isRemote = () => typeof window !== "undefined" && !!(window as { __PAL_REMOTE__?: boolean }).__PAL_REMOTE__;
@@ -55,10 +60,29 @@ export const raise = (event: string, payload: unknown) => local?.(event, payload
 /** What a page inside another site hands its host (embed.ts): a copy done, and a URL to open, which the page leaves alone when this answers true. */
 export const device: { copied?: (text: string) => void; open?: (url: string) => boolean } = {};
 
+/**
+ * A phone narrower than a bar popover lays the page out at the popover's
+ * width and draws it to fit: views measure their fixed widths against it
+ * (the SDK's `POPOVER_W`). The device's width, not the viewport's, which
+ * this sets; iOS keeps `screen` in portrait, so it is read by orientation.
+ */
+export function fitViewport(): void {
+  const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+  if (!meta) return;
+  const base = meta.content, portrait = matchMedia("(orientation: portrait)");
+  const fit = () => {
+    const w = portrait.matches ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
+    meta.content = w < POPOVER_W ? `width=${POPOVER_W}, viewport-fit=cover, interactive-widget=resizes-content` : base;
+  };
+  fit();
+  portrait.addEventListener("change", fit);
+}
+
 export function install(): void {
   const label = `remote:${randomId()}:${pageOf(location.search)}`;
   /** A token on the page's own address rides on the socket too: a page framed by another site may get no cookie. */
   const token = new URLSearchParams(location.search).get("token");
+  const narrow = pageOf(location.search) === "main" ? matchMedia(NARROW) : null;
   const callbacks = new Map<number, (data: unknown) => unknown>();
   const listeners = new Map<number, Listener>();
   const pending = new Map<number, Reply>();
@@ -89,7 +113,7 @@ export function install(): void {
       if (client.hud === undefined) deliver("pal://hud", null, { text: ok ? "Copied" : "Could not copy here" });
       if (ok) device.copied?.(text);
     }
-    for (const url of client.open ?? []) if (!device.open?.(url)) window.open(url, "_blank", "noopener");
+    for (const url of client.open ?? []) openUrl(url);
     if (client.hud !== undefined) deliver("pal://hud", null, { text: client.hud });
     if (client.large_type !== undefined) deliver("pal://large", null, { text: client.large_type });
   };
@@ -117,6 +141,7 @@ export function install(): void {
       backoff = 250;
       for (const event of new Set([...listeners.values()].map((l) => l.event))) ws.send(JSON.stringify({ listen: event }));
       ws.send(JSON.stringify({ visible: document.visibilityState === "visible" }));
+      if (narrow) ws.send(JSON.stringify({ compact: narrow.matches }));
       for (const text of queue.splice(0)) ws.send(text);
       document.documentElement.dataset.remote = "connected";
     };
@@ -138,6 +163,7 @@ export function install(): void {
   });
 
   const nav = (search: string) => { location.search = search; };
+  const openUrl = (url: string) => { if (!device.open?.(url)) window.open(url, "_blank", "noopener"); };
   /** Commands that move the calling window: the window is the browser tab here, so the page answers them. */
   const PAGE_COMMANDS: Record<string, (args: Record<string, unknown>) => unknown> = {
     hide: () => null,
@@ -146,6 +172,10 @@ export function install(): void {
     large_hide: () => null,
     settings_open: () => nav("?settings"),
     settings_close: () => (history.length > 1 ? history.back() : nav("")),
+    settings_open_link: ({ url }) => {
+      if (!/^https?:\/\//.test(String(url))) throw new Error(`not a web link: ${url}`);
+      return openUrl(String(url));
+    },
   };
 
   const plugin = (cmd: string, args: Record<string, unknown>): unknown => {
@@ -198,5 +228,6 @@ export function install(): void {
   w.__TAURI_INTERNALS__ = internals;
   w.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: (_event: string, id: number) => { listeners.delete(id); } };
   document.addEventListener("visibilitychange", () => send({ visible: document.visibilityState === "visible" }));
+  narrow?.addEventListener("change", () => send({ compact: narrow.matches }));
   connect();
 }

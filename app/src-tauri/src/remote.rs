@@ -74,6 +74,9 @@ struct Conn {
     gen: u64,
     tx: mpsc::UnboundedSender<Message>,
     events: HashSet<String>,
+    /// The page is too narrow for the panel's own layout (a phone): its
+    /// views and lists are drawn compact, as in the bar popover.
+    compact: bool,
 }
 
 #[derive(Default)]
@@ -87,6 +90,11 @@ fn conns() -> &'static Conns {
 
 fn connected(label: &str) -> bool {
     lock(&conns().0).contains_key(label)
+}
+
+/// Whether the remote page `label` asked for compact views (`views::is_compact`).
+pub fn compact(label: &str) -> bool {
+    lock(&conns().0).get(label).is_some_and(|c| c.compact)
 }
 
 /// An event to every connection listening for it (`target: None`), or to
@@ -555,6 +563,7 @@ enum Incoming {
     Listen { listen: String },
     Unlisten { unlisten: String },
     Visible { visible: bool },
+    Compact { compact: bool },
     Emit { emit: String, #[serde(default)] payload: Value },
 }
 
@@ -566,7 +575,7 @@ async fn serve(app: AppHandle, label: String, socket: WebSocket) {
     let gen = GEN.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let first = {
         let mut conns = lock(&conns().0);
-        conns.insert(label.clone(), Conn { gen, tx: tx.clone(), events: HashSet::new() });
+        conns.insert(label.clone(), Conn { gen, tx: tx.clone(), events: HashSet::new(), compact: false });
         conns.len() == 1
     };
     eprintln!("remote\tconnected\t{label}");
@@ -605,6 +614,11 @@ async fn serve(app: AppHandle, label: String, socket: WebSocket) {
                 }
             }
             Ok(Incoming::Visible { visible }) => crate::views::set_visible(&app, &label, visible, false),
+            Ok(Incoming::Compact { compact }) => {
+                if let Some(c) = lock(&conns().0).get_mut(&label) {
+                    c.compact = compact;
+                }
+            }
             Ok(Incoming::Emit { emit, payload }) if emit.starts_with("pal://") => {
                 let _ = app.emit(&emit, payload);
             }

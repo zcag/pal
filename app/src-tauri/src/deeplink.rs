@@ -1064,12 +1064,15 @@ async fn store(app: &AppHandle, route: Route, trusted: bool) {
 // ---- copy deep link ------------------------------------------------------------
 
 /// "Copy deep link" (the Launcher's shell action): the panel hides, the
-/// link goes on the clipboard with the bundle's scheme, the HUD says so.
+/// link goes on the clipboard with the bundle's scheme, the HUD says so;
+/// from a remote page, on the device's clipboard (the envelope's `client`).
 #[tauri::command]
-pub async fn link_copy(app: AppHandle, link: String) -> Result<(), String> {
+pub async fn link_copy(app: AppHandle, caller: crate::remote::Caller, link: String) -> Result<Value, String> {
     let link = with_scheme(&link, &scheme(&app));
-    on_main(&app, panel::hide);
-    effects::apply(&app, json!({ "copy": link, "hud": format!("Copied {link}") })).await.map(|_| ())
+    if !crate::remote::is_remote(caller.label()) {
+        on_main(&app, panel::hide);
+    }
+    effects::apply_from(&app, json!({ "copy": link, "hud": format!("Copied {link}") }), caller.label()).await
 }
 
 #[cfg(test)]

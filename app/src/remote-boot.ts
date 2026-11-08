@@ -3,9 +3,10 @@
 // the page is a remote one (remote.ts), and an embed hears its host from
 // the start (embed.ts).
 import { embedOf, listenHost } from "./embed";
-import { install } from "./remote";
+import { fitViewport, install } from "./remote";
 
 if (!window.__TAURI_INTERNALS__ && !new URLSearchParams(location.search).has("gallery")) {
   install();
   if (embedOf(location.search)) listenHost();
+  else if (window.parent === window) fitViewport();
 }

@@ -17,8 +17,11 @@ export type SheetMessage =
 /** The bar item this page is the sheet of (`?bar&key=`), when it is one. */
 export const sheetKey = (search: string): string | null => new URLSearchParams(search).get("key");
 
-/** The frame's address for a bar item's sheet. */
-export const sheetSrc = (key: string) => `?bar&key=${encodeURIComponent(key)}`;
+/** The glance card line a sheet runs instead of opening its item (`&line=`). */
+export const sheetLine = (search: string): number | null => { const n = Number(new URLSearchParams(search).get("line") ?? NaN); return Number.isInteger(n) && n >= 0 ? n : null; };
+
+/** The frame's address for a bar item's sheet, or for one line of its glance card. */
+export const sheetSrc = (key: string, line?: number) => `?bar&key=${encodeURIComponent(key)}${line === undefined ? "" : `&line=${line}`}`;
 
 export const toParent = (msg: SheetMessage) => { if (window.parent !== window) window.parent.postMessage(msg, location.origin); };
 

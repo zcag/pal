@@ -824,14 +824,18 @@ pub async fn bar_action(app: AppHandle, caller: Caller, key: String, action: Str
 /// A tap on the remote page's strip (its `bar` page): the item's sheet on
 /// its level, or for an item with no menu (or `click: "open"`) its
 /// `onOpen`, a level it answers landing in the sheet. The envelope comes
-/// back for the page (its `client` part is the device's to run).
+/// back for the page (its `client` part is the device's to run). With
+/// `line`, a glance card's line (glance.rs): that line's action instead.
 #[tauri::command]
-pub async fn bar_web_open(app: AppHandle, caller: Caller, key: String) -> Result<Value, String> {
+pub async fn bar_web_open(app: AppHandle, caller: Caller, key: String, line: Option<usize>) -> Result<Value, String> {
     let label = caller.label();
     if crate::remote::page_of(label) != Some("bar") {
         return Err(format!("{key}: only a remote page's bar sheet opens items this way"));
     }
-    entry(&app, &key).ok_or_else(|| format!("no bar item {key}"))?;
+    let e = entry(&app, &key).ok_or_else(|| format!("no bar item {key}"))?;
+    if let Some(action) = line.and_then(|n| e.last?.glance?.lines.into_iter().nth(n)?.action) {
+        return super::opened(&app, &key, Some(&action), "hotkey", None, label).await;
+    }
     if drawn(&app, &key).is_some_and(|i| i.has_menu() && !i.opens_directly()) {
         web_show(&app, label, &key, None);
         return Ok(Value::Null);

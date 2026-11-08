@@ -333,6 +333,8 @@ export type LauncherProps = {
   asking?: boolean;
   /** A touch screen: each row has a button to its actions, and a long press opens them too. */
   touch?: boolean;
+  /** Too narrow for a detail pane beside the list (a remote page on a phone): ⌘I previews the row as a level, as in the compact panel. */
+  narrow?: boolean;
   /** How many layers sit over the bottom level (levels pushed, plus the actions or a confirm open): a browser page keeps a history entry per layer. */
   onLayers?: (layers: number) => void;
 };
@@ -386,6 +388,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const prefs = props.prefs ?? DEFAULT_PREFS;
   /** Compact: no detail pane (cmd+i is inert), the footer's primary hint sits in the search row instead. */
   const compact = prefs.compact;
+  const paneless = compact || !!props.narrow;
   const local = useLocalSearch(props.items);
   const sources = props.sources ?? local.sources;
   const search = props.search ?? local.search;
@@ -698,7 +701,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const anchor = useMemo<Item | undefined>(() => anchorOf(sel, current), [sel, current]);
   const marked = useCallback((item: Item) => isMarked(sel, item), [sel]);
   // A palette that asks for it opens with the pane; leaving resets. cmd+i still toggles.
-  useEffect(() => setShowDetail(view.kind === "palette" && !!byKey.get(view.palette)?.showDetail), [view]);
+  useEffect(() => setShowDetail(!paneless && view.kind === "palette" && !!byKey.get(view.palette)?.showDetail), [view, paneless]);
   const isGrid = view.kind === "palette" && scope?.view === "grid";
   const columns = scope?.columns ?? GRID_COLUMNS;
 
@@ -1005,7 +1008,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       const isPalette = current.palette === PALETTES, isTip = current.palette === WELCOME, isAsk = !!current.push;
       a.push(...(current.actions ?? [isPalette ? { ...OPEN, title: `Open ${current.name}` } : isAsk ? { ...OPEN, title: current.name } : OPEN]));
       if (view.kind === "root" && !isPalette && !isTip && !isAsk && current.palette !== FALLBACK) a.push({ id: BROWSE, title: `Browse ${titleOf(current.palette!)}`, icon: { kind: "glyph", value: "›" }, shortcut: "cmd+shift+b", section: "Navigate" });
-      if (!compact) a.push({ id: DETAIL, title: showDetail ? "Hide details" : "Show details", shortcut: "cmd+i", section: "View" });
+      if (!paneless) a.push({ id: DETAIL, title: showDetail ? "Hide details" : "Show details", shortcut: "cmd+i", section: "View" });
       else if (previewable(current)) a.push({ id: DETAIL, title: "Preview", shortcut: "cmd+i", section: "View" });
     }
     if (linkable) a.push(link);
@@ -1019,7 +1022,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     if (onSettings && view.kind === "root") a.push({ id: SETTINGS, title: "Open Settings", icon: { kind: "glyph", value: "⚙" }, shortcut: "cmd+,", section: "pal" });
     if (onWelcome && view.kind === "root" && !byKey.has(WELCOME)) a.push({ id: TIPS, title: "Show tips again", icon: { kind: "glyph", value: "?" }, section: "pal" });
     return a;
-  }, [current, view, showDetail, byKey, onSettings, onRefresh, onWelcome, onLink, onForget, onCompact, onPanelMode, panelMode, surfaceView, compact, scope, args, query, sel, anchor]);
+  }, [current, view, showDetail, byKey, onSettings, onRefresh, onWelcome, onLink, onForget, onCompact, onPanelMode, panelMode, surfaceView, compact, paneless, scope, args, query, sel, anchor]);
   /** The actions on show: Enter and ⌘Enter are the first two of these, the footer and the panel list them; a `hidden` action only routes its key. */
   const listed = useMemo(() => actions.filter((a) => !a.hidden), [actions]);
   /** What Enter and ⌘Enter run: the listed actions, less "Clear selection" (Escape's), which is never a row's primary. */
@@ -1172,7 +1175,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       case REFRESH: onRefresh?.(view.kind === "palette" ? scope : undefined); break;
       case TIPS: onWelcome?.(); break;
       case LINK: { const l = linkFor(view, current, query); if (l) onLink?.(l); break; }
-      case DETAIL: if (compact) { if (current) preview(current); } else setShowDetail((s) => !s); break;
+      case DETAIL: if (paneless) { if (current) preview(current); } else setShowDetail((s) => !s); break;
       case COMPACT: onCompact?.(); break;
       case BIG: togglePanel("big"); break;
       case CORNER: togglePanel("corner"); break;
@@ -1353,7 +1356,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       } : view.kind === "view" && !viewInput ? ({ dir }) => { viewCommand(dir === 1 ? { type: "key", key: "tab" } : { type: "shortcut", combo: "shift+tab" }); }
       // fzf's Tab in a multi palette or picker (none of them has a filter dropdown): mark and step, whatever is typed.
       : multiLevel ? ({ dir }) => { if (current) { toggleAt(cur.cursor); cur.move(dir); } } : () => {},
-      detail: () => (view.kind === "show" && view.from ? pop() : view.kind === "view" || view.kind === "form" || view.kind === "show" ? false : compact ? (current ? preview(current) : false) : setShowDetail((s) => !s)),
+      detail: () => (view.kind === "show" && view.from ? pop() : view.kind === "view" || view.kind === "form" || view.kind === "show" ? false : paneless ? (current ? preview(current) : false) : setShowDetail((s) => !s)),
       shortcut: ({ combo }) => {
         if (combo === "cmd+," && onSettings) return onSettings();
         if (combo === "cmd+shift+m" && onCompact) return onCompact();
@@ -1463,7 +1466,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
       hold={hold}
       place={extensionPlace ?? placeOf(levelIcon)}
       search={<Search value={query} onChange={setQuery} inputRef={input} back={back} args={argRow ? { fields: argRow.args!, values: argValues, invalid: argInvalid, onChange: setArg, firstRef: argFirst, onEscape: focus } : undefined} filter={filterSpec} listId={isShow || isView || isForm || isMissing ? undefined : LIST_ID} activeId={hits.length ? domId(LIST_ID, cur.cursor) : undefined} popup={isGrid ? "grid" : "listbox"} loading={loading} placeholder={placeholder} readOnly={isShow || isMissing} title={(isView && !viewInput) || isForm ? viewTitle : undefined} hint={compact ? primaryHint : undefined} onHint={compact ? onPrimary : undefined} count={compact ? (sel ? sel.items.length : undefined) : undefined} />}
-      aside={!compact && showDetail && !isShow && !isView && !isForm && !isMissing && (paneDetail ? <Detail detail={paneDetail} loading={paneLoading} /> : <Empty title="No details" />)}
+      aside={!paneless && showDetail && !isShow && !isView && !isForm && !isMissing && (paneDetail ? <Detail detail={paneDetail} loading={paneLoading} /> : <Empty title="No details" />)}
       footer={compact ? undefined :
         <Footer
           icon={isShow || isView || isForm ? levelIcon : current?.icon}

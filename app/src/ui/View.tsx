@@ -4,6 +4,7 @@ import { clickIntent } from "./List";
 import { Tag } from "./Row";
 import { Presence } from "./presence";
 import { Surface } from "./Surface";
+import { servedSrc } from "./icons";
 import type { ViewNode } from "./types";
 
 /** What an `image` node may load: the app's icon scheme, or a picture the extension made (an SVG data url). Anything else is not shown. */
@@ -332,7 +333,7 @@ function Node({ node }: { node: ViewNode }) {
     }
     case "image": {
       if (typeof node.src !== "string" || !IMAGE_SRC.test(node.src)) return null;
-      const img = <img className={node.dot ? "pal-view__image" : "pal-view__node pal-view__image"} src={node.src} width={node.width} height={node.height} data-mask={node.mask} alt={node.alt ?? ""} decoding="async" draggable={false} {...(node.dot ? undefined : motion)} style={node.dot ? undefined : mstyle} />;
+      const img = <img className={node.dot ? "pal-view__image" : "pal-view__node pal-view__image"} src={servedSrc(node.src)} width={node.width} height={node.height} data-mask={node.mask} alt={node.alt ?? ""} decoding="async" draggable={false} {...(node.dot ? undefined : motion)} style={node.dot ? undefined : mstyle} />;
       if (!node.dot) return img;
       // A presence dot: the picture in a box of its size with the dot on the bottom-right corner, ringed by the panel's background.
       return (

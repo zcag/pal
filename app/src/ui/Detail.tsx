@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Marked, Renderer, type Tokens } from "marked";
 import { Tag } from "./Row";
+import { servedSrc } from "./icons";
 import type { Detail as DetailSpec, Metadata } from "./types";
 
 const unsafeScheme = /^\s*(javascript|data|vbscript):/i;
@@ -11,6 +12,9 @@ const md = new Marked({
   breaks: true,
   renderer: {
     html: () => "",
+    image(this: Renderer, token: Tokens.Image) {
+      return Renderer.prototype.image.call(this, { ...token, href: servedSrc(token.href) });
+    },
     link(this: Renderer, token: Tokens.Link) {
       if (unsafeScheme.test(token.href)) return this.parser.parseInline(token.tokens);
       // The stock renderer escapes href and title; only the attributes are ours.

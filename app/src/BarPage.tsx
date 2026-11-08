@@ -10,7 +10,7 @@ import type { Item } from "./ui/types";
 import { POPOVER_MAX_H, popoverHeight } from "./ui/popover-size";
 import { installMissing, missingInfo, opened } from "./store";
 import { isRemote } from "./remote";
-import { sheetKey, toParent } from "./sheet";
+import { sheetKey, sheetLine, toParent } from "./sheet";
 import { handOver, tellPick } from "./embed";
 import type { FromPal } from "../../web/src/protocol";
 
@@ -171,7 +171,7 @@ export default function BarPage() {
   // A sheet opens its item once its listener is up, and hands the HUD and Large Type lines its picks raise to the page around it.
   useEffect(() => {
     if (sheet === null) return;
-    invoke("bar_web_open", { key: sheet }).catch((e) => { mark(`bar web open ${sheet}: ${String(e)}`, 0); hide(); });
+    invoke("bar_web_open", { key: sheet, line: sheetLine(location.search) }).catch((e) => { mark(`bar web open ${sheet}: ${String(e)}`, 0); hide(); });
     handOver(toEmbed, location.search);
     const fwd = (event: "pal://hud" | "pal://large") => listen(event, (e) => toParent({ pal: "sheet", event, payload: e.payload }));
     const uns = [fwd("pal://hud"), fwd("pal://large")];

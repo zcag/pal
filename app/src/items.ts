@@ -2,7 +2,7 @@
  * Adapts what the core sends per hit (a host item, fields pass through) to
  * the UI item model. Provisional, like the wire shape it reads.
  */
-import { isBrand, isSymbol, nearestBrand } from "./ui/icons";
+import { isBrand, isSymbol, nearestBrand, servedSrc } from "./ui/icons";
 import type { Accessory, Action, Brand, Detail, FilterOption, FormField, FormSpec, FormValues, Icon, Item, ViewSpec } from "./ui/types";
 
 /** `pal_core::index::Source`. */
@@ -169,7 +169,7 @@ export function iconOf(icon: unknown, name: string, url?: string): Icon | undefi
   const letter = name ? name[0].toUpperCase() : "";
   const obj = icon && typeof icon === "object" ? (icon as { app?: unknown; image?: unknown; tile?: unknown; glyph?: unknown; color?: unknown }) : undefined;
   if (typeof obj?.app === "string") return { kind: "app", path: obj.app, letter };
-  if (typeof obj?.image === "string") return { kind: "image", src: obj.image, mask: "rounded" };
+  if (typeof obj?.image === "string") return { kind: "image", src: servedSrc(obj.image), mask: "rounded" };
   if (obj?.tile && typeof obj.tile === "object") {
     const t = obj.tile as { glyph?: unknown; svg?: unknown; bg?: unknown; fg?: unknown; box?: unknown; badge?: unknown };
     const glyph = typeof t.glyph === "string" && isSymbol(t.glyph) ? t.glyph : undefined;

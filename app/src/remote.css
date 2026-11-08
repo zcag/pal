@@ -57,7 +57,10 @@ html[data-remote="offline"] .pal-remote__link { opacity: 1; transform: none; ani
 /* ---- Touch: bigger targets, no key caps, the actions as a bottom sheet -------- */
 @media (pointer: coarse) {
   html[data-shell] { --pal-row-h: 48px; --pal-control-h: 44px; --pal-search-h: 56px; }
-  html[data-shell] .pal-kbd, html[data-shell] .pal-row__hints { display: none; }
+  html[data-shell] .pal-kbd, html[data-shell] .pal-row__hints, html[data-shell] .pal-glance__key { display: none; }
+  /* A view's key hints (`keyHint`: keycaps, then a muted caption): the caption goes with its keys, and a line of nothing else with it. */
+  html[data-shell] .pal-kbd + .pal-view__text[data-style="muted"],
+  html[data-shell] .pal-view__stack[data-direction="row"]:has(> .pal-kbd):not(:has(> :not(.pal-kbd, .pal-view__spacer, .pal-view__text[data-style="muted"]))) { display: none; }
   html[data-shell] .pal-row { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
   html[data-shell] .pal-search__input { font-size: max(16px, var(--pal-text-xl)); }
   html[data-shell] .pal-footer__hint:first-child:not(:only-child) { display: none; }

@@ -134,9 +134,10 @@ impl Table {
 }
 
 /// The bar popover (420 px, bar/popover.rs), the sidebar (320 by
-/// default, sidebar.rs) and a remote bar page are the compact surfaces.
+/// default, sidebar.rs), a remote bar page and a remote page too narrow
+/// for the panel (a phone) are the compact surfaces.
 pub(crate) fn is_compact(window: &str) -> bool {
-    window == crate::bar::popover::WINDOW || window == crate::sidebar::WINDOW || crate::remote::page_of(window) == Some("bar")
+    window == crate::bar::popover::WINDOW || window == crate::sidebar::WINDOW || crate::remote::page_of(window) == Some("bar") || crate::remote::compact(window)
 }
 
 pub struct Views(Mutex<Table>);

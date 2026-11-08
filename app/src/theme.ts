@@ -89,6 +89,7 @@ type ConfigEvent = { config?: { general?: { theme?: Theme; compact?: boolean; de
 export function followTheme(): () => void {
   const asked = isRemote() ? themeOf(location.search) : null;
   const apply = (t: Theme | undefined) => applyTheme(asked ?? t);
+  if (asked) apply(asked);
   invoke<Theme>("settings_theme").then(apply).catch(() => {});
   invoke<{ compact?: boolean; design?: string }>("settings_general").then((g) => { applyDensity(g?.compact); applyDesign(g?.design); }).catch(() => {});
   invoke<ThemeFile>("theme_current").then(applyThemeFile).catch(() => {});
