@@ -611,7 +611,7 @@ fn run(app: &AppHandle, route: Route, trusted: bool) {
             let app = app.clone();
             tauri::async_runtime::spawn(async move {
                 let item = json!({ "id": id, "name": id, "palette": "pal/commands", "source": commands::source() });
-                match commands::pick(&app, &id, None, None).await {
+                match commands::pick(&app, &id, None, None, crate::WINDOW).await {
                     Ok(r) => deliver(&app, item, r),
                     Err(e) => hud::show(&app, &format!("pal: {e}")),
                 }

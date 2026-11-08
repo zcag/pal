@@ -608,7 +608,7 @@ pub fn restart(app: &AppHandle) -> Result<(), String> {
 
 /// A pick on a command row: the envelope the page should see, as
 /// `index::pick` returns for a host row.
-pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, values: Option<&Value>) -> Result<Value, String> {
+pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, values: Option<&Value>, window: &str) -> Result<Value, String> {
     if crate::features::split(id).is_some() {
         let (app, id) = (app.clone(), id.to_string());
         return tauri::async_runtime::spawn_blocking(move || crate::features::run(&app, &id)).await.map_err(|e| e.to_string())?;
@@ -623,11 +623,11 @@ pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, values: Optio
             settings::open_at(app, Some("extensions"), Some(&format!("extensions:{key}")));
             hide()
         }
-        Plan::Open(url) => effects::apply(app, json!({ "open": url })).await,
-        Plan::WhatsNew => effects::apply(app, json!({ "open": changelog_url(&app.package_info().version.to_string()) })).await,
+        Plan::Open(url) => effects::apply_from(app, json!({ "open": url }), window).await,
+        Plan::WhatsNew => effects::apply_from(app, json!({ "open": changelog_url(&app.package_info().version.to_string()) }), window).await,
         Plan::Store => {
             let env = crate::store::store_envelope(app);
-            if env.get("push").is_some() { Ok(env) } else { effects::apply(app, env).await }
+            if env.get("push").is_some() { Ok(env) } else { effects::apply_from(app, env, window).await }
         }
         Plan::InstallForm => Ok(install_form(None)),
         Plan::Install(spec) => {
@@ -660,7 +660,7 @@ pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, values: Optio
             // Not installable here: the download page, where the build for this platform is.
             Err(e) if updater::support().is_err() => {
                 eprintln!("updater\tinstall refused\t{e}");
-                effects::apply(app, json!({ "open": DOWNLOAD })).await
+                effects::apply_from(app, json!({ "open": DOWNLOAD }), window).await
             }
             Err(e) => Ok(toast("Could not install the update", &e, "failure")),
         },
@@ -676,8 +676,8 @@ pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, values: Optio
             welcome::welcome_reset(app.clone())?;
             Ok(toast("Tips are back", "They lead the empty query", "success"))
         }
-        Plan::ReportBug => effects::apply(app, json!({ "open": Diag::read(app).bug_url() })).await,
-        Plan::CopyDiagnostics => effects::apply(app, json!({ "copy": Diag::read(app).text() })).await,
+        Plan::ReportBug => effects::apply_from(app, json!({ "open": Diag::read(app).bug_url() }), window).await,
+        Plan::CopyDiagnostics => effects::apply_from(app, json!({ "copy": Diag::read(app).text() }), window).await,
         Plan::ToggleTheme => {
             let next = next_theme(settings::config(app).general.theme);
             settings::settings_set(app.state(), "general.theme".into(), json!(theme_name(next)))?;
@@ -695,7 +695,7 @@ pub async fn pick(app: &AppHandle, id: &str, action: Option<&str>, values: Optio
             restart(app)?;
             hide()
         }
-        Plan::CopyVersion => effects::apply(app, json!({ "copy": app.package_info().version.to_string() })).await,
+        Plan::CopyVersion => effects::apply_from(app, json!({ "copy": app.package_info().version.to_string() }), window).await,
         Plan::Nothing => Ok(json!({ "keep": true })),
     }
 }

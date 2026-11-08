@@ -214,7 +214,7 @@ pub async fn fallback(app: AppHandle, q: String, host: State<'_, Arc<Host>>) -> 
 }
 
 /// A pick on one of the shell's rows: the web search or the URL, opened.
-pub async fn pick(app: &AppHandle, id: &str, query: &str) -> Result<Value, String> {
+pub async fn pick(app: &AppHandle, id: &str, query: &str, window: &str) -> Result<Value, String> {
     let config = settings::config(app);
     let target = match id {
         WEB => web_url(&config.general.search_engine, query),
@@ -222,7 +222,7 @@ pub async fn pick(app: &AppHandle, id: &str, query: &str) -> Result<Value, Strin
         _ => return Ok(json!({ "keep": true })),
     };
     eprintln!("fallback\t{id}\t{target}");
-    effects::apply(app, json!({ "open": target })).await
+    effects::apply_from(app, json!({ "open": target }), window).await
 }
 
 #[cfg(test)]

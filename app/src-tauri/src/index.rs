@@ -1181,7 +1181,7 @@ pub struct PickRequest {
 pub async fn pick(app: AppHandle, caller: crate::remote::Caller, req: PickRequest, host: State<'_, Arc<Host>>) -> Result<Value, String> {
     let PickRequest { source, id, action, query, args, values, ids } = req;
     if source == welcome::source() {
-        return welcome::pick(&app, &id).await;
+        return welcome::pick(&app, &id, caller.label()).await;
     }
     if source == crate::store::source() {
         return crate::store::pick(&app, &id, action.as_deref(), &query).await;
@@ -1193,9 +1193,9 @@ pub async fn pick(app: AppHandle, caller: crate::remote::Caller, req: PickReques
     let r = if source == palettes_source() {
         json!({ "keep": true })
     } else if source == commands::source() {
-        commands::pick(&app, &id, action.as_deref(), values.as_ref()).await?
+        commands::pick(&app, &id, action.as_deref(), values.as_ref(), caller.label()).await?
     } else if source == fallback::source() {
-        fallback::pick(&app, &id, &query).await?
+        fallback::pick(&app, &id, &query, caller.label()).await?
     } else {
         run_pick_from(&app, &host, &source, &Pick { id: &id, action: action.as_deref(), args: args.as_ref(), values: values.as_ref(), ids: ids.as_deref() }, caller.label()).await?
     };

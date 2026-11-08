@@ -260,7 +260,7 @@ pub fn sync(app: &AppHandle) {
 
 /// A pick on a welcome row. Returns the envelope the page should see, as
 /// `index::pick` does for a host row.
-pub async fn pick(app: &AppHandle, id: &str) -> Result<Value, String> {
+pub async fn pick(app: &AppHandle, id: &str, window: &str) -> Result<Value, String> {
     let data = data_dir(app);
     match id {
         // Straight to the recorder, not the Overview: the row promised the hotkey.
@@ -272,9 +272,9 @@ pub async fn pick(app: &AppHandle, id: &str) -> Result<Value, String> {
             settings::open_at(app, Some("features"), Some(if id == SWITCHER { "features:switcher" } else { "features:sidebar" }));
             Ok(json!({ "hide": true }))
         }
-        EXTENSIONS => effects::apply(app, json!({ "open": EXTENSIONS_GUIDE })).await,
-        PICK => effects::apply(app, crate::store::store_envelope(app)).await,
-        GITHUB => effects::apply(app, json!({ "open": REPO })).await,
+        EXTENSIONS => effects::apply_from(app, json!({ "open": EXTENSIONS_GUIDE }), window).await,
+        PICK => effects::apply_from(app, crate::store::store_envelope(app), window).await,
+        GITHUB => effects::apply_from(app, json!({ "open": REPO }), window).await,
         ACCESSIBILITY => {
             // The user asked: the request every time (the prompt, or the pane once it has shown), not the once-per-run card.
             let status = permissions::request(app, "accessibility")?;
