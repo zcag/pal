@@ -1448,3 +1448,37 @@ button.pal-shortcuts__name:hover { text-decoration: underline; }
 .pal-glance-pick__item:disabled { opacity: 0.45; }
 .pal-glance-pick__item:focus-visible { outline: none; box-shadow: var(--pal-ring); }
 .pal-glance-pick__n { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 999px; background: var(--pal-accent); color: var(--pal-accent-fg); font-size: 10px; font-weight: var(--pal-weight-semibold); }
+
+/* ---- Narrow (a phone, SettingsWindow `data-narrow`): the pages a list to drill into ----
+   `list`: a large title, the search and the pages as rows; `page`: back to the list, the page's title, the page.
+   Rows stack their label over the control, as a phone's settings do. */
+.pal-settings__crumbs { display: none; }
+.pal-settings[data-narrow] .pal-settings__toolbar { display: flex; flex-direction: column; align-items: stretch; gap: var(--pal-space-2); height: auto; padding: env(safe-area-inset-top) var(--pal-space-4) var(--pal-space-3); }
+.pal-settings[data-narrow] .pal-settings__lights { display: none; }
+.pal-settings[data-narrow] .pal-settings__crumbs { display: flex; flex-direction: column; align-items: flex-start; }
+.pal-settings__up { display: inline-flex; align-items: center; gap: var(--pal-space-1); height: 44px; margin-left: calc(var(--pal-space-1) * -1); padding: 0 var(--pal-space-1); border: 0; background: none; color: var(--pal-accent); font: inherit; font-size: var(--pal-text-lg); text-decoration: none; cursor: pointer; }
+.pal-settings__chevron { width: 10px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.pal-settings__heading { margin: 0; font-size: 28px; font-weight: var(--pal-weight-semibold); line-height: 1.15; letter-spacing: -0.01em; }
+.pal-settings[data-narrow="page"] .pal-settings__heading { font-size: 22px; }
+.pal-settings[data-narrow] .pal-settings__search { order: -1; justify-self: stretch; }
+.pal-settings[data-narrow] .pal-settings__crumbs { order: -2; }
+.pal-settings[data-narrow] .pal-settings__search-field { width: 100%; height: 40px; padding: 0 var(--pal-space-3); border-radius: var(--pal-radius-tile); }
+.pal-settings[data-narrow] .pal-settings__search-input { font-size: 16px; }
+.pal-settings[data-narrow] .pal-settings__search-key { display: none; }
+.pal-settings[data-narrow="page"] .pal-settings__search, .pal-settings[data-narrow="page"] .pal-settings__tabs, .pal-settings[data-narrow][data-searching] .pal-settings__tabs { display: none; }
+.pal-settings[data-narrow="list"]:not([data-searching]) .pal-settings__content { display: none; }
+.pal-settings[data-narrow="list"]:not([data-searching]) .pal-settings__toolbar { flex: 1; min-height: 0; overflow-y: auto; border-bottom: 0; }
+.pal-settings[data-narrow] .pal-settings__tabs { flex-direction: column; gap: 0; margin-top: var(--pal-space-2); background: var(--pal-bg-elevated); border-radius: var(--pal-radius-tile); box-shadow: 0 0 0 1px var(--pal-line); overflow: hidden; }
+.pal-settings[data-narrow] .pal-settings__tab { flex: none; flex-direction: row; justify-content: flex-start; gap: var(--pal-space-3); width: auto; height: 52px; padding: 0 var(--pal-space-4); border-radius: 0; color: var(--pal-fg); font-size: var(--pal-text-lg); }
+.pal-settings[data-narrow] .pal-settings__tab + .pal-settings__tab { box-shadow: inset 0 1px 0 var(--pal-line); }
+.pal-settings[data-narrow] .pal-settings__tab[data-active] { background: transparent; }
+.pal-settings[data-narrow] .pal-settings__tab:active { background: var(--pal-selection); }
+.pal-settings[data-narrow] .pal-settings__tab-icon { color: var(--pal-accent); }
+.pal-settings[data-narrow] .pal-settings__tab-label { flex: 1; text-align: left; }
+.pal-settings[data-narrow] .pal-settings__tab::after { content: ""; width: 7px; height: 7px; margin-right: 2px; border: solid var(--pal-fg-faint); border-width: 1.5px 1.5px 0 0; transform: rotate(45deg); }
+.pal-settings[data-narrow] .pal-settings-page { padding: var(--pal-space-4) var(--pal-space-4) calc(var(--pal-space-6) + env(safe-area-inset-bottom)); }
+.pal-settings[data-narrow="page"] .pal-settings-page { animation: pal-slide-left var(--pal-dur-slow) var(--pal-ease); }
+.pal-settings[data-narrow] .pal-setting[data-layout="row"] { display: flex; flex-direction: column; gap: var(--pal-space-1); }
+.pal-settings[data-narrow] .pal-setting[data-layout="row"] .pal-setting__label { justify-content: flex-start; min-height: 0; text-align: left; font-weight: var(--pal-weight-medium); }
+.pal-settings[data-narrow] .pal-setting__control > .pal-field__input { max-width: none; }
+.pal-settings[data-narrow] .pal-settings__aside { white-space: normal; padding-bottom: calc(var(--pal-space-2) + env(safe-area-inset-bottom)); }

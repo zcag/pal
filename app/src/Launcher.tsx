@@ -17,6 +17,7 @@ import { ASK_ID, ATTENTION, FALLBACK, FREQUENT, PALETTES, RECENT_FILES, WELCOME,
 import { linkFor } from "./links";
 import { SUBMENU, menuRows, type BarMenuNode } from "./bar";
 import { paletteTitle } from "./fixtures";
+import { typesFirst } from "./ui/touch";
 
 export const LIMIT = 200;
 /** `pal_core::dialog::Dialog`: the file panel in front, for the root's hint. */
@@ -255,6 +256,8 @@ export type LauncherHandle = {
   trigger(name: string): void;
   /** A link named an extension that is not loaded (the core's `DEEPLINK {missing}`): the root, then its card, with what the core said of it when given (else the store is asked). */
   missing(extension: string, palette?: string, info?: MissingInfo): void;
+  /** One layer off the top, as a browser's back takes it: the confirm or the actions open, else the level. */
+  back(): void;
 };
 
 export type LauncherProps = {
@@ -328,6 +331,10 @@ export type LauncherProps = {
   onOpened?: (palette: string) => void;
   /** The core's confirm card is up over the panel (App.tsx): the panel keeps its full height for it, as for the Launcher's own. */
   asking?: boolean;
+  /** A touch screen: each row has a button to its actions, and a long press opens them too. */
+  touch?: boolean;
+  /** How many layers sit over the bottom level (levels pushed, plus the actions or a confirm open): a browser page keeps a history entry per layer. */
+  onLayers?: (layers: number) => void;
 };
 
 const haystack = (i: Item) => [i.name, i.subtitle, ...(i.keywords ?? [])].filter(Boolean).join(" ");
@@ -413,6 +420,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const hist = useRef<string[] | null>(null);
   const [histIdx, setHistIdx] = useState(-1);
   const input = useRef<HTMLInputElement>(null);
+  /** The search box takes focus on its own only where typing comes first; on a phone it would raise the keyboard unasked. */
+  const focusInput = (o?: FocusOptions) => { if (typesFirst()) input.current?.focus(o); };
   const list = useRef<ListHandle>(null);
   const show = useRef<HTMLDivElement>(null);
   const viewEl = useRef<HTMLDivElement>(null);
@@ -568,7 +577,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   }, [view, scope, ctx]);
 
   // Leaving a view or form level, the search input comes back and takes the keys again (a form's first field takes them meanwhile).
-  useEffect(() => { if (view.kind !== "view" && view.kind !== "form") input.current?.focus({ preventScroll: true }); }, [view.kind]);
+  useEffect(() => { if (view.kind !== "view" && view.kind !== "form") focusInput({ preventScroll: true }); }, [view.kind]);
 
   // A view's text field: the tree's `input.value` becomes the query when the
   // field opens and whenever a later tree changes it (the same value again
@@ -758,7 +767,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   }, [toast]);
 
   /** Keys back where they belong after an overlay: a surface's page when the level has one, else the search box. */
-  const focus = () => (surfaceRef.current ? surfaceRef.current.focus() : input.current?.focus());
+  const focus = () => (surfaceRef.current ? surfaceRef.current.focus() : focusInput());
 
   /**
    * Typed arguments (`Item.args`): while the cursor rests on a row that
@@ -863,7 +872,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const closeActions = () => { setActionsOpen(false); focus(); };
   const closeConfirm = () => { setConfirming(null); focus(); };
   const shown = useCallback(() => { setSuggestSeq((n) => n + 1); hist.current = null; setHold(false); }, []);
-  const reset = useCallback(() => { nav.reset(); cur.reset(); setPaletteFilter(undefined); setSel(null); setActionsOpen(false); setConfirming(null); setToast(null); setBusy(false); setHistIdx(-1); shown(); input.current?.focus(); }, [nav.reset, cur.reset, shown]);
+  const reset = useCallback(() => { nav.reset(); cur.reset(); setPaletteFilter(undefined); setSel(null); setActionsOpen(false); setConfirming(null); setToast(null); setBusy(false); setHistIdx(-1); shown(); focusInput(); }, [nav.reset, cur.reset, shown]);
   const openPalette = (palette: string, opts?: { hold?: boolean; steps?: number }) => {
     reset();
     enter(palette);
@@ -938,7 +947,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     // In place, a view level of the same palette keeps the tree it has (the item rendered again must not blank it while a fresh tree is asked for).
     if (inPlace) return nav.patch((v, depth) => (depth !== 1 ? v : level.kind === "view" && v.kind === "view" && v.palette === level.palette ? { ...level, spec: level.spec ?? v.spec } : level));
     // A new level starts with no rows: the previous one's would show under its header until the new search answers.
-    nav.restart(level); setFound([]); cur.reset(); setPaletteFilter(undefined); setSel(null); setActionsOpen(false); setConfirming(null); setToast(null); setBusy(false); setReportSeq((n) => n + 1); input.current?.focus();
+    nav.restart(level); setFound([]); cur.reset(); setPaletteFilter(undefined); setSel(null); setActionsOpen(false); setConfirming(null); setToast(null); setBusy(false); setReportSeq((n) => n + 1); focusInput();
   }, [nav.restart, nav.patch, cur.reset, byKey]);
   /** Whether a push names this level, by its identity as `open` reports it: a source's palette, else a bar item's key; a palette and a bar item of one name never cross. */
   const names = useCallback((v: Level, u: ViewUpdate): v is Extract<Level, { kind: "view" }> & { spec: ViewSpec } => {
@@ -966,7 +975,11 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const filter = (id: string) => { setPaletteFilter(id); cur.reset(); };
   // `applyEffect` closes over this render's stack, so the handle is rebuilt per render (cheap: an object).
   const apply = (item: Item, effect: Effect, args?: unknown) => applyEffect(item, effect, args !== undefined ? { args } : undefined);
-  useImperativeHandle(ref, () => ({ reset, open: openPalette, switch: switchTo, start, type, focus, filter, apply, shown, toast: setToast, update, trigger, missing: missingFromLink }));
+  const goBack = () => (confirming ? closeConfirm() : actionsOpen ? closeActions() : nav.depth > 1 ? pop() : undefined);
+  useImperativeHandle(ref, () => ({ reset, open: openPalette, switch: switchTo, start, type, focus, filter, apply, shown, toast: setToast, update, trigger, missing: missingFromLink, back: goBack }));
+  const layers = nav.depth - 1 + (actionsOpen || confirming ? 1 : 0);
+  const onLayers = props.onLayers;
+  useEffect(() => { onLayers?.(layers); }, [layers, onLayers]);
 
   // The item's own actions first (the default "Open" when it declares none;
   // a welcome tip declares `[]`, so Enter on it shows its detail), then the
@@ -1396,6 +1409,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   /** What Enter runs and the footer names: the field's submit while a view's text field is open, else the first listed action. */
   const primaryAction = viewInput ? actions.find((a) => a.id === viewInput.submit) : runnable[0];
   const onPickAt = (i: number) => { cur.set(i); const a = listed[0]; if (a) run(a); };
+  const onMore = props.touch ? (i: number) => { cur.set(i); setActionsOpen(true); } : undefined;
   /** Enter with rows marked and nothing that works on several: say so rather than pick one. */
   const noMulti = () => setToast({ style: "failure", title: "Nothing here works on several rows", message: "Clear the selection (Escape) to pick one" });
   /** A single-row action's key with rows marked. */
@@ -1439,8 +1453,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
           note={query && view.kind === "root" && sources.length > 0 && extensions < 2 ? `${extensions === 0 ? "No extensions are" : "Only one extension is"} loaded, so there is little to find. Settings (${isMac ? "⌘," : "Ctrl+,"}) › Extensions lists them; the Welcome tips link the guide to adding more.` : undefined}
         />
       : isGrid
-        ? <Grid ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} marked={marked} onToggle={toggleAt} onRange={rangeAt} columns={columns} ordinals={ordinals} />
-        : <List ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} marked={marked} onToggle={toggleAt} onRange={rangeAt} ordinals={ordinals} hints={rowHints} />;
+        ? <Grid ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} marked={marked} onToggle={toggleAt} onRange={rangeAt} columns={columns} ordinals={ordinals} onMore={onMore} />
+        : <List ref={list} id={LIST_ID} hits={hits} cursor={cur.cursor} onCursor={cur.set} onPick={onPickAt} marked={marked} onToggle={toggleAt} onRange={rangeAt} ordinals={ordinals} hints={rowHints} onMore={onMore} />;
 
   return (
     <Panel

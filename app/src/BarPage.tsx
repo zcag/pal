@@ -9,8 +9,16 @@ import { sourceKey, staysOpen, toView, type Ctx, type Effect } from "./items";
 import type { Item } from "./ui/types";
 import { POPOVER_MAX_H, popoverHeight } from "./ui/popover-size";
 import { installMissing, missingInfo, opened } from "./store";
+import { isRemote } from "./remote";
+import { sheetKey, toParent } from "./sheet";
 
-const hide = () => invoke("bar_hide");
+/** A remote page's sheet for this bar item (`?bar&key=`, sheet.ts): it opens the item itself and hands its size and its hide to the page around it. */
+const sheet = isRemote() ? sheetKey(location.search) : null;
+
+const hide = () => {
+  if (sheet !== null) toParent({ pal: "sheet", hide: true });
+  return invoke("bar_hide").catch(() => {});
+};
 
 /** `index.html?bar&sidebar`: the sidebar's window (sidebar.rs), the same page with the rows numbered and cmd+N a pick. */
 const sidebar = new URLSearchParams(location.search).has("sidebar");
@@ -99,7 +107,7 @@ export default function BarPage() {
     // Named to this window: a listener on the default target (`Any`) hears every window's, and the sidebar's show would start a level in the popover too (core.ts does the same for `pal://view`).
     const un = listen<BarPayload>("pal://bar", (e) => {
       const p = e.payload;
-      if ("hide" in p) { showing.current = null; setShow(null); return; }
+      if ("hide" in p) { showing.current = null; setShow(null); if (sheet !== null) toParent({ pal: "sheet", hide: true }); return; }
       if ("engage" in p) { if (showing.current) { showing.current.engaged = true; setShow({ ...showing.current }); } (page.current?.querySelector(".pal-search__input") as HTMLInputElement | null)?.focus(); return; }
       // The same item rendered again while showing: its level is replaced in place; another item starts over.
       // One line in the log per show: which item, peek or engaged, and whether its level is replaced in place (a lost show is otherwise invisible in a release build).
@@ -137,6 +145,7 @@ export default function BarPage() {
       raf = 0;
       // The chrome as drawn (popover-size.ts `chromeOf`): the sidebar hides its field while peeking, a design sizes its rows and footer its own way.
       const height = popoverHeight(el, undefined, MAX_HEIGHT);
+      if (sheet !== null) return toParent({ pal: "sheet", size: height });
       const sized = invoke("bar_size", { height });
       // A fresh item drawn: once the webview has the new height laid out (a frame or two after the window took it) and two more frames have painted it (WebKit's layer lags the window's size by one), the popover is told to show.
       // The new item's content, not the last one's still on screen: the body says something else now (or it is the same item again).
@@ -152,6 +161,15 @@ export default function BarPage() {
     mo.observe(el, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class"] });
     measure();
     return () => { mo.disconnect(); cancelAnimationFrame(raf); };
+  }, []);
+
+  // A sheet opens its item once its listener is up, and hands the HUD and Large Type lines its picks raise to the page around it.
+  useEffect(() => {
+    if (sheet === null) return;
+    invoke("bar_web_open", { key: sheet }).catch((e) => { mark(`bar web open ${sheet}: ${String(e)}`, 0); hide(); });
+    const fwd = (event: "pal://hud" | "pal://large") => listen(event, (e) => toParent({ pal: "sheet", event, payload: e.payload }));
+    const uns = [fwd("pal://hud"), fwd("pal://large")];
+    return () => { for (const un of uns) un.then((f) => f()); };
   }, []);
 
   // Live views in the popover: the same push, trigger and on-top report as the panel's (views.rs marks them `compact`).

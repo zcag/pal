@@ -17,11 +17,13 @@ export default function LargePage() {
   const [text, setText] = useState<string | null>(null);
   const [size, setSize] = useState(MINIMUM);
   const box = useRef<HTMLDivElement>(null);
+  const up = useRef(false);
+  up.current = text !== null;
   const hide = () => { setText(null); invoke("large_hide").catch(() => {}); };
   useEffect(() => {
     mark("large:page ready");
     const un = listen<{ text: string }>("pal://large", (e) => { setText(e.payload.text); mark(`large:text ${e.payload.text.length} chars`); });
-    const onKey = (e: KeyboardEvent) => { e.preventDefault(); hide(); };
+    const onKey = (e: KeyboardEvent) => { if (!up.current) return; e.preventDefault(); hide(); };
     window.addEventListener("keydown", onKey);
     return () => { window.removeEventListener("keydown", onKey); un.then((f) => f()); };
   }, []);
@@ -32,13 +34,13 @@ export default function LargePage() {
     const w = el?.clientWidth || window.innerWidth, h = el?.clientHeight || window.innerHeight;
     setSize(fit(display(text), w, h));
   }, [text]);
+  // Nothing up, nothing drawn: inside a remote page the layer would otherwise sit over the panel and take its taps.
+  if (text === null) return null;
   return (
     <div className="pal-large-page" ref={box} onMouseDown={hide}>
-      {text !== null && (
-        <div className="pal-large" role="status" data-code={isCode(text) || undefined} style={{ fontSize: size }}>
-          {display(text)}
-        </div>
-      )}
+      <div className="pal-large" role="status" data-code={isCode(text) || undefined} style={{ fontSize: size }}>
+        {display(text)}
+      </div>
     </div>
   );
 }

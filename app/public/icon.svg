@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs><filter id="glow" x="-60%" y="-40%" width="220%" height="180%"><feGaussianBlur stdDeviation="18"/></filter></defs>
+  <rect width="1024" height="1024" fill="#1F1F26"/>
+  <rect x="318" y="318" width="132" height="388" rx="66" fill="#9F97FF" fill-opacity="0.5" filter="url(#glow)"/>
+  <rect x="340" y="336" width="88" height="352" rx="44" fill="#A29BFF"/>
+  <rect x="490" y="466" width="222" height="92" rx="46" fill="#ECECF0" fill-opacity="0.42"/>
+</svg>

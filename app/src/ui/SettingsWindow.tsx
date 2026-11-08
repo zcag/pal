@@ -16,6 +16,8 @@ const icons: Record<SettingsPage, ReactNode> = {
   about: <svg viewBox="0 0 18 18"><circle cx="9" cy="9" r="6.5" /><path d="M9 8v4.5" /><circle cx="9" cy="5.6" r="0.5" fill="currentColor" /></svg>,
 };
 
+const CHEVRON = <svg className="pal-settings__chevron" viewBox="0 0 10 18" aria-hidden><path d="M8 2L2 9l6 7" /></svg>;
+
 export const settingsPages: { id: SettingsPage; title: string }[] = [
   { id: "overview", title: "Overview" },
   { id: "general", title: "General" },
@@ -47,6 +49,21 @@ export type SettingsWindowProps = {
   attention?: number;
   children: ReactNode;
 };
+
+/** Narrower than this (a phone), the pages are a list to drill into rather than tabs. */
+const NARROW = "(max-width: 640px)";
+
+function useNarrow(): boolean {
+  const [narrow, setNarrow] = useState(() => typeof matchMedia === "function" && matchMedia(NARROW).matches);
+  useEffect(() => {
+    if (typeof matchMedia !== "function") return;
+    const mq = matchMedia(NARROW);
+    const on = () => setNarrow(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return narrow;
+}
 
 /** How long the jumped-to row stays lit. */
 const FLASH_MS = 1600;
@@ -83,6 +100,27 @@ export function SettingsWindow({ page, onPage, aside, index = [], onJump, diagno
   const words = q.split(/\s+/).filter(Boolean);
   const hits = q ? index.filter((e) => { const hay = `${e.label} ${e.hint ?? ""} ${e.keywords ?? ""} ${pageTitle(e.page)}`.toLowerCase(); return words.every((w) => hay.includes(w)); }).slice(0, 30) : [];
   const current = settingsPages.find((p) => p.id === page) ?? settingsPages[0];
+
+  // Narrow, the pages are a list; a page opened from it is a history entry, so the browser's back is the list again.
+  const narrow = useNarrow();
+  const [listing, setListing] = useState(true);
+  const drilled = useRef(false);
+  useEffect(() => {
+    if (!narrow) return;
+    const back = () => { drilled.current = false; setListing(true); };
+    window.addEventListener("popstate", back);
+    return () => window.removeEventListener("popstate", back);
+  }, [narrow]);
+  const open = (p: SettingsPage) => {
+    onPage(p);
+    if (!narrow || !listing) return;
+    history.pushState({ settings: p }, "");
+    drilled.current = true;
+    setListing(false);
+    content.current?.querySelector(".pal-settings-page")?.scrollTo(0, 0);
+  };
+  const up = () => (drilled.current ? history.back() : setListing(true));
+  const content = useRef<HTMLDivElement>(null);
 
   // The jump's landing: the page renders on the next commit, so the flash
   // is retried on every render until the row exists (or the page moved on).
@@ -145,15 +183,21 @@ export function SettingsWindow({ page, onPage, aside, index = [], onJump, diagno
     else if (e.key === "Escape") { e.stopPropagation(); setQuery(""); search.current?.focus(); }
   };
   const jump = (h: SettingsIndexEntry) => {
-    onPage(h.page);
+    open(h.page);
     onJump?.(h);
     setQuery("");
     if (h.anchor) setPending(h.anchor);
   };
 
   return (
-    <div className="pal-settings" data-keyscope data-mac={mac || undefined}>
+    <div className="pal-settings" data-keyscope data-mac={mac || undefined} data-narrow={narrow ? (listing ? "list" : "page") : undefined} data-searching={q ? "" : undefined}>
       <header className="pal-settings__toolbar" data-tauri-drag-region>
+        {narrow && (
+          <div className="pal-settings__crumbs">
+            {listing ? <a className="pal-settings__up" href="./">{CHEVRON}pal</a> : <button type="button" className="pal-settings__up" onClick={up}>{CHEVRON}Settings</button>}
+            <h1 className="pal-settings__heading">{listing ? "Settings" : current.title}</h1>
+          </div>
+        )}
         <span className="pal-settings__lights" aria-hidden data-tauri-drag-region />
         <nav className="pal-settings__tabs" role="tablist" aria-label="Settings pages" ref={tabs} onKeyDown={onTabsKey} data-tauri-drag-region>
           {settingsPages.map((p, i) => (
@@ -168,7 +212,7 @@ export function SettingsWindow({ page, onPage, aside, index = [], onJump, diagno
               className="pal-settings__tab"
               data-active={p.id === page || undefined}
               title={`${p.title} (${isMac ? "⌘" : "Ctrl+"}${i + 1})`}
-              onClick={() => { setQuery(""); onPage(p.id); }}
+              onClick={() => { setQuery(""); open(p.id); }}
               onKeyDown={(e) => activate(e, () => onPage(p.id))}
             >
               <span className="pal-settings__tab-icon" aria-hidden>
@@ -205,7 +249,7 @@ export function SettingsWindow({ page, onPage, aside, index = [], onJump, diagno
         </div>
       </header>
 
-      <div className="pal-settings__content" id={`pal-settings-${page}`} role="tabpanel" aria-label={current.title}>
+      <div ref={content} className="pal-settings__content" id={`pal-settings-${page}`} role="tabpanel" aria-label={current.title}>
         {q ? (
           <div className="pal-settings__body">
             <div className="pal-settings-page pal-settings__results" role="listbox" aria-label="Matching settings" ref={results} onKeyDown={onResultsKey}>

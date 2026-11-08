@@ -48,6 +48,10 @@ export async function copyText(text: string): Promise<boolean> {
   return ok;
 }
 
+let local: ((event: string, payload: unknown) => void) | null = null;
+/** An event to this page's own listeners only, never the socket (a bar sheet's HUD line, handed up from its frame). */
+export const raise = (event: string, payload: unknown) => local?.(event, payload);
+
 export function install(): void {
   const label = `remote:${randomId()}:${pageOf(location.search)}`;
   const callbacks = new Map<number, (data: unknown) => unknown>();
@@ -65,6 +69,7 @@ export function install(): void {
       callbacks.get(l.handler)?.({ event, id, payload });
     }
   };
+  local = (event, payload) => deliver(event, null, payload);
 
   const send = (msg: unknown) => {
     const text = JSON.stringify(msg);

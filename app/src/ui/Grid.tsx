@@ -5,6 +5,7 @@ import { CHECK, Highlight } from "./Row";
 import { keepFocus, useCmdHeld } from "./keys";
 import { domId, flatten, useGridColumns, useHover, useMetrics, observeRect, ensureVisible } from "./virtual";
 import { clickRow, type Hit, type ListHandle } from "./List";
+import { useLongPress } from "./touch";
 import type { Item } from "./types";
 
 export type GridProps = {
@@ -25,6 +26,8 @@ export type GridProps = {
   /** Every tile wears its number whether or not cmd is held (List's `ordinals`). */
   ordinals?: boolean;
   label?: string;
+  /** A touch screen: a long press opens the tile's actions. */
+  onMore?: (index: number) => void;
 };
 
 /**
@@ -35,8 +38,9 @@ export type GridProps = {
  * be close; a change of column count renews the item keys, which drops the
  * virtualiser's size cache so every row measures again.
  */
-export const Grid = forwardRef<ListHandle, GridProps>(function Grid({ id, hits, cursor, onCursor, onPick, marked, onToggle, onRange, columns = 6, aspect = 1, ordinals, label }, ref) {
+export const Grid = forwardRef<ListHandle, GridProps>(function Grid({ id, hits, cursor, onCursor, onPick, marked, onToggle, onRange, columns = 6, aspect = 1, ordinals, label, onMore }, ref) {
   const scroller = useRef<HTMLDivElement>(null);
+  useLongPress(scroller, onMore);
   const metrics = useMetrics(scroller);
   const cols = useGridColumns(scroller, metrics, columns);
   const { rows, rowOf } = useMemo(() => flatten(hits.map((h) => h.item), cols), [hits, cols]);

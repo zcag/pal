@@ -7,6 +7,7 @@ import { graphemePositions } from "./format";
 import { useCursor } from "./cursor";
 import { hasShortcut, keepFocus, shortcutsOf, useKeys } from "./keys";
 import { flatten, useHover } from "./virtual";
+import { typesFirst } from "./touch";
 import type { Action } from "./types";
 
 export type ActionPanelProps = {
@@ -41,7 +42,7 @@ export function ActionPanel({ actions: all, onRun, onClose, title }: ActionPanel
   const { hover, hovered } = useHover(cur.cursor, cur.set);
   const optionId = (i: number) => `${uid}-${i}`;
 
-  useEffect(() => input.current?.focus({ preventScroll: true }), []);
+  useEffect(() => { if (typesFirst()) input.current?.focus({ preventScroll: true }); }, []);
   useEffect(() => cur.reset(), [query, cur.reset]);
   // Keep the selected row inside the list without scrolling any ancestor; a hover never scrolls.
   useEffect(() => {

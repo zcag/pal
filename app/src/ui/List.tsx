@@ -3,6 +3,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { Row } from "./Row";
 import { isMac, useCmdHeld } from "./keys";
 import { domId, flatten, useHover, useMetrics, observeRect, ensureVisible } from "./virtual";
+import { useLongPress } from "./touch";
 import type { Item, Match } from "./types";
 
 export type Hit = { item: Item; match?: Match };
@@ -27,6 +28,8 @@ export type ListProps = {
   /** The footer's keys for the cursor row (Row `hints`): shown there only when a design says so. */
   hints?: ReactNode;
   label?: string;
+  /** A touch screen: the row's actions, from its button or a long press. */
+  onMore?: (index: number) => void;
 };
 
 /** A click with the platform's primary modifier toggles a mark; any other picks. */
@@ -47,8 +50,9 @@ export const clickRow = (i: number, on: { onPick?: (i: number) => void; onToggle
  * scroll with the rows, as in Raycast: a sticky one would sit over the
  * cursor row whenever the cursor is the first in its section.
  */
-export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, cursor, onCursor, onPick, marked, onToggle, onRange, ordinals, hints, label }, ref) {
+export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, cursor, onCursor, onPick, marked, onToggle, onRange, ordinals, hints, label, onMore }, ref) {
   const scroller = useRef<HTMLDivElement>(null);
+  useLongPress(scroller, onMore);
   const metrics = useMetrics(scroller);
   const { rows, rowOf } = useMemo(() => flatten(hits.map((h) => h.item)), [hits]);
   const cmdHeld = useCmdHeld();
@@ -117,6 +121,7 @@ export const List = forwardRef<ListHandle, ListProps>(function List({ id, hits, 
               maxAccessories={metrics.accMax}
               onHover={hover(i)}
               onClick={clickRow(i, { onPick, onToggle, onRange })}
+              onMore={onMore && (() => onMore(i))}
             />
           );
         })}

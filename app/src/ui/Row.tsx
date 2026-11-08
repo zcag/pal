@@ -112,12 +112,16 @@ export type RowProps = {
   hints?: ReactNode;
   /** The most accessories the row shows (a design's `--pal-acc-max`, List's metrics); the rest go in `accessoryDropOrder`. */
   maxAccessories?: number;
+  /** A touch screen's way to the row's actions: a button at its end. */
+  onMore?: () => void;
 };
 
 /** The check a marked row or tile ends in (md-check_circle in the bundled Nerd Font). */
 export const CHECK = "\u{f05e0}";
+/** The row's actions button on a touch screen (md-dots_horizontal). */
+const MORE = "\u{f01d8}";
 
-export function Row({ item, active, match, id, style, onHover, onClick, ordinal, marked, hints, maxAccessories }: RowProps) {
+export function Row({ item, active, match, id, style, onHover, onClick, ordinal, marked, hints, maxAccessories, onMore }: RowProps) {
   const row = useRef<HTMLDivElement>(null);
   const title = useRef<HTMLSpanElement>(null);
   const showOrdinal = ordinal !== undefined && ordinal <= 9;
@@ -135,6 +139,7 @@ export function Row({ item, active, match, id, style, onHover, onClick, ordinal,
         {marked && <span className="pal-row__check" aria-hidden>{CHECK}</span>}
       </span>
       {withHints && <span className="pal-row__hints" onMouseDown={keepFocus}>{hints}</span>}
+      {onMore && <button type="button" className="pal-row__more" aria-label={`Actions for ${item.name}`} onMouseDown={keepFocus} onClick={(e) => { e.stopPropagation(); onMore(); }}>{MORE}</button>}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import { createPortal } from "react-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
@@ -10,8 +10,6 @@ import { Confirm, Presence, type ToastSpec } from "./ui";
 import { SHOWN_EVENT } from "./ui/virtual";
 import type { Effect } from "./items";
 import type { Item } from "./ui/types";
-
-const hide = () => invoke("hide");
 /** The window to a design's fitted panel height (compact.rs `panel_fit`), or the full height back (`null`). */
 const panelFit = (height: number | null) => { invoke("panel_fit", { height }).catch(() => {}); };
 /** A glance card's open: the panel steps aside and the bar item is clicked, or with `line` that line's action runs (glance.rs). */
@@ -21,10 +19,23 @@ type Glance = NonNullable<LauncherProps["glance"]>;
 /** A confirm card the core asks for (`pal://confirm`, deeplink.rs); `null` drops the one up. */
 type Ask = { title: string; message?: string; ok: string; cancel: string; token: number };
 
-export default function App() {
+/** The panel as a remote page's home (RemoteShell): never hidden, so a pick that would hide it goes back to the root instead. */
+export type AppRemote = {
+  /** A touch screen: rows carry their actions button and take a long press (Launcher `touch`). */
+  touch: boolean;
+  /** The layers over the root, for the page's history (Launcher `onLayers`). */
+  onLayers: (layers: number) => void;
+  /** The browser's back: one layer off the top. */
+  handle: Ref<{ back(): void }>;
+};
+
+export default function App({ remote }: { remote?: AppRemote }) {
+  const launcher = useRef<LauncherHandle>(null);
+  const home = !!remote;
+  const hide = useCallback(() => { if (home) launcher.current?.reset(); else invoke("hide"); }, [home]);
+  useImperativeHandle(remote?.handle, () => ({ back: () => launcher.current?.back() }), []);
   const { sources, version, bump, showing, search, inline, fallback, lateFallback, suggest, history, dialog, forget, detail, view, pick, refresh } = useCore(hide);
   const prefs = usePrefs();
-  const launcher = useRef<LauncherHandle>(null);
   // The glance strip's cards (glance.rs): read on every show and every few seconds, the bar items' last renders, so the strip says what the bar says.
   const [glance, setGlance] = useState<Glance>([]);
   useEffect(() => {
@@ -35,6 +46,16 @@ export default function App() {
     return () => { clearInterval(t); window.removeEventListener(SHOWN_EVENT, read); };
   }, []);
 
+
+  // A remote home has no hotkey to show it: the index first listing, and the tab coming back into view, are its shows (the Now rows and the glance asked again).
+  const listed = sources.length > 0;
+  useEffect(() => {
+    if (!home || !listed) return;
+    const show = () => { if (document.visibilityState !== "visible") return; launcher.current?.shown(); window.dispatchEvent(new Event(SHOWN_EVENT)); };
+    show();
+    document.addEventListener("visibilitychange", show);
+    return () => document.removeEventListener("visibilitychange", show);
+  }, [home, listed]);
 
   // A trigger (`pal://trigger`: a copy recorded, the network back) lists the palette showing again when it asks for that one under `on` (a view's are re-asked in the Launcher).
   useEffect(() => {
@@ -100,7 +121,7 @@ export default function App() {
       unCancel.then((f) => f());
     };
   }, []);
-  const pickReply = useCallback((token: number, ids: string[] | null) => { invoke("pick_reply", { token, ids }).finally(() => { launcher.current?.reset(); hide(); }); }, []);
+  const pickReply = useCallback((token: number, ids: string[] | null) => { invoke("pick_reply", { token, ids }).finally(() => { launcher.current?.reset(); hide(); }); }, [hide]);
 
   // Live views: a push for the level on top lands in place, a trigger re-asks it, and the shell hears which view is on top (views.rs).
   const viewOpen = useLiveViews(launcher);
@@ -128,7 +149,7 @@ export default function App() {
 
   return (
     <>
-      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} lateFallback={lateFallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} onViewOpen={viewOpen} surface={surface} onCompact={() => invoke("settings_set", { key: "general.compact", value: !prefs.compact }).catch(() => {})} onPanelMode={(palette, mode) => invoke<PanelMode>("panel_mode", { palette, mode })} onPanelFit={panelFit} onHoldDrawn={() => invoke("panel_reveal").catch(() => {})} glance={glance} onGlance={glanceOpen} missing={missingInfo} onInstallMissing={installMissing} onOpened={opened} asking={!!ask} />
+      <Launcher ref={launcher} sources={sources} search={search} inline={inline} fallback={fallback} lateFallback={lateFallback} suggest={suggest} history={history} dialog={dialog} prefs={prefs} detail={detail} view={view} version={version} mark={mark} onHide={hide} onPick={pick} onSettings={() => invoke("settings_open")} onRefresh={refresh} onWelcome={welcome} onLink={link} onForget={forget} onPickReply={pickReply} onViewOpen={viewOpen} surface={surface} onCompact={() => invoke("settings_set", { key: "general.compact", value: !prefs.compact }).catch(() => {})} onPanelMode={(palette, mode) => invoke<PanelMode>("panel_mode", { palette, mode })} onPanelFit={panelFit} onHoldDrawn={() => invoke("panel_reveal").catch(() => {})} glance={glance} onGlance={glanceOpen} missing={missingInfo} onInstallMissing={installMissing} onOpened={opened} asking={!!ask} touch={remote?.touch} onLayers={remote?.onLayers} />
       {panel && createPortal(<Presence show={!!ask}>{ask && <Confirm title={ask.title} message={ask.message} action={ask.ok} onConfirm={() => answer(true)} onCancel={() => answer(false)} />}</Presence>, panel)}
     </>
   );

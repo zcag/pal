@@ -1,0 +1,139 @@
+/*
+ * pal in a browser on another device (docs/design/remote.md, "The page on a
+ * phone"). Everything here is scoped to <html data-shell>, which main.tsx
+ * sets only on a remote page: `remote` for the panel's home and Settings,
+ * `sheet` for a bar item's popover in the home's frame. The app's own
+ * windows never carry it.
+ */
+
+html[data-shell], html[data-shell] body { background: var(--pal-bg); color-scheme: var(--pal-scheme); -webkit-tap-highlight-color: transparent; }
+html[data-shell="remote"] body { overflow: hidden; }
+html[data-shell="sheet"], html[data-shell="sheet"] body { background: var(--pal-bg-elevated); }
+
+/* ---- The home: the strip, the panel under it --------------------------------- */
+.pal-remote {
+  position: fixed;
+  inset: 0 0 auto;
+  height: var(--pal-remote-vh, 100dvh);
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+}
+.pal-remote__top { flex: none; display: flex; align-items: center; gap: var(--pal-space-1); height: 40px; padding: 0 var(--pal-space-2) 0 0; }
+.pal-remote__strip.g-bar { flex: 1; min-width: 0; height: 100%; background: none; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
+.pal-remote__strip::-webkit-scrollbar { display: none; }
+.pal-remote__items.g-mb { --g-mb-fg: var(--pal-fg); --g-mb-muted: var(--pal-fg-muted); display: inline-flex; justify-content: flex-start; min-width: 100%; height: 100%; padding: 0 var(--pal-space-2); background: none; -webkit-backdrop-filter: none; backdrop-filter: none; -webkit-font-smoothing: antialiased; }
+.pal-remote__item { flex: none; display: inline-flex; align-items: center; height: 30px; padding: 0 var(--pal-space-2); border: 0; border-radius: var(--pal-radius-control); background: transparent; color: inherit; font: inherit; cursor: pointer; transition: background var(--pal-dur-fast) var(--pal-ease); }
+.pal-remote__item .g-mb__item { margin-left: 0; height: auto; }
+.pal-remote__item:hover, .pal-remote__item[data-open] { background: var(--pal-selection); }
+.pal-remote__item:active { background: var(--pal-line-strong); }
+.pal-remote__item:focus-visible, .pal-remote__settings:focus-visible { outline: none; box-shadow: var(--pal-ring); }
+.pal-remote__settings { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: var(--pal-radius-control); color: var(--pal-fg-muted); transition: background var(--pal-dur-fast) var(--pal-ease); }
+.pal-remote__settings:hover { background: var(--pal-selection); color: var(--pal-fg); }
+.pal-remote__settings svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+/* The socket dropped (remote.ts sets `data-remote`): a quiet amber dot until it is back. */
+.pal-remote__link { flex: none; width: 7px; height: 7px; margin: 0 var(--pal-space-1); border-radius: 50%; background: var(--pal-tag-amber); opacity: 0; transform: scale(0.5); transition: opacity var(--pal-dur-slow) var(--pal-ease), transform var(--pal-dur-slow) var(--pal-ease); }
+html[data-remote="offline"] .pal-remote__link { opacity: 1; transform: none; animation: pal-breathe 1.2s var(--pal-ease) infinite alternate; }
+
+.pal-remote__main { flex: 1; min-height: 0; display: flex; justify-content: center; }
+.pal-remote__main > .pal-panel { width: 100%; height: 100%; border-radius: 0; box-shadow: none; border-top: 1px solid var(--pal-line); background: var(--pal-bg); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.pal-remote__main .pal-panel__footer { padding-bottom: env(safe-area-inset-bottom); }
+.pal-remote__main .pal-panel { --pal-footer-room: calc(var(--pal-footer-h) + env(safe-area-inset-bottom)); }
+
+/* A desk or a tablet: the strip is the menu bar, the panel floats under it as on the machine. */
+@media (min-width: 760px) and (min-height: 560px) {
+  html[data-shell="remote"] body { background: var(--pal-bg-sunken); }
+  .pal-remote__top { height: 32px; background: var(--pal-bg-glass); -webkit-backdrop-filter: var(--pal-backdrop); backdrop-filter: var(--pal-backdrop); border-bottom: 1px solid var(--pal-line); }
+  .pal-remote__items.g-mb { justify-content: flex-end; }
+  .pal-remote__strip.g-bar { mask-image: none; }
+  .pal-remote__item { height: 26px; }
+  .pal-remote__settings { width: 28px; height: 28px; }
+  .pal-remote__main { align-items: flex-start; padding: clamp(24px, 12vh, 140px) var(--pal-space-4) var(--pal-space-6); }
+  .pal-remote__main > .pal-panel { width: min(var(--pal-panel-w), 100%); height: min(var(--pal-panel-h), 100%); border-top: 0; border-radius: var(--pal-radius-panel); box-shadow: var(--pal-shadow-panel); background: var(--pal-bg-glass); -webkit-backdrop-filter: var(--pal-backdrop); backdrop-filter: var(--pal-backdrop); }
+  .pal-remote__main .pal-panel__footer { padding-bottom: 0; }
+  .pal-remote__main .pal-panel { --pal-footer-room: var(--pal-footer-h); }
+}
+
+/* ---- Touch: bigger targets, no key caps, the actions as a bottom sheet -------- */
+@media (pointer: coarse) {
+  html[data-shell] { --pal-row-h: 48px; --pal-control-h: 44px; --pal-search-h: 56px; }
+  html[data-shell] .pal-kbd, html[data-shell] .pal-row__hints { display: none; }
+  html[data-shell] .pal-row { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+  html[data-shell] .pal-search__input { font-size: max(16px, var(--pal-text-xl)); }
+  html[data-shell] .pal-footer__hint:first-child:not(:only-child) { display: none; }
+  html[data-shell] .pal-actions__search { font-size: 16px; }
+
+  html[data-shell] .pal-scrim { inset: 0; bottom: 0; }
+  html[data-shell] .pal-panel { --pal-actions-cols: 1; }
+  html[data-shell] .pal-actions {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    max-height: 72%;
+    padding-bottom: env(safe-area-inset-bottom);
+    border-radius: var(--pal-radius-panel) var(--pal-radius-panel) 0 0;
+    transform-origin: 50% 100%;
+    animation: pal-sheet-up var(--pal-dur-slow) var(--pal-ease);
+  }
+  html[data-shell] .pal-actions::before { content: ""; flex: none; align-self: center; width: 36px; height: 4px; margin-top: var(--pal-space-2); border-radius: 2px; background: var(--pal-line-strong); }
+  html[data-shell] .pal-actions__title { font-size: var(--pal-text-sm); padding-top: var(--pal-space-2); }
+  html[data-shell] .pal-action { border-radius: var(--pal-radius-row); font-size: var(--pal-text-lg); }
+  html[data-shell] [data-exiting] > .pal-actions { transform: translateY(24px); opacity: 0; }
+}
+
+/* The row's way to its actions on a touch screen (Row `onMore`). */
+.pal-row__more { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; margin-right: calc(var(--pal-space-2) * -1); border: 0; border-radius: 50%; background: transparent; color: var(--pal-fg-faint); font-family: var(--pal-font-symbols); font-size: 18px; line-height: 1; }
+.pal-row__more:active { background: var(--pal-line-strong); color: var(--pal-fg); }
+
+@keyframes pal-sheet-up { from { transform: translateY(100%); } }
+
+/* ---- A bar item's sheet --------------------------------------------------------- */
+.pal-remote-sheet { position: fixed; inset: 0; z-index: 10; }
+.pal-remote-sheet__scrim { position: absolute; inset: 0; background: var(--pal-scrim); animation: pal-fade var(--pal-dur-base) var(--pal-ease); }
+.pal-remote-sheet__card {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--pal-sheet-h, 240px) + 14px + env(safe-area-inset-bottom));
+  max-height: calc(var(--pal-remote-vh, 100dvh) - env(safe-area-inset-top) - 48px);
+  padding: 14px 0 env(safe-area-inset-bottom);
+  overflow: hidden;
+  border-radius: var(--pal-radius-panel) var(--pal-radius-panel) 0 0;
+  background: var(--pal-bg-elevated);
+  box-shadow: var(--pal-shadow-popover);
+  animation: pal-sheet-up var(--pal-dur-slow) var(--pal-ease);
+  transition: height var(--pal-dur-slow) var(--pal-ease);
+}
+.pal-remote-sheet__card:not([data-sized]) { background: linear-gradient(90deg, transparent, var(--pal-selection), transparent) 0 0 / 50% 2px no-repeat, var(--pal-bg-elevated); animation: pal-sheet-up var(--pal-dur-slow) var(--pal-ease), pal-sheet-wait 1.1s linear infinite; }
+.pal-remote-sheet__card::before { content: ""; position: absolute; top: 6px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--pal-line-strong); z-index: 1; pointer-events: none; }
+.pal-remote-sheet__frame { display: block; width: 100%; height: 100%; border: 0; background: transparent; color-scheme: normal; }
+[data-exiting] > .pal-remote-sheet__scrim { opacity: 0; transition: opacity var(--pal-dur-base) var(--pal-ease-in); }
+[data-exiting] > .pal-remote-sheet__card { transform: translateY(100%); transition: transform var(--pal-dur-base) var(--pal-ease-in); }
+@keyframes pal-sheet-wait { from { background-position: -50% 0, 0 0; } to { background-position: 150% 0, 0 0; } }
+
+@media (min-width: 760px) and (min-height: 560px) {
+  .pal-remote-sheet__scrim { background: transparent; animation: none; }
+  .pal-remote-sheet__card {
+    left: clamp(var(--pal-space-2), calc(var(--pal-sheet-x) - 210px), calc(100vw - 420px - var(--pal-space-2)));
+    right: auto;
+    bottom: auto;
+    top: 38px;
+    width: 420px;
+    height: var(--pal-sheet-h, 240px);
+    padding: 0;
+    border-radius: var(--pal-radius-popover);
+    transform-origin: 50% 0;
+    animation: pal-drop var(--pal-dur-base) var(--pal-ease);
+  }
+  .pal-remote-sheet__card::before { display: none; }
+  [data-exiting] > .pal-remote-sheet__card { transform: none; opacity: 0; transition: opacity var(--pal-dur-fast) var(--pal-ease-in); }
+}
+
+/* The popover's page inside the sheet: the panel is the sheet's whole face. */
+html[data-shell="sheet"] .pal-bar-page .pal-panel { border-radius: 0; box-shadow: none; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* ---- The HUD and Large Type over the page --------------------------------------- */
+html[data-shell] .pal-hud-page { z-index: 20; padding-bottom: calc(var(--pal-space-6) + var(--pal-footer-h) + env(safe-area-inset-bottom)); }
+html[data-shell] .pal-large-page { z-index: 30; background: var(--pal-scrim); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); animation: pal-fade var(--pal-dur-base) var(--pal-ease); padding: max(var(--pal-space-4), env(safe-area-inset-top)) var(--pal-space-4) max(var(--pal-space-4), env(safe-area-inset-bottom)); }

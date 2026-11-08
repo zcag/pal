@@ -2,8 +2,10 @@ import "./remote-boot";
 import type { ComponentType } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import { isRemote } from "./remote";
 import { followTheme } from "./theme";
 import "./styles.css";
+import "./remote.css";
 
 // `?gallery` in a plain browser renders the component review page instead of
 // the launcher; `?settings` is the settings window, `?hud` the HUD window,
@@ -23,7 +25,11 @@ const keycast = params.has("keycast");
 
 if (!gallery) followTheme();
 
-const page: Promise<{ default: ComponentType }> = gallery ? import("./gallery/Gallery") : settings ? import("./Settings") : hud ? import("./HudPage") : large ? import("./LargePage") : keycast ? import("./KeycastPage") : bar ? import("./BarPage") : Promise.resolve({ default: App });
+// In a browser on another device (remote.ts) the panel's page is the remote shell around it, and every page is told so for its layout (remote.css); a bar item's page there is a sheet in that shell's frame.
+const remote = isRemote();
+if (remote) document.documentElement.dataset.shell = bar ? "sheet" : "remote";
+
+const page: Promise<{ default: ComponentType }> = gallery ? import("./gallery/Gallery") : settings ? import("./Settings") : hud ? import("./HudPage") : large ? import("./LargePage") : keycast ? import("./KeycastPage") : bar ? import("./BarPage") : remote ? import("./RemoteShell") : Promise.resolve({ default: App });
 page.then(({ default: Page }) => ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(<Page />));
 
 // An uncaught page error takes the React tree down to a blank window, and a release build has no devtools to see why: the message goes to pal's log as a `mark` line instead.
