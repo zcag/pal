@@ -429,6 +429,8 @@ pub fn run() {
             bar::popover::bar_engage,
             bar::popover::bar_action,
             bar::popover::bar_refresh,
+            bar::popover::bar_web_open,
+            bar::web::bar_web_items,
             views::view_open,
             deeplink::link_copy,
             pick::pick_reply,

@@ -126,6 +126,19 @@ with a remote label, so menus, views, forms and actions are the same code.
 The items render, refresh and follow their rules while a page is connected
 on every platform, so marko's bar items exist for the first time.
 
+In the shell the strip is the `Web` target (`bar/web.rs`): it takes every
+item that draws (enabled, not `off`, its conditions and rules applied) while
+a page is connected, whatever the native target, in the look of the target
+the item lands on. `bar_web_items` answers the strip, `{ items: [{ key,
+item, look, position }] }` by `order` then key (`item` the wire `BarItem`
+without its popover parts, `look` the resolved `BarLook` in the page's
+spelling), and `pal://bar/strip` carries the same to every page when it
+changes. `bar_web_open(key)` from the page's `bar` sheet sends it the
+popover's own `pal://bar` show (or runs `onOpen` for an item with no menu),
+and `bar_action`, `bar_refresh` and `bar_hide` route by its label. The
+first page connecting starts the render loop off macOS, the last leaving
+stops it (`bar::on_pages`).
+
 ## Auth
 
 The socket and the routes refuse a request that is neither from one of

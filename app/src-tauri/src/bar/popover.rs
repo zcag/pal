@@ -317,6 +317,8 @@ pub struct Popover {
     anchors: Mutex<HashMap<String, (Rect, &'static str)>>,
     showing: Mutex<Option<Showing>>,
     height: Mutex<f64>,
+    /// The item each remote page's bar sheet shows, by its label (`web_show`).
+    remote: Mutex<HashMap<String, Showing>>,
 }
 
 /// What the page gets on `pal://bar`: the item to show on one level, or
@@ -490,6 +492,30 @@ fn show(app: &AppHandle, key: &str, engaged: bool, effect: Option<Value>) {
     eprintln!("bar\tpopover\t{}\t{key}", if engaged { "engaged" } else { "peek" });
     if first {
         super::shown(app, key);
+    }
+}
+
+/// A remote page's bar sheet shows `key` (`bar_web_open`), engaged: the
+/// same payload the popover gets, to that page alone, and the item's
+/// `show` as a fresh popover runs it.
+pub fn web_show(app: &AppHandle, label: &str, key: &str, effect: Option<Value>) {
+    let st = app.state::<Popover>();
+    let first = lock(&st.remote).get(label).is_none_or(|s| s.key != key);
+    let refreshing = first && entry(app, key).is_some_and(|e| e.manifest.wants("show") && !e.fixture && !e.native);
+    let Some(p) = payload(app, key, true, effect.as_ref(), refreshing) else { return };
+    lock(&st.remote).insert(label.to_string(), Showing { key: key.to_string(), engaged: true, anchor: None, effect });
+    crate::views::set_visible(app, label, true, true);
+    events::emit_to(app, label, events::BAR, p);
+    eprintln!("bar\tpopover\tremote\t{label}\t{key}");
+    if first {
+        super::shown(app, key);
+    }
+}
+
+/// A remote page left: its sheet shows nothing any more.
+pub fn on_page_gone(app: &AppHandle, label: &str) {
+    if let Some(st) = app.try_state::<Popover>() {
+        lock(&st.remote).remove(label);
     }
 }
 
@@ -685,15 +711,29 @@ pub fn is_visible(app: &AppHandle) -> bool {
 /// The item rendered again while its popover shows: the page gets the
 /// new state and replaces its level in place.
 pub fn on_item_changed(app: &AppHandle, key: &str) {
-    let showing = lock(&app.state::<Popover>().showing).clone();
-    let Some(s) = showing.filter(|s| s.key == key) else { return };
-    if let Some(p) = payload(app, key, s.engaged, s.effect.as_ref(), false) {
-        events::emit_to(app, WINDOW, events::BAR, p);
+    let st = app.state::<Popover>();
+    let local = lock(&st.showing).clone().map(|s| (WINDOW.to_string(), s));
+    let remote: Vec<(String, Showing)> = lock(&st.remote).iter().map(|(l, s)| (l.clone(), s.clone())).collect();
+    for (label, s) in local.into_iter().chain(remote).filter(|(_, s)| s.key == key) {
+        if let Some(p) = payload(app, key, s.engaged, s.effect.as_ref(), false) {
+            events::emit_to(app, &label, events::BAR, p);
+        }
     }
 }
 
 pub fn on_item_gone(app: &AppHandle, key: &str) {
     feed(app, Input::Gone(key.to_string()));
+    let st = app.state::<Popover>();
+    let gone: Vec<String> = {
+        let mut remote = lock(&st.remote);
+        let gone = remote.iter().filter(|(_, s)| s.key == key).map(|(l, _)| l.clone()).collect::<Vec<_>>();
+        remote.retain(|_, s| s.key != key);
+        gone
+    };
+    for label in gone {
+        crate::views::set_visible(app, &label, false, false);
+        events::emit_to(app, &label, events::BAR, Payload::Hide { hide: true });
+    }
 }
 
 /// The page measured its content: the window follows, up to the maximum.
@@ -731,7 +771,10 @@ pub fn bar_hide(app: AppHandle, caller: Caller) {
     match from(&caller) {
         From::Sidebar => crate::sidebar::hide(&app),
         From::Popover => hide(&app),
-        From::Remote => crate::views::set_visible(&app, caller.label(), false, false),
+        From::Remote => {
+            on_page_gone(&app, caller.label());
+            crate::views::set_visible(&app, caller.label(), false, false);
+        }
     }
 }
 
@@ -776,6 +819,24 @@ pub async fn bar_action(app: AppHandle, caller: Caller, key: String, action: Str
     };
     let anchor = lock(&app.state::<Popover>().anchors).get(&key).map_or("hotkey", |(_, a)| a);
     super::action(&app, &key, &action, anchor, window, values, ids).await
+}
+
+/// A tap on the remote page's strip (its `bar` page): the item's sheet on
+/// its level, or for an item with no menu (or `click: "open"`) its
+/// `onOpen`, a level it answers landing in the sheet. The envelope comes
+/// back for the page (its `client` part is the device's to run).
+#[tauri::command]
+pub async fn bar_web_open(app: AppHandle, caller: Caller, key: String) -> Result<Value, String> {
+    let label = caller.label();
+    if crate::remote::page_of(label) != Some("bar") {
+        return Err(format!("{key}: only a remote page's bar sheet opens items this way"));
+    }
+    entry(&app, &key).ok_or_else(|| format!("no bar item {key}"))?;
+    if drawn(&app, &key).is_some_and(|i| i.has_menu() && !i.opens_directly()) {
+        web_show(&app, label, &key, None);
+        return Ok(Value::Null);
+    }
+    super::opened(&app, &key, None, "hotkey", None, label).await
 }
 
 /// `cmd+r` in the popover: render the item again; in the sidebar, list

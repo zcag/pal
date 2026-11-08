@@ -1,8 +1,8 @@
 //! Bar items (`docs/design/bar.md`): extensions put glanceable state on
 //! the bar. One model (`BarItem`), one `render` per item answered by the
-//! host, drawn by two targets here, the macOS menu bar (`menubar`) and
-//! sketchybar (`sketchybar`); rich content is the popover (`popover`),
-//! the same on both. This module is the registry: every declared item
+//! host, drawn by three targets here, the macOS menu bar (`menubar`),
+//! sketchybar (`sketchybar`) and a remote page's strip (`web`); rich
+//! content is the popover (`popover`), the same on all. This module is the registry: every declared item
 //! keyed `extension/id`, its last rendered state, the refresh timer, the
 //! push coalescing, the diff that keeps a target untouched when nothing
 //! changed, and the feed file the CLI reads (`pal bar list|json`).
@@ -25,10 +25,11 @@
 //! back renders once with reason `state`, as `on_states_changed` does for
 //! an item that asked for `state:<name>` in `refresh.on`.
 //!
-//! Linux: no target yet ([`SUPPORTED`] is false). The registry still takes
-//! every declared item (`pal bar list` and the Settings window see them)
-//! and `[bar]` in the config is read as on macOS, but nothing renders, no
-//! timer runs, no popover window is built, and `install` says so once.
+//! Linux: no native target ([`SUPPORTED`] is false). The registry still
+//! takes every declared item (`pal bar list` and the Settings window see
+//! them) and `[bar]` in the config is read as on macOS; items render, poll
+//! and follow their rules only while a remote page is connected
+//! ([`can_draw`]), for its `web` strip. No popover window is built.
 
 pub mod colors;
 pub mod glyph;
@@ -37,6 +38,7 @@ pub mod menubar;
 mod parity;
 pub mod popover;
 pub mod sketchybar;
+pub mod web;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -57,9 +59,14 @@ pub const RENDER_TIMEOUT: Duration = Duration::from_secs(5);
 pub const PUSH_DEBOUNCE: Duration = Duration::from_millis(100);
 /// The poll floor, seconds: a push has none, a poll never runs faster.
 pub const MIN_EVERY: f64 = 10.0;
-/// Whether this platform draws bar items at all (macOS: the menu bar and
-/// sketchybar). Off it the registry runs, nothing else does.
+/// Whether this platform has a native target (macOS: the menu bar and
+/// sketchybar). Off it items draw only on a remote page ([`can_draw`]).
 pub const SUPPORTED: bool = cfg!(target_os = "macos");
+
+/// Whether some target can draw now: a native one, or a connected remote page's strip.
+pub fn can_draw() -> bool {
+    SUPPORTED || crate::remote::any_connected()
+}
 
 // ---- model ---------------------------------------------------------------
 
@@ -494,7 +501,10 @@ impl Rect {
 pub enum Kind {
     Menubar,
     Sketchybar,
+    Web,
 }
+
+const KINDS: [Kind; 3] = [Kind::Menubar, Kind::Sketchybar, Kind::Web];
 
 /// The renderers behind [`Kind`]: draw the strip, report the anchor, build
 /// no menus (events reach `popover` through `on_click` / `on_hover`).
@@ -606,6 +616,9 @@ pub struct Bar {
     pending: Mutex<HashMap<String, (BarItem, u64)>>,
     seq: AtomicU64,
     sketchybar: AtomicBool,
+    /// What the `web` target draws, and a strip on its way (web.rs).
+    web: Mutex<BTreeMap<String, Draw>>,
+    web_pending: AtomicBool,
 }
 
 thread_local! {
@@ -633,17 +646,32 @@ pub fn sketchybar_alive(app: &AppHandle) -> bool {
 }
 
 /// The kinds an item with `target` goes to: `auto` is sketchybar when it
-/// answers, else the menu bar.
-pub fn kinds(target: BarTarget, sketchybar_alive: bool) -> Vec<Kind> {
-    if !SUPPORTED {
-        return vec![];
-    }
-    match target {
+/// answers, else the menu bar; the `web` strip too while a page is
+/// connected (`web`), whatever the native target, unless `off`.
+pub fn kinds(target: BarTarget, sketchybar_alive: bool, web: bool) -> Vec<Kind> {
+    let mut kinds = match target {
+        _ if !SUPPORTED => vec![],
         BarTarget::Auto if sketchybar_alive => vec![Kind::Sketchybar],
         BarTarget::Auto | BarTarget::Menubar => vec![Kind::Menubar],
         BarTarget::Sketchybar => vec![Kind::Sketchybar],
         BarTarget::Both => vec![Kind::Menubar, Kind::Sketchybar],
         BarTarget::Off => vec![],
+    };
+    if web && target != BarTarget::Off {
+        kinds.push(Kind::Web);
+    }
+    kinds
+}
+
+/// Whose look a kind draws an item in: its own, and for the `web` strip
+/// the target the item lands on (sketchybar's when it goes there, else
+/// the menu bar's, as Settings' preview resolves it).
+fn look_target(kind: Kind, target: BarTarget, sketchybar_alive: bool) -> BarTarget {
+    match (kind, target) {
+        (Kind::Menubar, _) => BarTarget::Menubar,
+        (Kind::Sketchybar, _) | (Kind::Web, BarTarget::Sketchybar) => BarTarget::Sketchybar,
+        (Kind::Web, BarTarget::Auto) if sketchybar_alive => BarTarget::Sketchybar,
+        (Kind::Web, _) => BarTarget::Menubar,
     }
 }
 
@@ -651,6 +679,7 @@ fn target(kind: Kind) -> &'static dyn Target {
     match kind {
         Kind::Menubar => &menubar::MenuBar,
         Kind::Sketchybar => &sketchybar::Sketchybar,
+        Kind::Web => &web::Web,
     }
 }
 
@@ -661,14 +690,36 @@ fn unix_secs() -> u64 {
 pub fn install(app: &AppHandle) {
     app.manage(Bar::default());
     popover::install(app);
-    if !SUPPORTED {
-        eprintln!("bar\tnot on Linux yet; [bar] is read, items are registered, none is drawn, no popover window is built");
+    triggers::install(app);
+    if SUPPORTED {
+        menubar::install(app);
+        sketchybar::install(app);
+    } else {
+        eprintln!("bar\tno native bar on Linux; items draw on a remote page's strip while one is connected");
+    }
+    fixture::seed(app);
+}
+
+/// The first remote page connected (`on`) or the last one left: the `web`
+/// strip takes every item or lets them go. Off macOS that is the whole
+/// render loop starting or stopping: what renders now renders, and every
+/// poll is re-armed by [`renders`] (none while nothing can draw).
+pub fn on_pages(app: &AppHandle, on: bool) {
+    if app.try_state::<Bar>().is_none() {
         return;
     }
-    menubar::install(app);
-    sketchybar::install(app);
-    triggers::install(app);
-    fixture::seed(app);
+    sync_all(app);
+    if SUPPORTED {
+        return;
+    }
+    let config = settings::config(app);
+    for (key, _) in snapshot(app) {
+        if on && renders(app, &config, &key) {
+            render(app, &key, "load");
+        } else if !on {
+            schedule(app, &key);
+        }
+    }
 }
 
 /// `key`'s rules as they apply now: the manifest's with the file's on top (`Bar::rules_of`).
@@ -699,7 +750,7 @@ pub fn conditions(app: &AppHandle, config: &Config) -> Vec<pal_core::states::Bar
 /// holds, the platform can, and it goes on a strip (a glance-only item,
 /// `strip: false`, only when the file gives it a `target`).
 fn draws(app: &AppHandle, config: &Config, key: &str) -> bool {
-    SUPPORTED && config.bar.draws(key) && crate::states::shows(app, key) && on_strip(app, config, key)
+    can_draw() && config.bar.draws(key) && crate::states::shows(app, key) && on_strip(app, config, key)
 }
 
 fn on_strip(app: &AppHandle, config: &Config, key: &str) -> bool {
@@ -710,7 +761,7 @@ fn on_strip(app: &AppHandle, config: &Config, key: &str) -> bool {
 /// shows it (`general.glance`; a card is the item's last render, so a
 /// glance-only item renders for the card alone).
 fn renders(app: &AppHandle, config: &Config, key: &str) -> bool {
-    draws(app, config, key) || (SUPPORTED && config.general.glance.iter().any(|k| k == key) && config.bar.item(key).enabled && crate::states::shows(app, key))
+    draws(app, config, key) || (can_draw() && config.general.glance.iter().any(|k| k == key) && config.bar.item(key).enabled && crate::states::shows(app, key))
 }
 
 /// The host loaded an extension (an instance of one: `ext` is the key):
@@ -767,7 +818,7 @@ fn register(app: &AppHandle, ext: &str, bars: Vec<ManifestBar>, instance: Option
             eprintln!("bar\t{k}\tregistered");
             render(app, k, "load");
         } else {
-            eprintln!("bar\t{k}\tregistered\tnot drawn{}", if SUPPORTED { "" } else { " on Linux" });
+            eprintln!("bar\t{k}\tregistered\tnot drawn{}", if can_draw() { "" } else { " until a remote page connects" });
         }
     }
     write_feed(app);
@@ -792,7 +843,7 @@ pub fn remove_extension(app: &AppHandle, ext: &str) {
 
 /// Off every target, the popover down if it showed it.
 fn forget(app: &AppHandle, key: &str) {
-    for kind in [Kind::Menubar, Kind::Sketchybar] {
+    for kind in KINDS {
         target(kind).remove(app, key);
     }
     popover::on_item_gone(app, key);
@@ -800,7 +851,7 @@ fn forget(app: &AppHandle, key: &str) {
 
 /// Every pal item off every target: quit.
 pub fn remove_all(app: &AppHandle) {
-    for kind in [Kind::Menubar, Kind::Sketchybar] {
+    for kind in KINDS {
         target(kind).remove_all(app);
     }
 }
@@ -1019,15 +1070,11 @@ fn ruled(config: &Config, key: &str, entry: &Entry, active: &[String]) -> Option
 /// The item as drawn: the last state with its rules applied and as
 /// `show` keeps it, with `stale` from the registry, and the config that
 /// places it. `None` while it has never rendered.
-fn draw_for(config: &Config, key: &str, entry: &Entry, kind: Kind, active: &[String]) -> Option<Draw> {
+fn draw_for(config: &Config, key: &str, entry: &Entry, target: BarTarget, active: &[String]) -> Option<Draw> {
     let cfg = config.bar.item(key);
     let (item, over) = ruled(config, key, entry, active)?;
     let mut item = item.kept(cfg.show);
     item.stale = item.stale || entry.stale;
-    let target = match kind {
-        Kind::Sketchybar => BarTarget::Sketchybar,
-        Kind::Menubar => BarTarget::Menubar,
-    };
     let hover = item.has_menu() && config.bar.open_on_hover(key, target);
     let look = config.bar.look_with(target, &over);
     let position = item.position.clone().unwrap_or_else(|| config.bar.position_of(key));
@@ -1039,11 +1086,12 @@ fn draw_for(config: &Config, key: &str, entry: &Entry, kind: Kind, active: &[Str
 fn sync(app: &AppHandle, key: &str) {
     let config = settings::config(app);
     let entry = entry(app, key);
-    let wanted = kinds(config.bar.target_of(key), sketchybar_alive(app));
+    let (aim, alive) = (config.bar.target_of(key), sketchybar_alive(app));
+    let wanted = kinds(aim, alive, crate::remote::any_connected());
     let enabled = draws(app, &config, key);
     let active = crate::states::active_rules(app, key);
-    for kind in [Kind::Menubar, Kind::Sketchybar] {
-        let draw = entry.as_ref().filter(|_| enabled && wanted.contains(&kind)).and_then(|e| draw_for(&config, key, e, kind, &active));
+    for kind in KINDS {
+        let draw = entry.as_ref().filter(|_| enabled && wanted.contains(&kind)).and_then(|e| draw_for(&config, key, e, look_target(kind, aim, alive), &active));
         target(kind).apply(app, key, draw.as_ref());
     }
     write_feed(app);
@@ -1247,17 +1295,18 @@ pub async fn action(app: &AppHandle, key: &str, action: &str, anchor: &str, wind
 /// `onOpen` answers an Effect. A `push`, `view`, `show`, `form` or `toast`
 /// in it opens the popover engaged with that level.
 pub async fn open(app: &AppHandle, key: &str, anchor: &str, rect: Option<Rect>) -> Result<Value, String> {
-    opened(app, key, None, anchor, rect).await
+    opened(app, key, None, anchor, rect, popover::WINDOW).await
 }
 
 /// One of the item's actions opened as a click without a menu is: its
 /// `onAction`'s Effect, a level landing in the popover engaged. A glance
 /// card's line (`BarItem.glance.lines`, glance.rs).
 pub async fn open_action(app: &AppHandle, key: &str, action: &str, anchor: &str) -> Result<Value, String> {
-    opened(app, key, Some(action), anchor, None).await
+    opened(app, key, Some(action), anchor, None, popover::WINDOW).await
 }
 
-async fn opened(app: &AppHandle, key: &str, action: Option<&str>, anchor: &str, rect: Option<Rect>) -> Result<Value, String> {
+/// `window` is the page the level lands in: the popover's, or a remote page's bar sheet.
+async fn opened(app: &AppHandle, key: &str, action: Option<&str>, anchor: &str, rect: Option<Rect>, window: &str) -> Result<Value, String> {
     let (ext, id) = split_key(key).ok_or_else(|| format!("bad key {key}"))?;
     let e = entry(app, key).ok_or_else(|| format!("no bar item {key}"))?;
     let r = if e.fixture || e.native {
@@ -1270,9 +1319,13 @@ async fn opened(app: &AppHandle, key: &str, action: Option<&str>, anchor: &str, 
             None => host.request("bar/open", json!({ "extension": ext, "id": id, "ctx": ctx })).await?,
         }
     };
-    let r = effects::apply_from(app, r, popover::WINDOW).await?;
+    let r = effects::apply_from(app, r, window).await?;
     if effects::stays_open(&r) {
-        popover::open_effect(app, key, rect, &r);
+        if crate::remote::is_remote(window) {
+            popover::web_show(app, window, key, Some(r.clone()));
+        } else {
+            popover::open_effect(app, key, rect, &r);
+        }
     }
     if r.get("keep").is_some() {
         render(app, key, "update");
@@ -1388,7 +1441,9 @@ mod triggers {
         tauri::async_runtime::spawn(async move {
             loop {
                 tokio::time::sleep(Duration::from_secs(60)).await;
-                trigger(&handle, "minute");
+                if can_draw() {
+                    trigger(&handle, "minute");
+                }
             }
         });
         #[cfg(target_os = "macos")]
@@ -1619,13 +1674,16 @@ mod tests {
         assert_eq!(strip_label("3 unread (Work)", Some("Work")), Some("3 unread"));
         assert_eq!(strip_label("3 unread", Some("Work")), Some("3 unread"));
         if SUPPORTED {
-            assert_eq!(kinds(BarTarget::Auto, true), [Kind::Sketchybar]);
-            assert_eq!(kinds(BarTarget::Auto, false), [Kind::Menubar]);
-            assert_eq!(kinds(BarTarget::Both, false), [Kind::Menubar, Kind::Sketchybar]);
+            assert_eq!(kinds(BarTarget::Auto, true, false), [Kind::Sketchybar]);
+            assert_eq!(kinds(BarTarget::Auto, false, false), [Kind::Menubar]);
+            assert_eq!(kinds(BarTarget::Both, false, true), [Kind::Menubar, Kind::Sketchybar, Kind::Web], "a connected page's strip beside the native ones");
         } else {
-            assert!(kinds(BarTarget::Both, true).is_empty(), "no target draws off macOS");
+            assert!(kinds(BarTarget::Both, true, false).is_empty(), "no native target off macOS");
+            assert_eq!(kinds(BarTarget::Menubar, false, true), [Kind::Web], "the page's strip is the one target there");
         }
-        assert!(kinds(BarTarget::Off, true).is_empty());
+        assert!(kinds(BarTarget::Off, true, true).is_empty(), "off is off on every target");
+        assert_eq!(look_target(Kind::Web, BarTarget::Auto, true), BarTarget::Sketchybar, "the page draws in the look of where the item lands");
+        assert_eq!(look_target(Kind::Web, BarTarget::Both, true), BarTarget::Menubar);
         assert_eq!(Rect::parse("1,2,3.5,4"), Some(Rect { x: 1.0, y: 2.0, w: 3.5, h: 4.0 }));
         assert_eq!(Rect::parse("1,2"), None);
     }
@@ -1635,22 +1693,22 @@ mod tests {
         let (config, _) = pal_core::config::parse("[bar.menubar]\nsize = 12\n[bar.items.\"x/y\"]\norder = 5\nposition = \"left\"\nopen_on_hover = true\nbadge_style = \"dot\"\n").unwrap();
         let item: BarItem = serde_json::from_value(json!({ "hidden": true, "menu": { "palette": "apps" } })).unwrap();
         let entry = Entry { manifest: ManifestBar::default(), last: Some(item), rendered_at: None, rendered_unix: None, stale: true, rendering: false, due_again: false, timer_gen: 0, fixture: false, native: false, held: false, instance: None };
-        let d = draw_for(&config, "x/y", &entry, Kind::Menubar, &[]).unwrap();
+        let d = draw_for(&config, "x/y", &entry, BarTarget::Menubar, &[]).unwrap();
         assert!(d.item.hidden, "a hidden item is handed over: the target takes its slot away, its timer keeps running");
         assert!(d.item.stale, "the registry's stale rides on the item");
         assert_eq!((d.order, d.position.as_str(), d.hover), (5, "left", true));
         assert_eq!((d.look.size, d.look.badge_style), (12.0, BadgeStyle::Dot), "the look rides on the draw: the target's default with the item's keys");
-        assert_eq!(draw_for(&config, "x/y", &entry, Kind::Sketchybar, &[]).unwrap().look.size, 0.0, "sketchybar's own defaults");
+        assert_eq!(draw_for(&config, "x/y", &entry, BarTarget::Sketchybar, &[]).unwrap().look.size, 0.0, "sketchybar's own defaults");
         let counted = Entry { last: Some(BarItem { badge: Some(Badge::Count(3)), icon: Some(json!("\u{f09b}")), ..Default::default() }), ..entry.clone() };
-        assert_eq!(draw_for(&config, "x/y", &counted, Kind::Menubar, &[]).unwrap().item.badge, Some(Badge::Dot(DotTag::Dot)), "the item is shaped by the look before the target sees it");
+        assert_eq!(draw_for(&config, "x/y", &counted, BarTarget::Menubar, &[]).unwrap().item.badge, Some(Badge::Dot(DotTag::Dot)), "the item is shaped by the look before the target sees it");
         let none = Entry { last: None, ..entry };
-        assert!(draw_for(&config, "x/y", &none, Kind::Menubar, &[]).is_none(), "nothing to draw before the first render");
+        assert!(draw_for(&config, "x/y", &none, BarTarget::Menubar, &[]).is_none(), "nothing to draw before the first render");
         let (config, _) = pal_core::config::parse("").unwrap();
         let entry = Entry { manifest: ManifestBar::default(), last: Some(BarItem { menu: Some(json!([])), ..Default::default() }), rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, native: false, held: false, instance: None };
-        assert!(!draw_for(&config, "x/y", &entry, Kind::Sketchybar, &[]).unwrap().hover, "no target peeks by default");
-        assert!(!draw_for(&config, "x/y", &entry, Kind::Menubar, &[]).unwrap().hover);
+        assert!(!draw_for(&config, "x/y", &entry, BarTarget::Sketchybar, &[]).unwrap().hover, "no target peeks by default");
+        assert!(!draw_for(&config, "x/y", &entry, BarTarget::Menubar, &[]).unwrap().hover);
         let no_menu = Entry { last: Some(BarItem::default()), ..entry };
-        assert!(!draw_for(&config, "x/y", &no_menu, Kind::Sketchybar, &[]).unwrap().hover, "an item with no menu never peeks");
+        assert!(!draw_for(&config, "x/y", &no_menu, BarTarget::Sketchybar, &[]).unwrap().hover, "an item with no menu never peeks");
     }
 
     #[test]
@@ -1664,16 +1722,16 @@ mod tests {
         assert_eq!(rules.iter().map(|(id, r)| (id.as_str(), r.when.as_deref().unwrap())).collect::<Vec<_>>(), [("fine", "power.level >= 50"), ("low", "power.level < 25"), ("critical", "power.level < 10"), ("focus", "not working")], "the manifest's in order with the file's when on top, then the file's own");
         assert_eq!(rules[1].1.look.size, Some(14.0), "a key the file adds to an extension's rule");
         assert_eq!(rules[1].1.look.color.as_deref(), Some("amber"), "a key the file leaves keeps the extension's");
-        let d = draw_for(&config, "power/battery", &entry, Kind::Menubar, &[]).unwrap();
+        let d = draw_for(&config, "power/battery", &entry, BarTarget::Menubar, &[]).unwrap();
         assert_eq!((d.item.hidden, d.item.color.as_deref(), d.item.urgent), (false, Some("muted"), false), "no rule holds: the render's own, the file's blue leaves muted alone");
-        let d = draw_for(&config, "power/battery", &entry, Kind::Menubar, &["low".into()]).unwrap();
+        let d = draw_for(&config, "power/battery", &entry, BarTarget::Menubar, &["low".into()]).unwrap();
         assert_eq!((d.item.hidden, d.item.color.as_deref(), d.item.urgent, d.look.size), (false, Some("amber"), true, 14.0), "a rule's tint replaces the render's muted; its size rides on the look");
-        let d = draw_for(&config, "power/battery", &entry, Kind::Menubar, &["low".into(), "critical".into()]).unwrap();
+        let d = draw_for(&config, "power/battery", &entry, BarTarget::Menubar, &["low".into(), "critical".into()]).unwrap();
         assert_eq!((d.item.color.as_deref(), d.position.as_str(), d.item.urgent), (Some("red"), "q", true), "later wins on the tint; the position moves; urgent stays from the earlier rule");
-        let d = draw_for(&config, "power/battery", &entry, Kind::Menubar, &["focus".into()]).unwrap();
+        let d = draw_for(&config, "power/battery", &entry, BarTarget::Menubar, &["focus".into()]).unwrap();
         assert!(d.item.hidden, "a rule of the file's own hides");
         let (always, _) = pal_core::config::parse("[bar.items.\"power/battery\"]\nshow = \"always\"\n").unwrap();
-        let d = draw_for(&always, "power/battery", &entry, Kind::Menubar, &["fine".into()]).unwrap();
+        let d = draw_for(&always, "power/battery", &entry, BarTarget::Menubar, &["fine".into()]).unwrap();
         assert!(!d.item.hidden && d.item.color.as_deref() == Some("muted"), "a rule's hidden takes the empty shape under show = always, as the render's would");
     }
 
@@ -1699,12 +1757,12 @@ mod tests {
 
         let (config, _) = pal_core::config::parse("[bar.items.\"x/y\"]\nshow = \"always\"\n[bar.items.\"x/z\"]\nbadge_style = \"dot\"\n").unwrap();
         let entry = Entry { manifest: ManifestBar::default(), last: Some(quiet.clone()), rendered_at: None, rendered_unix: None, stale: false, rendering: false, due_again: false, timer_gen: 0, fixture: false, native: false, held: false, instance: None };
-        let d = draw_for(&config, "x/y", &entry, Kind::Menubar, &[]).unwrap();
+        let d = draw_for(&config, "x/y", &entry, BarTarget::Menubar, &[]).unwrap();
         assert!(!d.item.hidden && d.item.muted(), "the config keeps it on the strip, dim");
         assert_eq!(d.tint(), Some("muted"));
-        assert!(draw_for(&config, "x/z", &entry, Kind::Menubar, &[]).unwrap().item.hidden, "auto is the default: off the strip");
+        assert!(draw_for(&config, "x/z", &entry, BarTarget::Menubar, &[]).unwrap().item.hidden, "auto is the default: off the strip");
         let stale = Entry { stale: true, ..entry };
-        assert!(draw_for(&config, "x/y", &stale, Kind::Menubar, &[]).unwrap().item.stale, "the registry's stale rides on the kept shape too");
+        assert!(draw_for(&config, "x/y", &stale, BarTarget::Menubar, &[]).unwrap().item.stale, "the registry's stale rides on the kept shape too");
 
         let mut labelled = quiet;
         labelled.label(Some("Work"));

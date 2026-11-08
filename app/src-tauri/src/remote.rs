@@ -392,8 +392,15 @@ async fn serve(app: AppHandle, label: String, socket: WebSocket) {
     use futures_util::{SinkExt, StreamExt};
     let (mut sink, mut stream) = socket.split();
     let (tx, mut rx) = mpsc::unbounded_channel::<Message>();
-    lock(&conns().0).insert(label.clone(), Conn { tx: tx.clone(), events: HashSet::new() });
+    let first = {
+        let mut conns = lock(&conns().0);
+        conns.insert(label.clone(), Conn { tx: tx.clone(), events: HashSet::new() });
+        conns.len() == 1
+    };
     eprintln!("remote\tconnected\t{label}");
+    if first {
+        crate::bar::on_pages(&app, true);
+    }
     crate::views::set_visible(&app, &label, true, false);
     let writer = tauri::async_runtime::spawn(async move {
         while let Some(m) = rx.recv().await {
@@ -433,9 +440,17 @@ async fn serve(app: AppHandle, label: String, socket: WebSocket) {
             Err(e) => eprintln!("remote\tbad message\t{label}\t{e}"),
         }
     }
-    lock(&conns().0).remove(&label);
+    let last = {
+        let mut conns = lock(&conns().0);
+        conns.remove(&label);
+        conns.is_empty()
+    };
     writer.abort();
     crate::views::report_gone(&app, &label);
+    crate::bar::popover::on_page_gone(&app, &label);
+    if last {
+        crate::bar::on_pages(&app, false);
+    }
     eprintln!("remote\tdisconnected\t{label}");
 }
 

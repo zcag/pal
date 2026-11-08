@@ -52,6 +52,10 @@ pub const SETTINGS: &str = "pal://settings";
 pub const BAR: &str = "pal://bar";
 /// To one window's page: a push for the view level it has on top
 /// (`ViewUpdate` in sdk/src/protocol.ts: `{ extension, palette | bar, id?,
+/// The bar's `web` target changed what it draws: the whole strip a remote
+/// page draws, `{ items: [{ key, item, look, position }] }` in strip order,
+/// what `bar_web_items` answers (bar/web.rs).
+pub const BAR_STRIP: &str = "pal://bar/strip";
 /// spec }`), applied in place (views.rs).
 pub const VIEW: &str = "pal://view";
 /// To the page that asked: rows a streaming `list` showed early
