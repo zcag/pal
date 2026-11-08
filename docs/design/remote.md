@@ -221,8 +221,13 @@ the remote page's, and nothing is implemented twice.
   row now runs its effects for the caller (`effects::apply_from`), so a
   URL they open lands on the device, as an extension's does.
 
-Left open: the package is not published yet (the snippet names jsdelivr);
-an embed token is accepted by any page, not only framed by its origin (it
+pal serves the elements itself at `/__pal/web.js` (app/vite.web.config.ts
+builds the package into one module; remote.rs `web_module` answers it with
+no sign-in and `Access-Control-Allow-Origin` for an allowed site), so a
+site loads the copy that matches the pal it frames and carries none of its
+own.
+
+Left open: an embed token is accepted by any page, not only framed by its origin (it
 is a bearer token like the main one); a host cannot place a bar popover
 itself; and pal as a library (an app shipping its own extensions and
 running the host, which needs the shell's state pulled out of

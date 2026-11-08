@@ -32,8 +32,13 @@ main token: list only sites you trust with that.
 framework dependency, so it works in a plain page, React, Vue or anything
 else.
 
+Load it from the pal you frame, which serves the copy that matches it at
+`/__pal/web.js` (one module, no sign-in, readable cross-origin by the
+allowed sites, so `import()` works too); the npm package is the same code
+for a build that bundles it.
+
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@zcag/pal-web"></script>
+<script type="module" src="https://pal.lan/__pal/web.js"></script>
 
 <pal-bar server="https://pal.lan" token="…"></pal-bar>
 <pal-panel server="https://pal.lan" token="…" links="host"></pal-panel>

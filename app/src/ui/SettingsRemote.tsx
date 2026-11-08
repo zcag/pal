@@ -19,7 +19,7 @@ export type RemoteProps = {
 };
 
 /** What a site puts in its page to show pal's panel (docs/embed.md). */
-export const embedSnippet = (url: string, token: string) => `<script type="module" src="https://cdn.jsdelivr.net/npm/@zcag/pal-web"></script>\n<pal-panel server="${url}" token="${token}"></pal-panel>`;
+export const embedSnippet = (url: string, token: string) => `<script type="module" src="${url}/__pal/web.js"></script>\n<pal-panel server="${url}" token="${token}"></pal-panel>`;
 
 export const remoteText = {
   enabled: { anchor: "general:remote", hint: "Remote", label: "Use pal from other devices", description: "Serves pal's panel, bar and Settings to a browser on your phone or another computer, running against this machine. Your own tailnet devices get in as they are; anything else needs the token below.", keywords: "remote web browser phone mobile tablet serve server network tailscale" },

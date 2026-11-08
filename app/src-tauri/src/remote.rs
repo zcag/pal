@@ -175,6 +175,7 @@ fn apply(app: &AppHandle, remote: &pal_core::config::Remote) {
         .route("/__pal/ws", get(socket))
         .route("/__icon/{*rest}", get(icon))
         .route("/__ext/{*rest}", get(ext))
+        .route("/__pal/web.js", get(web_module))
         .route("/__pal/{*rest}", get(kit))
         .fallback(get(asset))
         .with_state(ctx);
@@ -516,6 +517,25 @@ async fn ext(State(ctx): State<Ctx>, ConnectInfo(peer): ConnectInfo<SocketAddr>,
     }
 }
 
+/// `/__pal/web.js`: `@zcag/pal-web`'s elements as one module (app/vite.web.config.ts),
+/// so a site imports the copy that matches the pal it frames. The public
+/// package, so no sign-in; readable cross-origin by an allowed site (`import()`).
+async fn web_module(State(ctx): State<Ctx>, headers: HeaderMap) -> Response {
+    let Some((_, bytes)) = frontend(&ctx.app, "/__pal/web.js") else { return StatusCode::NOT_FOUND.into_response() };
+    let mut r = ([(header::CONTENT_TYPE, "text/javascript"), (header::CACHE_CONTROL, "no-cache")], bytes).into_response();
+    if let Some(v) = allowed_origin(&crate::settings::config(&ctx.app).remote.embed_origins, &headers).and_then(|o| HeaderValue::from_str(&o).ok()) {
+        r.headers_mut().insert(header::ACCESS_CONTROL_ALLOW_ORIGIN, v);
+    }
+    r.headers_mut().insert(header::VARY, HeaderValue::from_static("Origin"));
+    r
+}
+
+/// The request's `Origin` when it is one of `[remote] embed_origins`.
+fn allowed_origin(list: &[String], headers: &HeaderMap) -> Option<String> {
+    let origin = headers.get(header::ORIGIN)?.to_str().ok()?;
+    embed_origins(list).find(|o| o == origin)
+}
+
 /// `/__pal/<path>`: the surface kit, which a surface page asks for at its
 /// origin's root (`/__pal/surface.js`, `/__pal/tokens.css`).
 async fn kit(State(ctx): State<Ctx>, ConnectInfo(peer): ConnectInfo<SocketAddr>, headers: HeaderMap, uri: Uri) -> Response {
@@ -751,6 +771,15 @@ mod tests {
     #[test]
     fn only_the_allowed_origins_frame_the_pages() {
         assert_eq!(frame_ancestors(&[]), "frame-ancestors 'self'");
+        let with = |o: &'static str| {
+            let mut h = HeaderMap::new();
+            h.insert(header::ORIGIN, HeaderValue::from_static(o));
+            h
+        };
+        let sites = ["https://atc.lan".to_string()];
+        assert_eq!(allowed_origin(&sites, &with("https://atc.lan")).as_deref(), Some("https://atc.lan"));
+        assert_eq!(allowed_origin(&sites, &with("https://other.example")), None, "only a listed site reads the module cross-origin");
+        assert_eq!(allowed_origin(&sites, &HeaderMap::new()), None);
         let list = ["https://app.example/".into(), "http://127.0.0.1:8080".into(), "https://x.example; script-src *".into(), "javascript:alert(1)".into(), "nonsense".into()];
         assert_eq!(frame_ancestors(&list), "frame-ancestors 'self' https://app.example http://127.0.0.1:8080");
     }

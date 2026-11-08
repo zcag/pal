@@ -5,11 +5,13 @@ that frame the panel and the bar of a pal you run, and tell your page what
 is picked, copied and opened.
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/npm/@zcag/pal-web"></script>
+<script type="module" src="https://pal.lan/__pal/web.js"></script>
 <pal-panel server="https://pal.lan" token="…"></pal-panel>
 ```
 
-The site has to be allowed first, in pal's Settings › General › Remote ›
+Every pal serves this package itself at `/__pal/web.js`, the copy that
+matches it; installing it from npm is for a build that bundles it. The
+site has to be allowed first, in pal's Settings › General › Remote ›
 Inside other sites, which also gives its token. Attributes, methods,
 events and how sign-in works inside a frame:
 [docs/embed.md](https://github.com/zcag/pal/blob/main/docs/embed.md).
