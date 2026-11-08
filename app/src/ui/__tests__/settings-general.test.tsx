@@ -75,7 +75,9 @@ describe("SettingsGeneral permissions", () => {
     expect(find("comments")).toEqual(["Config file"]);
     expect(find("catppuccin")).toEqual(["Theme file"]);
     expect(find("unread")).toEqual(["Glance strip"]);
-    const html = page({ value: { ...general, glance: ["gmail/unread"] }, glanceItems: [{ key: "gmail/unread", title: "Gmail › Unread" }, { key: "weather/weather", title: "Weather › Weather" }], permissions: { accessibility: true, input_monitoring: true }, themeFile: { status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop } });
+    expect(find("phone")).toEqual(["Use pal from other devices"]);
+    const remote = { status: { enabled: true, serving: true, port: 7373, url: "https://pal.lan", address: "https://pal.lan", trusted_proxies: [], token: "t", connected: 1 }, onEnabled: noop, onPort: noop, onProxy: noop, onReplaceToken: noop, onCopy: noop };
+    const html = page({ value: { ...general, glance: ["gmail/unread"] }, glanceItems: [{ key: "gmail/unread", title: "Gmail › Unread" }, { key: "weather/weather", title: "Weather › Weather" }], permissions: { accessibility: true, input_monitoring: true }, themeFile: { status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop }, remote });
     for (const e of generalIndex) expect(html, e.label).toContain(`data-anchor="${e.anchor}"`);
     // The glance strip's chosen item is pressed and numbered by its place in the strip.
     expect(html).toMatch(/aria-pressed="true"><span class="pal-glance-pick__n">1<\/span>Gmail › Unread/);

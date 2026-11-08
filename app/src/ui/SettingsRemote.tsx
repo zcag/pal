@@ -19,7 +19,7 @@ export type RemoteProps = {
 export const remoteText = {
   enabled: { anchor: "general:remote", hint: "Remote", label: "Use pal from other devices", description: "Serves pal's panel, bar and Settings to a browser on your phone or another computer, running against this machine. Your own tailnet devices get in as they are; anything else needs the token below.", keywords: "remote web browser phone mobile tablet serve server network tailscale" },
   address: { anchor: "general:remote-address", hint: "Remote", label: "Address", description: "Open it on the other device. Adding it to the home screen makes it an app there.", keywords: "url link port" },
-  proxy: { anchor: "general:remote-proxy", hint: "Remote", label: "Behind a proxy", description: "When a name like https://pal.lan serves pal through a reverse proxy: that address, and the proxy as an address, a range or docker:<container>, so your tailnet devices are still known through it.", keywords: "caddy nginx reverse proxy domain name https x-forwarded-for" },
+  proxy: { anchor: "general:remote-proxy", hint: "Remote", label: "Behind a proxy", description: "When a name like https://pal.lan serves pal through a reverse proxy: that address, and the proxy's address or range, so your tailnet devices are still known through it.", keywords: "caddy nginx reverse proxy domain name https x-forwarded-for container" },
   token: { anchor: "general:remote-token", hint: "Remote", label: "Token", description: "For a device outside your tailnet: open the address with ?token= and this, once; the browser remembers it. Replace signs every such device out.", keywords: "password secret key sign in" },
 } as const;
 
