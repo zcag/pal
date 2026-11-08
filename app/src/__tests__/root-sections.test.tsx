@@ -235,8 +235,12 @@ describe("fallback rows and reset ranking", () => {
     expect(crumb()).toBe("Calculator");
     expect(field().value).toBe("2+2");
   });
-  it("the Reset ranking action is offered on an indexed row and calls back with it", async () => {
+  it("the Reset ranking action is offered on an indexed row and calls back with it; a click on a row away from the cursor picks that row", async () => {
     await mount();
+    const slack = [...el.querySelectorAll<HTMLElement>(".pal-row")].find((r) => r.textContent?.includes("Slack"))!;
+    await act(() => { slack.click(); }); await flush();
+    expect(picks, "a tap hovers nothing first").toEqual(["slack"]);
+    picks.length = 0;
     await type("sl"); await flush();
     expect(rowNames()).toEqual(["Slack"]);
     await key("k", { metaKey: true, ctrlKey: true, code: "KeyK" }); await flush();

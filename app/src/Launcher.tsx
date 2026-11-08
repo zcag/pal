@@ -1411,7 +1411,8 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
   const placeholder = view.kind === "root" ? "Search…" : view.kind === "view" ? viewInput?.placeholder ?? "" : view.kind === "show" || view.kind === "form" || view.kind === "missing" ? "" : isMenu ? `Search ${view.title}…` : (view.kind === "palette" ? view.placeholder : undefined) ?? scope?.placeholder ?? `Search ${titleOf(view.palette)}…`;
   /** What Enter runs and the footer names: the field's submit while a view's text field is open, else the first listed action. */
   const primaryAction = viewInput ? actions.find((a) => a.id === viewInput.submit) : runnable[0];
-  const onPickAt = (i: number) => { cur.set(i); const a = listed[0]; if (a) run(a); };
+  // A row the cursor is not on (a tap, which hovers nothing first) waits for the cursor's render, as cmd+N does (`runAt`).
+  const onPickAt = (i: number) => { if (i !== cur.cursor) { runAt.current = i; return cur.set(i); } if (listed[0]) run(listed[0]); };
   const onMore = props.touch ? (i: number) => { cur.set(i); setActionsOpen(true); } : undefined;
   /** Enter with rows marked and nothing that works on several: say so rather than pick one. */
   const noMulti = () => setToast({ style: "failure", title: "Nothing here works on several rows", message: "Clear the selection (Escape) to pick one" });
