@@ -93,8 +93,19 @@ fn connected(label: &str) -> bool {
 /// the one connection `target` names. Called by `events::emit`/`emit_to`;
 /// the payload is serialised once, and only when someone listens.
 pub fn send<S: Serialize>(event: &str, target: Option<&str>, payload: &S) {
+    send_where(event, target, payload, |label| target.is_none_or(|t| t == label));
+}
+
+/// An event to every connected home page (`main`) listening for it: what
+/// no page asked for (a HUD line from a link or a timer) is shown once per
+/// device, not again in a bar sheet open over it.
+pub fn send_home<S: Serialize>(event: &str, payload: &S) {
+    send_where(event, None, payload, |label| page_of(label) == Some("main"));
+}
+
+fn send_where<S: Serialize>(event: &str, target: Option<&str>, payload: &S, to: impl Fn(&str) -> bool) {
     let conns = lock(&conns().0);
-    let wants = |(label, c): &(&String, &Conn)| c.events.contains(event) && target.is_none_or(|t| t == label.as_str());
+    let wants = |(label, c): &(&String, &Conn)| c.events.contains(event) && to(label);
     if !conns.iter().any(|e| wants(&e)) {
         return;
     }
