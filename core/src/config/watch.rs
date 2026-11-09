@@ -3,7 +3,8 @@
 //! a watch on the old inode would go quiet after the first save.
 
 use std::path::PathBuf;
-use std::sync::mpsc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{mpsc, Arc};
 use std::time::Duration;
 
 use notify::{RecursiveMode, Watcher as _};
@@ -17,6 +18,15 @@ const DEBOUNCE: Duration = Duration::from_millis(150);
 #[must_use = "dropping the watcher stops the watch"]
 pub struct Watcher {
     _inner: notify::RecommendedWatcher,
+    stopped: Arc<AtomicBool>,
+    wake: mpsc::Sender<()>,
+}
+
+impl Drop for Watcher {
+    fn drop(&mut self) {
+        self.stopped.store(true, Ordering::SeqCst);
+        let _ = self.wake.send(());
+    }
 }
 
 impl ConfigFile {
@@ -36,6 +46,9 @@ impl ConfigFile {
         std::fs::create_dir_all(&dir).map_err(|source| Error::Io { path: dir.clone(), source })?;
         let name = target.file_name().map(std::ffi::OsStr::to_owned);
         let (tx, rx) = mpsc::channel();
+        let wake = tx.clone();
+        let stopped = Arc::new(AtomicBool::new(false));
+        let stop = stopped.clone();
         let mut inner = notify::recommended_watcher(move |ev: notify::Result<notify::Event>| {
             // An error here (the OS dropped the watch, an overflow) leaves
             // the file unwatched until the next start; there is no channel
@@ -57,8 +70,11 @@ impl ConfigFile {
         std::thread::Builder::new()
             .name("pal-config-watch".into())
             .spawn(move || {
-                while rx.recv().is_ok() {
+                while rx.recv().is_ok() && !stop.load(Ordering::SeqCst) {
                     while rx.recv_timeout(DEBOUNCE).is_ok() {}
+                    if stop.load(Ordering::SeqCst) {
+                        break;
+                    }
                     let read = std::fs::read_to_string(&target);
                     if read.as_ref().ok() == last_text.as_ref() {
                         continue;
@@ -74,7 +90,7 @@ impl ConfigFile {
                 }
             })
             .map_err(|e| Error::Watch(notify::Error::io(e)))?;
-        Ok(Watcher { _inner: inner })
+        Ok(Watcher { _inner: inner, stopped, wake })
     }
 }
 
@@ -159,11 +175,6 @@ mod tests {
     fn dropping_the_watcher_stops_it() {
         let (_d, f, w, rx) = setup();
         drop(w);
-        // notify's inotify backend stops asynchronously (`Drop` sends
-        // Shutdown and wakes the loop, no join), so a write landing in the
-        // same poll as the shutdown still gets through; FSEvents stops in
-        // `Drop`. Failed 5 of 5 on marko without the pause.
-        std::thread::sleep(Duration::from_millis(100));
         std::fs::write(f.path(), "[general]\ntheme = \"light\"\n").unwrap();
         // The thread ends with the watch, taking the callback (and its
         // sender) with it.
