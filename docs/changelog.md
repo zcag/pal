@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.3 · 2026-11-09
+
+- **Fixed: a bar item's picture written with `~/`** (`icon = "~/icons/work.svg"`) still showed a broken image in a browser; it draws now, on the menu bar too.
+
 ## 0.18.2 · 2026-11-09
 
 - **Fixed: a bar item with a picture from disk** (`icon = "~/icons/work.svg"`) showed a broken image on pal in a browser and on `<pal-bar>`; it draws the picture now.
