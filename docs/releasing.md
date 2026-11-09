@@ -29,7 +29,8 @@ release, once every bundle is on it. Nothing is done by hand after the tag.
 3. First a job `extensions` runs `extensions.yml` with `promote=all`
    ([Extensions](#extensions)) and waits for it: everything on edge goes to
    stable. Then three jobs run (`macos-latest` for aarch64 and, cross-compiled, x86_64;
-   `ubuntu-24.04` for x86_64) and upload to that draft. Each bundles the
+   `ubuntu-22.04` for x86_64, the oldest runner, so the AppImage needs
+   glibc 2.35 rather than 2.39) and upload to that draft. Each bundles the
    extensions in `app/bundled.txt` as stable serves them
    (`app/scripts/build-extensions.sh`: the index checked with `minisign`
    against `PAL_KEYS`, each package against its tree hash), so the jobs
