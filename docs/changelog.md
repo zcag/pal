@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.1 · 2026-11-09
+
+- **Cleaner menu bar counts**: a count is just the number after the title (`Inbox 3`), without the dot before it, the way sketchybar draws it. Calendar's Upcoming item no longer adds a dot for an event with a call; its tooltip still says Enter joins.
+- **The bar strip in a browser follows your layout**: items sit on the side their position says (left, middle, right) in their order, and a strip wider than the page scrolls as one, by mouse wheel too.
+- **`<pal-bar>` and `<pal-panel>` in your web app**: pal serves `@zcag/pal-web` itself at `/__pal/web.js`, so a site always loads the copy that matches the pal it shows; `<pal-bar>` can hide items by key and tells the page when pal would hide.
+
 ## 0.18.0 · 2026-11-08
 
 - **pal in a browser**: turn on Settings › General › Remote and open pal from your phone or another computer, running against the machine it is on: the panel as the home screen, your bar items as a strip on top with their popovers as sheets, Settings, and the games. What you copy and the links you open land on the device in your hand; pasting, windows and files act on the machine. Your own tailnet devices get in as they are, anything else signs in once with a token, and it can sit behind a name like `https://pal.lan`. Add it to your phone's home screen to use it as an app.
