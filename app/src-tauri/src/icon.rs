@@ -67,11 +67,11 @@ fn png(app: &AppHandle, req: &Request<Vec<u8>>) -> Option<Vec<u8>> {
 /// also reads GIF and rasterises SVG.
 const IMAGE_EXT: [&str; 5] = ["png", "jpg", "jpeg", "gif", "svg"];
 
-/// An absolute path to an image file (by extension), else nothing: the
+/// An absolute or `~/` path to an image file (by extension), else nothing: the
 /// route is reachable by any extension, so it serves pictures and never
 /// an arbitrary file. The bar's `{ image: "/path" }` goes through here too.
 pub(crate) fn image_file(path: &str) -> Option<std::path::PathBuf> {
-    let p = std::path::PathBuf::from(path);
+    let p = pal_core::fs::expand_home(path);
     let ext = p.extension()?.to_str()?.to_ascii_lowercase();
     (p.is_absolute() && IMAGE_EXT.contains(&ext.as_str()) && p.is_file()).then_some(p)
 }

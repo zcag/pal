@@ -27,7 +27,7 @@ export function schemeBase(scheme: string): string {
 export const servedSrc = (src: string) => (src.startsWith(ICON_LOCAL) ? schemeBase("icon") + src.slice(ICON_LOCAL.length) : src);
 const ICON_LOCAL = "icon://localhost/";
 /** A bar item's `{ image }`: a file on disk through the scheme's `file` thumbnail (no page can load a bare path), anything else as `servedSrc`. */
-export const pictureUrl = (src: string, size: number) => (src.startsWith("/") ? `${schemeBase("icon")}file?path=${encodeURIComponent(src)}&size=${size}` : servedSrc(src));
+export const pictureUrl = (src: string, size: number) => (src.startsWith("/") || src.startsWith("~/") ? `${schemeBase("icon")}file?path=${encodeURIComponent(src)}&size=${size}` : servedSrc(src));
 
 export const appIconUrl = (path: string, size: number) => `${schemeBase("icon")}app?path=${encodeURIComponent(path)}&size=${size}`;
 export const faviconUrl = (url: string, size: number) => `${schemeBase("icon")}favicon?url=${encodeURIComponent(url)}&size=${size}`;
