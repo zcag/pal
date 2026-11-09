@@ -179,7 +179,7 @@ pub fn render(glyph: char, style: &Style) -> Option<Arc<Rgba>> {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Text {
     pub text: String,
-    /// The count badge (` ·3`) after the text, in `Style::badge` when that is set.
+    /// The count badge (` 3`) after the text, in `Style::badge` when that is set.
     pub badge: String,
     /// `font = "mono"`.
     pub mono: bool,
@@ -478,12 +478,12 @@ mod tests {
         let corner = text_only.data[((2 * text_only.width + text_only.width - 3) * 4) as usize..][..4].to_vec();
         assert_eq!((corner[0], corner[3]), (0xff, 255), "the dot rides the image's corner");
         // The count after the text, in the badge colour; the same width as the text with it.
-        let counted = strip(Some('\u{f09b}'), &Text { badge: " ·3".into(), ..text.clone() }, &Style { badge: Some([0xff, 0, 0]), ..Default::default() }).unwrap();
-        let joined = strip(Some('\u{f09b}'), &Text { text: "3:12 ·3".into(), ..text.clone() }, &Style::default()).unwrap();
+        let counted = strip(Some('\u{f09b}'), &Text { badge: " 3".into(), ..text.clone() }, &Style { badge: Some([0xff, 0, 0]), ..Default::default() }).unwrap();
+        let joined = strip(Some('\u{f09b}'), &Text { text: "3:12 3".into(), ..text.clone() }, &Style::default()).unwrap();
         assert_eq!(counted.width, joined.width, "the badge run takes the space the text would");
         assert!(counted.data.as_chunks::<4>().0.iter().any(|p| p[3] > 200 && p[0] == 0xff && p[1] == 0), "the count is red");
         assert!(counted.data.as_chunks::<4>().0.iter().any(|p| p[3] > 200 && p[0] == 0 && p[1] == 0), "the text is still the ink");
-        let count_only = strip(None, &Text { text: String::new(), badge: "·3".into(), ..text.clone() }, &Style::default()).unwrap();
+        let count_only = strip(None, &Text { text: String::new(), badge: "3".into(), ..text.clone() }, &Style::default()).unwrap();
         assert!(count_only.width > 4 && count_only.width < img.width, "a count alone is a strip too");
         let faint = strip(Some('\u{f09b}'), &text, &Style { opacity: 0.5, ..Default::default() }).unwrap();
         let max = |img: &Rgba| img.data.as_chunks::<4>().0.iter().map(|p| p[3]).max().unwrap();

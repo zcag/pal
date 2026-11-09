@@ -76,8 +76,8 @@ describe("SettingsBar", () => {
     expect(html.match(/class="g-bar" data-theme="dark" data-target="menubar"/g)?.length).toBe(1);
     expect(html.match(/class="g-bar" data-theme="light" data-target="menubar"/g)?.length).toBe(1);
     expect(html).toContain("menu bar, dark");
-    // The real menu bar has no count bubble: the count is the title's ` ·3` (menubar.rs `badge_text`).
-    expect(html).toContain('<span class="g-mb__title"><span>·3</span></span>');
+    // The real menu bar has no count bubble: the count is the title's ` 3` (menubar.rs `badge_text`).
+    expect(html).toContain('<span class="g-mb__title"><span>3</span></span>');
     // The item's pane has the custom icon field, the extension's own icon as its placeholder.
     expect(html).toContain('data-inherited="true" data-anchor="bar:github/notifications:icon"');
     expect(html).toMatch(/id="bar:github\/notifications-icon"[^>]*placeholder="\u{f09b}"/u);
@@ -169,7 +169,7 @@ describe("SettingsBar", () => {
     expect(strip({ icon: "\u{f09b}", badge: "dot", stale: true }, { badgeColor: "red" })).toContain('class="g-mb__dot" style="background:var(--g-mb-fg)"');
     // A badge colour prerenders the text into the image, the count in that colour.
     const coloured = strip({ icon: "\u{f09b}", badge: 3 }, { badgeColor: "red" });
-    expect(coloured).toContain('<span class="g-mb__itext" style="color:#ff8a82">·3</span>');
+    expect(coloured).toContain('<span class="g-mb__itext" style="color:#ff8a82">3</span>');
     expect(coloured).not.toContain("g-mb__title");
     expect(strip({ icon: "\u{f09b}", title: "x" }, { opacity: 40 })).toMatch(/class="g-mb__item g-mb__pal"[^>]*style="opacity:0\.4"/);
     const sized = strip({ icon: "\u{f09b}", title: "x" }, { size: 12, iconSize: 16, textSize: 9 });

@@ -107,10 +107,10 @@ fn glyph_run(draw: &Draw) -> Option<String> {
     }
 }
 
-/// ` ·3` for a count badge, else nothing: what follows [`runs`] in the
+/// ` 3` for a count badge, else nothing: what follows [`runs`] in the
 /// title text and, prerendered, the run in `badge_color`.
 fn badge_text(draw: &Draw) -> String {
-    draw.item.count().map(|n| format!(" ·{n}")).unwrap_or_default()
+    draw.item.count().map(|n| format!(" {n}")).unwrap_or_default()
 }
 
 /// The text of the item without its count: the title cut to `max_chars`
@@ -134,7 +134,7 @@ fn runs(draw: &Draw) -> String {
     parts.join("  ")
 }
 
-/// The text of the item: [`runs`], then a count badge as ` ·3`.
+/// The text of the item: [`runs`], then a count badge as ` 3`.
 pub fn body(draw: &Draw) -> String {
     format!("{}{}", runs(draw), badge_text(draw)).trim().to_string()
 }
@@ -487,7 +487,7 @@ mod tests {
         // The clip is the title's alone: the segments and the count follow it whole, so a long meeting name never eats its `in 12m`.
         let mut d = draw(json!({ "title": "Weekly planning with the whole platform team", "badge": 3, "segments": [{ "id": "when", "text": "in 1h 18m" }, { "id": "next", "text": "in 8m" }] }));
         d.look.max_chars = 24;
-        assert_eq!(title_text(&d), "Weekly planning with…  in 1h 18m  in 8m ·3");
+        assert_eq!(title_text(&d), "Weekly planning with…  in 1h 18m  in 8m 3");
         let mut d = draw(json!({ "segments": [{ "id": "when", "text": "a segment longer than the clip would allow" }] }));
         d.look.max_chars = 12;
         assert_eq!(title_text(&d), "a segment longer than the clip would allow", "no title: nothing to clip");
@@ -500,11 +500,11 @@ mod tests {
         // The defaults: the glyph is the image, the text the title.
         let plain = with(item.clone(), BarLook::default());
         assert!(!prerendered(&plain));
-        assert_eq!(title_text(&plain), "3:12 ·3");
+        assert_eq!(title_text(&plain), "3:12 3");
         let (img, template) = image(&plain, &p).unwrap();
         assert!(template && img.width() == glyph::SIZE);
         // show_icon / show_title / badge_style shaped the item.
-        assert_eq!(title_text(&with(item.clone(), BarLook { show_title: false, ..Default::default() })), "·3", "glyph only keeps the count");
+        assert_eq!(title_text(&with(item.clone(), BarLook { show_title: false, ..Default::default() })), "3", "glyph only keeps the count");
         assert_eq!(title_text(&with(item.clone(), BarLook { show_title: false, badge_style: pal_core::config::BadgeStyle::None, ..Default::default() })), "");
         assert!(image(&with(item.clone(), BarLook { show_icon: false, ..Default::default() }), &p).is_none(), "no icon: no image, the title alone");
         let dotted = with(item.clone(), BarLook { badge_style: pal_core::config::BadgeStyle::Dot, ..Default::default() });
@@ -538,7 +538,7 @@ mod tests {
         assert_eq!(style(&with(item.clone(), BarLook { size: 11.0, icon_size: 16.0, ..Default::default() }), &p).size, 16.0, "icon_size is the glyph's alone");
         assert_eq!(style(&with(item.clone(), BarLook { text_size: 9.0, ..Default::default() }), &p).size, 0.0, "text_size leaves the glyph at 14 pt");
         let own = with(item.clone(), BarLook { icon: Some("🔔".into()), ..Default::default() });
-        assert_eq!(title_text(&own), "🔔  3:12 ·3", "the look's emoji icon leads the title text");
+        assert_eq!(title_text(&own), "🔔  3:12 3", "the look's emoji icon leads the title text");
         assert!(image(&own, &p).is_none());
         // font, size and width prerender the text into the image.
         if glyph::can_strip(true) {
@@ -572,7 +572,7 @@ mod tests {
 
     #[test]
     fn title_text_joins_emoji_title_segments_and_count() {
-        assert_eq!(title_text(&draw(json!({ "icon": "\u{f09b}", "badge": 3 }))), "·3", "a glyph is the image, the count the text");
+        assert_eq!(title_text(&draw(json!({ "icon": "\u{f09b}", "badge": 3 }))), "3", "a glyph is the image, the count the text");
         assert_eq!(title_text(&draw(json!({ "icon": "🔔", "title": "Ring" }))), "🔔  Ring", "an emoji leads the text");
         // Segments' glyphs are not title text (the system face would box them): the whole run goes into the image, the title stays empty.
         let marks = draw(json!({ "title": "prs", "segments": [{ "id": "a", "icon": "\u{f0159}", "text": "2" }, { "id": "b", "text": "│" }, { "id": "c", "icon": "\u{f09b}" }] }));

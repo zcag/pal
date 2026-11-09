@@ -5,7 +5,7 @@
       "oneOf": [
         {
           "const": "count",
-          "description": "The number (` ·3` on the menu bar, in red on sketchybar's label).",
+          "description": "The number (` 3` on the menu bar, in red on sketchybar's label).",
           "type": "string"
         },
         {

@@ -784,7 +784,7 @@ pub struct Features {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum BadgeStyle {
-    /// The number (` ·3` on the menu bar, in red on sketchybar's label).
+    /// The number (` 3` on the menu bar, in red on sketchybar's label).
     #[default]
     Count,
     /// A dot, whatever the number.

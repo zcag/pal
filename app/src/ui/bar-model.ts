@@ -158,7 +158,7 @@ export function describeMenubar(item: BarStripItem, look: BarLook, dark: boolean
   const color = ink(tint(item, look)), badge = ink(badgeTint(item, look));
   const text = runs(item, look);
   const prerendered = (!!run || [...text].some(hasGlyph) || look.font === "mono" || iconSize(item, look) > 0 || labelSize(item, look) > 0 || look.width > 0 || look.opacity < 100 || !!look.badgeColor) && k?.kind !== "image";
-  const badgeText = count(item) !== undefined ? ` ·${count(item)}` : "";
+  const badgeText = count(item) !== undefined ? ` ${count(item)}` : "";
   const titleParts: string[] = [];
   if (k?.kind === "text" && !run) titleParts.push(k.text);
   if (!prerendered) titleParts.push(`${text}${badgeText}`.trim());
