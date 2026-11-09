@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.2 · 2026-11-09
+
+- **Fixed: a bar item with a picture from disk** (`icon = "~/icons/work.svg"`) showed a broken image on pal in a browser and on `<pal-bar>`; it draws the picture now.
+
 ## 0.18.1 · 2026-11-09
 
 - **Cleaner menu bar counts**: a count is just the number after the title (`Inbox 3`), without the dot before it, the way sketchybar draws it. Calendar's Upcoming item no longer adds a dot for an event with a call; its tooltip still says Enter joins.
