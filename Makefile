@@ -94,6 +94,20 @@ app:
 	open -a /Applications/pal.app
 	@codesign -dv /Applications/pal.app 2>&1 | grep -E '^Authority|^Signature' | head -2
 
+# The Linux twin of `make app`: builds the .deb from this checkout and
+# installs it into PAL_PREFIX (bin/, lib/pal/), where pal.service runs it,
+# then restarts the service. How a fix reaches a Linux box without a release.
+PAL_PREFIX ?= $(HOME)/.local/share/pal
+.PHONY: install-linux
+install-linux:
+	cd app && PAL_BUNDLE=$(PAL_BUNDLE) npm run tauri build -- --bundles deb --config '{"bundle":{"createUpdaterArtifacts":false}}'
+	@set -e; deb=$$(ls -t $(or $(CARGO_TARGET_DIR),target)/release/bundle/deb/*.deb | head -1); x=$$(mktemp -d); \
+		trap 'rm -rf "$$x"' EXIT; cd "$$x" && bsdtar -xf "$$deb" && bsdtar -xf data.tar.*; \
+		systemctl --user stop pal.service; \
+		mkdir -p $(PAL_PREFIX)/bin $(PAL_PREFIX)/lib; cp usr/bin/pal usr/bin/pal-bun $(PAL_PREFIX)/bin/; \
+		rm -rf $(PAL_PREFIX)/lib/pal && cp -R usr/lib/pal $(PAL_PREFIX)/lib/pal; \
+		systemctl --user start pal.service; echo "installed $$(basename $$deb) into $(PAL_PREFIX)"
+
 # The store screenshots, both themes (docs/design/screenshots.md), of the
 # extension repos' checkouts beside this one (each repo's own `make shots`
 # is the same): `make shots` for every extension, `make shots EXT="privacy timer"` for some;
