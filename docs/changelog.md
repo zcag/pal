@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.4 · 2026-11-10
+
+- **The Linux AppImage runs on older systems**: it needs glibc 2.35 (Ubuntu 22.04, Debian 12 and newer) instead of 2.39, and it starts for every user, under firejail too, where it failed with "Permission denied".
+
 ## 0.18.3 · 2026-11-09
 
 - **Fixed: a bar item's picture written with `~/`** (`icon = "~/icons/work.svg"`) still showed a broken image in a browser; it draws now, on the menu bar too.
