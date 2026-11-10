@@ -1058,25 +1058,32 @@ mod platform {
     use std::process::{Child, Command, Stdio};
     use std::sync::mpsc;
 
+    /// How long a `wl-paste --watch` must have run for its exit to be a crash worth restarting it for, rather than a compositor without data-control (GNOME) that ends it at once.
+    const WL_PASTE_LIVED: Duration = Duration::from_secs(10);
+
     pub enum Watcher {
-        /// `wl-paste --watch` runs a command per clipboard change; the
-        /// command's stdout is the signal, so nothing is read until asked.
-        Wayland { child: Child, rx: mpsc::Receiver<()> },
-        /// X11 (or no wl-paste): compare a hash of the text each poll.
-        Poll { last: Option<String> },
+        /// One signal per change, nothing read until asked: `wl-paste
+        /// --watch` running a command per change (wlroots and KDE's
+        /// data-control), or XFixes selection events (X11, and GNOME,
+        /// whose XWayland takes the selection whenever a Wayland app copies).
+        Events { rx: mpsc::Receiver<()>, child: Option<Child>, since: Instant },
+        /// Neither: compare a hash of what is there each poll, through one clipboard connection.
+        Poll { last: Option<String>, cb: Option<arboard::Clipboard> },
     }
 
     impl Watcher {
         pub fn new() -> Self {
-            if std::env::var_os("WAYLAND_DISPLAY").is_some() {
-                if let Some(w) = Self::wayland() {
-                    return w;
-                }
-            }
-            Self::Poll { last: read().as_ref().map(content_hash) }
+            let wayland = std::env::var_os("WAYLAND_DISPLAY").is_some().then(Self::wl_paste).flatten();
+            wayland.or_else(Self::xfixes).unwrap_or_else(Self::poll)
         }
 
-        fn wayland() -> Option<Self> {
+        fn poll() -> Self {
+            eprintln!("clipboard\tno change events here; polling");
+            let mut cb = arboard::Clipboard::new().ok();
+            Self::Poll { last: cb.as_mut().and_then(peek).as_ref().map(Peek::hash), cb }
+        }
+
+        fn wl_paste() -> Option<Self> {
             let mut child = Command::new("wl-paste")
                 .args(["--watch", "sh", "-c", "cat >/dev/null; echo"])
                 .stdin(Stdio::null())
@@ -1094,15 +1101,57 @@ mod platform {
                     }
                 }
             });
-            Some(Self::Wayland { child, rx })
+            Some(Self::Events { rx, child: Some(child), since: Instant::now() })
+        }
+
+        fn xfixes() -> Option<Self> {
+            use x11rb::connection::Connection;
+            use x11rb::protocol::xfixes::{ConnectionExt as _, SelectionEventMask};
+            use x11rb::protocol::xproto::{ConnectionExt as _, CreateWindowAux, WindowClass};
+            std::env::var_os("DISPLAY")?;
+            let (conn, screen) = x11rb::connect(None).ok()?;
+            conn.xfixes_query_version(5, 0).ok()?.reply().ok()?;
+            let root = conn.setup().roots.get(screen)?.root;
+            let window = conn.generate_id().ok()?;
+            conn.create_window(0, window, root, 0, 0, 1, 1, 0, WindowClass::INPUT_ONLY, 0, &CreateWindowAux::new()).ok()?;
+            let clipboard = conn.intern_atom(false, b"CLIPBOARD").ok()?.reply().ok()?.atom;
+            let mask = SelectionEventMask::SET_SELECTION_OWNER | SelectionEventMask::SELECTION_WINDOW_DESTROY | SelectionEventMask::SELECTION_CLIENT_CLOSE;
+            conn.xfixes_select_selection_input(window, clipboard, mask).ok()?.check().ok()?;
+            let (tx, rx) = mpsc::channel();
+            std::thread::Builder::new()
+                .name("clipboard-xfixes".into())
+                .spawn(move || {
+                    while let Ok(event) = conn.wait_for_event() {
+                        if matches!(event, x11rb::protocol::Event::XfixesSelectionNotify(_)) && tx.send(()).is_err() {
+                            break;
+                        }
+                    }
+                })
+                .ok()?;
+            Some(Self::Events { rx, child: None, since: Instant::now() })
         }
 
         pub fn changed(&mut self, poll: Duration) -> bool {
             match self {
-                Self::Wayland { rx, .. } => rx.recv_timeout(poll).is_ok(),
-                Self::Poll { last } => {
+                Self::Events { rx, child, since } => match rx.recv_timeout(poll) {
+                    Ok(()) => true,
+                    Err(mpsc::RecvTimeoutError::Timeout) => false,
+                    Err(mpsc::RecvTimeoutError::Disconnected) => {
+                        let (wl_paste, lived) = (child.is_some(), since.elapsed() >= WL_PASTE_LIVED);
+                        eprintln!("clipboard\t{} ended after {:.0}s", if wl_paste { "wl-paste --watch" } else { "the X11 selection watch" }, since.elapsed().as_secs_f64());
+                        *self = if wl_paste && !lived { Self::xfixes().unwrap_or_else(Self::poll) } else { Self::new() };
+                        if lived {
+                            std::thread::sleep(poll);
+                        }
+                        false
+                    }
+                },
+                Self::Poll { last, cb } => {
                     std::thread::sleep(poll);
-                    let now = read().as_ref().map(content_hash);
+                    if cb.is_none() {
+                        *cb = arboard::Clipboard::new().ok();
+                    }
+                    let now = cb.as_mut().and_then(peek).as_ref().map(Peek::hash);
                     now.is_some() && std::mem::replace(last, now.clone()) != now
                 }
             }
@@ -1111,7 +1160,7 @@ mod platform {
 
     impl Drop for Watcher {
         fn drop(&mut self) {
-            if let Self::Wayland { child, .. } = self {
+            if let Self::Events { child: Some(child), .. } = self {
                 let _ = child.kill();
                 let _ = child.wait();
             }
@@ -1143,17 +1192,43 @@ mod platform {
         read()
     }
 
-    pub fn read() -> Option<Content> {
-        let mut cb = arboard::Clipboard::new().ok()?;
+    /// What [`read`] gives with an image still unencoded: what the poll compares, since a screenshot's PNG encode is most of a 250 ms tick.
+    enum Peek {
+        Content(Content),
+        Image(arboard::ImageData<'static>),
+    }
+
+    impl Peek {
+        fn hash(&self) -> String {
+            match self {
+                Self::Content(c) => content_hash(c),
+                Self::Image(img) => {
+                    let mut h = Sha256::new();
+                    h.update((img.width as u64).to_le_bytes());
+                    h.update(&img.bytes);
+                    h.finalize().iter().map(|b| format!("{b:02x}")).collect()
+                }
+            }
+        }
+    }
+
+    fn peek(cb: &mut arboard::Clipboard) -> Option<Peek> {
         if let Ok(files) = cb.get().file_list() {
             if !files.is_empty() {
-                return Some(Content::Files(files));
+                return Some(Peek::Content(Content::Files(files)));
             }
         }
         if let Ok(text) = cb.get_text() {
-            return Some(Content::Text(text));
+            return Some(Peek::Content(Content::Text(text)));
         }
-        let img = cb.get_image().ok()?;
+        cb.get_image().ok().map(Peek::Image)
+    }
+
+    pub fn read() -> Option<Content> {
+        let img = match peek(&mut arboard::Clipboard::new().ok()?)? {
+            Peek::Content(c) => return Some(c),
+            Peek::Image(img) => img,
+        };
         let rgba = image::RgbaImage::from_raw(img.width as u32, img.height as u32, img.bytes.into_owned())?;
         let mut png = Cursor::new(Vec::new());
         rgba.write_to(&mut png, image::ImageFormat::Png).ok()?;

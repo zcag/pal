@@ -72,6 +72,8 @@ freedesktop-icons = "0.4"
 libc = "0.2"
 # clipboard: X11 and Wayland (wlr-data-control) read/write without shelling out for every poll
 arboard = { version = "3", default-features = false, features = ["wayland-data-control", "image-data"] }
+# clipboard: XFixes selection events, the change signal on X11 and through XWayland on GNOME (arboard's own connection, no new crate)
+x11rb = { version = "0.13", default-features = false, features = ["xfixes"] }
 
 [dev-dependencies]
 tempfile = "3"

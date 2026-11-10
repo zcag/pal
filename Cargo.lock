@@ -3479,6 +3479,7 @@ dependencies = [
  "ureq",
  "url",
  "uuid",
+ "x11rb",
 ]
 
 [[package]]
