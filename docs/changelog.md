@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.7 · 2026-11-10
+
+- **Fixed: the AppImage quit right after starting on a desktop with systemd**: it handed itself to `pal.service`, which could not run a file inside the AppImage. Started from an AppImage, pal now stays and opens its panel, and Launch at login starts the AppImage file itself.
+
 ## 0.18.6 · 2026-11-10
 
 - **Fixed: pal quit at once where systemd has no user session** (a container, a sandbox such as firejail): it tried to move itself under `pal.service` and exited. It now stays and runs, and opens its panel when started by hand.
