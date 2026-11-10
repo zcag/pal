@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.8 · 2026-11-10
+
+- **Fixed: on an X display with no window manager the panel hid as soon as one started**; the focus a starting window manager takes no longer closes it.
+
 ## 0.18.7 · 2026-11-10
 
 - **Fixed: the AppImage quit right after starting on a desktop with systemd**: it handed itself to `pal.service`, which could not run a file inside the AppImage. Started from an AppImage, pal now stays and opens its panel, and Launch at login starts the AppImage file itself.
