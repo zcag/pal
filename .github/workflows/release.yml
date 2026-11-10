@@ -118,7 +118,7 @@ jobs:
       # Saved by main's warm runs only: a tag's cache is seen by that tag alone.
       - uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ matrix.target }}
+          key: ${{ matrix.target }}-${{ matrix.os }}
           save-if: ${{ github.ref_type != 'tag' }}
 
       - uses: actions/setup-node@v4
