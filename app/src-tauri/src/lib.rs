@@ -69,6 +69,7 @@ mod pershow;
 mod pick;
 mod pop;
 mod privacy;
+mod mirror;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError};
@@ -556,6 +557,8 @@ pub fn run() {
             // its stdin closes with the process: flush what is ours.
             if let RunEvent::Exit = event {
                 bar::remove_all(app);
+                bar::flush_feed(app);
+                states::flush_feed(app);
                 index::flush(app);
                 store::flush_at_quit();
                 eprintln!("quit\tflushed\t{:.1}ms since start", since_start_ms());

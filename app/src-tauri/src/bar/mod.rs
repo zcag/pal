@@ -1370,7 +1370,9 @@ pub fn call(app: &AppHandle, func: &str, params: Value) -> Result<Value, String>
             Ok(Value::Null)
         }
         "refresh" => {
-            render(app, &key, "update");
+            if renders(app, &settings::config(app), &key) {
+                render(app, &key, "update");
+            }
             Ok(Value::Null)
         }
         _ => Err(format!("unknown bar function {func}")),
@@ -1405,20 +1407,22 @@ pub struct Feed {
     pub items: BTreeMap<String, FeedEntry>,
 }
 
-/// The feed says what the strip shows: an item `show = "always"` keeps is its kept shape here too.
+static FEED: crate::mirror::Mirror = crate::mirror::Mirror::new("bar", feed_path, build_feed, std::time::Duration::from_secs(1));
+
 fn write_feed(app: &AppHandle) {
+    FEED.queue(app);
+}
+
+pub fn flush_feed(app: &AppHandle) {
+    FEED.flush(app);
+}
+
+/// The feed says what the strip shows: an item `show = "always"` keeps is its kept shape here too.
+fn build_feed(app: &AppHandle) -> Vec<u8> {
     let config = settings::config(app);
     // As drawn: the rules that hold and `show` applied, so `pal bar list` says what the strip shows.
     let feed = Feed { items: snapshot(app).into_iter().map(|(k, e)| { let active = crate::states::active_rules(app, &k); let item = ruled(&config, &k, &e, &active).map(|(i, _)| i.kept(config.bar.item(&k).show)); (k, FeedEntry { title: e.manifest.title, stale: e.stale, held: e.held, rendered_at: e.rendered_unix, item }) }).collect() };
-    let path = feed_path();
-    tauri::async_runtime::spawn_blocking(move || {
-        if let Some(dir) = path.parent() {
-            let _ = std::fs::create_dir_all(dir);
-        }
-        if let Err(e) = pal_core::fs::write_atomic(&path, serde_json::to_vec_pretty(&feed).unwrap_or_default()) {
-            eprintln!("bar\tfeed write failed\t{e}");
-        }
-    });
+    serde_json::to_vec(&feed).unwrap_or_default()
 }
 
 pub fn read_feed() -> Feed {

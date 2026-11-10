@@ -70,7 +70,7 @@ pub fn install(app: &AppHandle) {
         eprintln!("states\t{:?}\t{}\t{}", d.level, d.path, d.message);
     }
     app.manage(Live { states: Mutex::new(states), gen: AtomicU64::new(0) });
-    write_feed(app);
+    flush_feed(app);
     builtins::install(app);
     arm_expiry(app);
 }
@@ -114,11 +114,19 @@ fn fan_out(app: &AppHandle, changed: Vec<String>) {
     }
 }
 
+static FEED: crate::mirror::Mirror = crate::mirror::Mirror::new("states", feed_path, build_feed, Duration::from_millis(200));
+
 fn write_feed(app: &AppHandle) {
+    FEED.queue(app);
+}
+
+pub fn flush_feed(app: &AppHandle) {
+    FEED.flush(app);
+}
+
+fn build_feed(app: &AppHandle) -> Vec<u8> {
     let feed = with(app, |s| Feed { persisted: s.persisted(), entries: s.list(), diagnostics: s.diagnostics().to_vec() });
-    if let Err(e) = pal_core::fs::write_atomic(&feed_path(), serde_json::to_vec_pretty(&feed).unwrap_or_default()) {
-        eprintln!("states\tfeed write failed\t{e}");
-    }
+    serde_json::to_vec_pretty(&feed).unwrap_or_default()
 }
 
 /// `pal state set`: the manual layer, until `until` (unix ms) or reset.

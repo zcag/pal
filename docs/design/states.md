@@ -101,8 +101,9 @@ just the value. `reset` removes the manual layer either way.
 "until"? } }, "published": { "<name>": { "value", "who", "at" } } }`,
 plus, as built, `entries` (every resolved state as `Entry`) and
 `diagnostics`, so `pal state` reads it in its own process the way `pal
-bar list` reads `bar.json`), written whole and atomically on every
-change, next to `bar.json`. Read
+bar list` reads `bar.json`), written whole and atomically within
+200 ms of a change (changes in that time land as one write, and one
+that leaves the file as it was is not written), next to `bar.json`. Read
 at startup so a `--for 3h` survives a relaunch and an extension's last
 value is there before its worker is up (marked stale in the palette
 until it publishes again). Built-ins are not stored; they are read at

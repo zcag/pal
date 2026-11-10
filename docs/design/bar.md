@@ -320,7 +320,7 @@ the menu bar needs none (Apple hides what runs under the notch).
 ### Linux feed (`bar/feed.rs`, phase 3)
 
 `~/.local/state/pal/bar.json` (`{ "items": { "<ext>/<id>": BarItem & { text,
-class, percentage } } }`, atomic write on every change) and `pal bar follow
+class, percentage } } }`, one atomic write a second at most, skipped when nothing changed) and `pal bar follow
 <ext>/<id>` printing one waybar `custom` JSON line (`text`, `tooltip`, `class`
 from colour/urgent/ stale, `percentage` from progress) per change for a module
 with `"exec": "pal bar follow github/notifications"`, `"return-type": "json"`,

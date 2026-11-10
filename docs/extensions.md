@@ -1354,7 +1354,12 @@ export default defineExtension({
 - `bar.update(id, item)` in `@zcag/pal` **pushes** an item from the
   extension's own side, for a webhook, a file watcher or a poll it runs
   itself: the core draws it as if `render` had answered. `bar.refresh(id)`
-  asks for a `render` with reason `update`. From a timer or a watcher
+  asks for a `render` with reason `update`, which runs only while the
+  item is drawn (on a strip or a glance card), like the core's own polls.
+  A loop of the extension's own should rest likewise: the core renders a
+  drawn item at least every `refresh.every`, so a while with no render
+  means nothing shows what it pushes (`stats` and `media` stop theirs
+  then, and their next render starts it again). From a timer or a watcher
   (outside `render`/`list`/`pick`) pass the extension's name as the last
   argument, as for `storage`. A push is checked like a render answer.
 - **A live popover.** A `{ view }` level in the popover is a view level
