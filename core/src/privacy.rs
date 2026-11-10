@@ -17,8 +17,11 @@
 //! json list source-outputs` (PipeWire's pulse server included) for the
 //! microphone, `/proc/*/fd` links into `/dev/video*` for the camera.
 //!
-//! [`on_change`] starts one watcher thread that looks every [`EVERY`] (and
-//! at once on a log line) and calls back only when the answer differs.
+//! [`on_change`] starts one watcher thread that calls back only when the
+//! answer differs. It looks at once on a log line (macOS) or an event
+//! (Linux: a recording stream comes or goes, a camera opens or closes), and
+//! every [`EVERY`] besides: each second on macOS, where the microphone and
+//! the fallbacks have no event; each minute on Linux, a safety net.
 
 use serde::{Deserialize, Serialize};
 use std::sync::{Mutex, OnceLock};
@@ -87,8 +90,13 @@ fn stamp(v: &mut [Use]) {
 
 #[cfg(target_os = "macos")]
 const EVERY: Duration = Duration::from_secs(1);
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "linux")]
+const EVERY: Duration = Duration::from_secs(60);
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
 const EVERY: Duration = Duration::from_secs(2);
+/// A burst of events (a call opening the camera and the microphone) settles into one look.
+#[cfg(target_os = "linux")]
+const SETTLE: Duration = Duration::from_millis(150);
 
 type Listener = Box<dyn Fn() + Send>;
 static WATCHERS: OnceLock<Mutex<Vec<Listener>>> = OnceLock::new();
@@ -105,13 +113,29 @@ pub fn on_change(f: impl Fn() + Send + 'static) {
         return;
     }
     check();
-    std::thread::Builder::new()
-        .name("privacy".into())
-        .spawn(|| loop {
-            std::thread::sleep(EVERY);
-            check();
-        })
-        .expect("spawn the privacy watcher");
+    std::thread::Builder::new().name("privacy".into()).spawn(watch).expect("spawn the privacy watcher");
+}
+
+#[cfg(target_os = "linux")]
+fn watch() {
+    use std::sync::mpsc::RecvTimeoutError;
+    let told = platform::events();
+    loop {
+        match told.recv_timeout(EVERY) {
+            Ok(()) => while told.recv_timeout(SETTLE).is_ok() {},
+            Err(RecvTimeoutError::Timeout) => {}
+            Err(RecvTimeoutError::Disconnected) => std::thread::sleep(EVERY),
+        }
+        check();
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn watch() {
+    loop {
+        std::thread::sleep(EVERY);
+        check();
+    }
 }
 
 /// Look now; tell the listeners when the answer moved since the last look.
@@ -403,8 +427,93 @@ mod platform {
 #[cfg(target_os = "linux")]
 mod platform {
     use super::*;
+    use std::sync::mpsc;
+
+    /// A signal whenever something may have changed: PulseAudio's (or
+    /// PipeWire's pulse server's) `source-output` events from one
+    /// long-lived `pactl subscribe`, and inotify's opens and closes of
+    /// every `/dev/video*` (and `/dev` itself, for a camera plugged in
+    /// later). Disconnected only when neither can run.
+    pub fn events() -> mpsc::Receiver<()> {
+        let (tx, rx) = mpsc::channel();
+        let pactl = tx.clone();
+        let _ = std::thread::Builder::new().name("privacy-pactl".into()).spawn(move || subscribe(&pactl));
+        let _ = std::thread::Builder::new().name("privacy-video".into()).spawn(move || video(&tx));
+        rx
+    }
+
+    /// `pactl subscribe`'s `Event 'new' on source-output #12` lines, started again 10 s after it ends; no `pactl`, no thread.
+    fn subscribe(tx: &mpsc::Sender<()>) {
+        use std::io::BufRead;
+        use std::process::{Command, Stdio};
+        loop {
+            let Ok(mut child) = Command::new("pactl").arg("subscribe").stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn() else { return };
+            let Some(out) = child.stdout.take() else { return };
+            for line in std::io::BufReader::new(out).lines().map_while(|l| l.ok()) {
+                if line.contains("source-output") && tx.send(()).is_err() {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return;
+                }
+            }
+            let _ = child.wait();
+            std::thread::sleep(Duration::from_secs(10));
+        }
+    }
+
+    fn video(tx: &mpsc::Sender<()>) {
+        const HEAD: usize = std::mem::size_of::<libc::inotify_event>();
+        // SAFETY: an inotify descriptor of our own, read into a buffer of its length, each event read unaligned within what the read returned.
+        unsafe {
+            let fd = libc::inotify_init1(libc::IN_CLOEXEC);
+            if fd < 0 {
+                return;
+            }
+            let dev = libc::inotify_add_watch(fd, c"/dev".as_ptr(), libc::IN_CREATE);
+            let devices = || {
+                for e in std::fs::read_dir("/dev").into_iter().flatten().flatten() {
+                    if e.file_name().to_string_lossy().starts_with("video") {
+                        if let Ok(path) = std::ffi::CString::new(e.path().into_os_string().into_encoded_bytes()) {
+                            libc::inotify_add_watch(fd, path.as_ptr(), libc::IN_OPEN | libc::IN_CLOSE);
+                        }
+                    }
+                }
+            };
+            devices();
+            let mut buf = [0u8; 4096];
+            loop {
+                let n = libc::read(fd, buf.as_mut_ptr().cast(), buf.len());
+                if n < 0 && std::io::Error::last_os_error().kind() == std::io::ErrorKind::Interrupted {
+                    continue;
+                }
+                if n <= 0 {
+                    libc::close(fd);
+                    return;
+                }
+                let (mut at, mut seen) = (0usize, false);
+                while at + HEAD <= n as usize {
+                    let ev = std::ptr::read_unaligned(buf.as_ptr().add(at).cast::<libc::inotify_event>());
+                    let name = &buf[at + HEAD..(at + HEAD + ev.len as usize).min(n as usize)];
+                    if ev.wd != dev {
+                        seen = true;
+                    } else if name.starts_with(b"video") {
+                        devices();
+                        seen = true;
+                    }
+                    at += HEAD + ev.len as usize;
+                }
+                if seen && tx.send(()).is_err() {
+                    libc::close(fd);
+                    return;
+                }
+            }
+        }
+    }
 
     fn cameras() -> Vec<Use> {
+        if !std::fs::read_dir("/dev").into_iter().flatten().flatten().any(|e| e.file_name().to_string_lossy().starts_with("video")) {
+            return vec![];
+        }
         let Ok(procs) = std::fs::read_dir("/proc") else { return vec![] };
         let mut v = vec![];
         for p in procs.flatten() {
