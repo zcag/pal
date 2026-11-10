@@ -397,9 +397,10 @@ mod platform {
         }
     }
 
-    /// `pal.service`'s main pid, when it is running.
-    fn unit_pid() -> Option<u32> {
-        systemctl(&["show", "-p", "MainPID", "--value", UNIT]).ok()?.parse().ok().filter(|p| *p != 0)
+    /// `pal.service`'s main pid, when it is running; an error when there is
+    /// no user manager to ask (no session bus: a container, a sandbox).
+    fn unit_pid() -> Result<Option<u32>, String> {
+        Ok(systemctl(&["show", "-p", "MainPID", "--value", UNIT])?.parse().ok().filter(|p| *p != 0))
     }
 
     fn unit_path() -> Option<PathBuf> {
@@ -468,9 +469,10 @@ mod platform {
         let enabled = sync_unit(want, &program);
         let me = std::process::id();
         match unit_pid() {
-            Some(pid) if pid == me => eprintln!("autostart\tsupervised\t{UNIT} pid {pid}"),
-            Some(pid) => eprintln!("autostart\tunsupervised\tsystemd runs {UNIT} as pid {pid}, not this process"),
-            None => {
+            Err(e) => eprintln!("autostart\tunsupervised\tno systemd user manager to hand over to: {e}"),
+            Ok(Some(pid)) if pid == me => eprintln!("autostart\tsupervised\t{UNIT} pid {pid}"),
+            Ok(Some(pid)) => eprintln!("autostart\tunsupervised\tsystemd runs {UNIT} as pid {pid}, not this process"),
+            Ok(None) => {
                 let dir = state_dir();
                 if !handover_allowed(&dir) {
                     eprintln!("autostart\tunsupervised\thanded over less than {HANDOVER_GAP_SECS}s ago; staying");
@@ -482,7 +484,7 @@ mod platform {
     }
 
     pub fn supervised(_: &AppHandle) -> bool {
-        has_systemd() && unit_pid() == Some(std::process::id())
+        has_systemd() && unit_pid() == Ok(Some(std::process::id()))
     }
 
     pub fn apply(app: &AppHandle, want: bool) {
