@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.6 · 2026-11-10
+
+- **Fixed: pal quit at once where systemd has no user session** (a container, a sandbox such as firejail): it tried to move itself under `pal.service` and exited. It now stays and runs, and opens its panel when started by hand.
+
 ## 0.18.5 · 2026-11-10
 
 - **Linux: pal opens its panel when you start it** from the app menu, a terminal or the AppImage, instead of only adding its tray icon. Starting at login stays quiet; a login script that runs `pal` itself should run `pal --background`.
