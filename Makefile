@@ -83,6 +83,7 @@ ext-release:
 # mode, offline); PAL_BUNDLE=registry takes stable's builds as a release does.
 PAL_DEV_P12 ?= $(HOME)/Sync/.secrets/pal/pal-dev.p12
 PAL_BUNDLE ?= local
+TARGET_DIR = $(shell cargo metadata --format-version 1 --no-deps | jq -r .target_directory)
 .PHONY: app
 app:
 	@security find-identity -p codesigning 2>/dev/null | grep -q '"pal-dev"' || { \
@@ -90,7 +91,7 @@ app:
 		. "$(dir $(PAL_DEV_P12))pal-dev.env" && app/scripts/signing-key.sh "$(PAL_DEV_P12)" "$$PAL_DEV_P12_PASSWORD"; }
 	cd app && PAL_BUNDLE=$(PAL_BUNDLE) CARGO_PROFILE_RELEASE_STRIP=false npm run tauri build -- --config '{"bundle":{"createUpdaterArtifacts":false,"macOS":{"signingIdentity":"pal-dev"}}}'
 	-pal quit 2>/dev/null; sleep 1
-	rm -rf /Applications/pal.app && cp -R $(or $(CARGO_TARGET_DIR),target)/release/bundle/macos/pal.app /Applications/pal.app
+	rm -rf /Applications/pal.app && cp -R $(TARGET_DIR)/release/bundle/macos/pal.app /Applications/pal.app
 	open -a /Applications/pal.app
 	@codesign -dv /Applications/pal.app 2>&1 | grep -E '^Authority|^Signature' | head -2
 
@@ -101,7 +102,7 @@ PAL_PREFIX ?= $(HOME)/.local/share/pal
 .PHONY: install-linux
 install-linux:
 	cd app && PAL_BUNDLE=$(PAL_BUNDLE) npm run tauri build -- --bundles deb --config '{"bundle":{"createUpdaterArtifacts":false}}'
-	@set -e; deb=$$(realpath "$$(ls -t $(or $(CARGO_TARGET_DIR),target)/release/bundle/deb/*.deb | head -1)"); x=$$(mktemp -d); \
+	@set -e; deb=$$(realpath "$$(ls -t $(TARGET_DIR)/release/bundle/deb/*.deb | head -1)"); x=$$(mktemp -d); \
 		trap 'rm -rf "$$x"; systemctl --user start pal.service' EXIT; cd "$$x"; bsdtar -xf "$$deb"; bsdtar -xf data.tar.*; \
 		systemctl --user stop pal.service; \
 		mkdir -p $(PAL_PREFIX)/bin $(PAL_PREFIX)/lib; cp usr/bin/pal usr/bin/pal-bun $(PAL_PREFIX)/bin/; \
