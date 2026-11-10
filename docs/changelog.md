@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.5 · 2026-11-10
+
+- **Linux: pal opens its panel when you start it** from the app menu, a terminal or the AppImage, instead of only adding its tray icon. Starting at login stays quiet; a login script that runs `pal` itself should run `pal --background`.
+
 ## 0.18.4 · 2026-11-10
 
 - **The Linux AppImage runs on older systems**: it needs glibc 2.35 (Ubuntu 22.04, Debian 12 and newer) instead of 2.39, and it starts for every user, under firejail too, where it failed with "Permission denied".

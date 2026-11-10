@@ -56,6 +56,9 @@ use tauri::{AppHandle, Manager};
 #[derive(Parser)]
 #[command(version, about = "pal launcher")]
 pub struct Cli {
+    /// Start without opening the panel: pal's own login and relaunch starts.
+    #[arg(long, hide = true)]
+    pub background: bool,
     #[command(subcommand)]
     pub cmd: Option<Cmd>,
 }
@@ -705,6 +708,7 @@ impl Cmd {
     /// second launch of a single-instance app conventionally does.
     pub fn from_args(args: Vec<String>) -> Option<Cmd> {
         match Cli::try_parse_from(args) {
+            Ok(Cli { cmd: None, background: true }) => None,
             Ok(cli) => Some(cli.cmd.unwrap_or(Cmd::Show)),
             Err(e) => {
                 eprintln!("cli\t{e}");

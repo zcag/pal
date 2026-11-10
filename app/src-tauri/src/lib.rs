@@ -276,7 +276,7 @@ pub fn run() {
     // What every request the core sends says it is (core net.rs).
     pal_core::net::init(env!("CARGO_PKG_VERSION"));
     // A `pal://` link as the only argument (Linux: what the desktop entry runs) is not a subcommand: the plugins carry it (deeplink.rs).
-    let cli = if deeplink::argv_link().is_some() { cli::Cli { cmd: None } } else { cli::Cli::parse() };
+    let cli = if deeplink::argv_link().is_some() { cli::Cli { cmd: None, background: false } } else { cli::Cli::parse() };
     let capture_log = || {
         if let Some(p) = pal_core::log::capture() {
             eprintln!("\nlog\t{}\t{}", p.display(), chrono_free_now());
@@ -320,8 +320,10 @@ pub fn run() {
     if cli.cmd.is_some() {
         capture_log();
     }
-    // Applied once the page has loaded, when started with a subcommand.
-    let startup = Mutex::new(cli.cmd);
+    autostart::set_started_by_hand(cli.cmd.is_none() && !cli.background && deeplink::argv_link().is_none());
+    // Applied once the page has loaded: the subcommand started with, or the panel (`autostart::opens_panel`, set in setup).
+    let startup = std::sync::Arc::new(Mutex::new(cli.cmd));
+    let startup_setup = startup.clone();
     let builder = tauri::Builder::default()
         // First: a second process the handover above missed exits inside
         // this plugin's setup, before anything else is built.
@@ -461,7 +463,7 @@ pub fn run() {
                 }
             }
         })
-        .setup(|app| {
+        .setup(move |app| {
             // Startup order, each step needing the ones before it:
             //   1. activation policy: no Dock icon, before any window shows
             //   2. firstrun: a v1 config is migrated, the config file exists for the watcher
@@ -510,6 +512,9 @@ pub fn run() {
             index::install(app.handle(), &data);
             hotkey::install(app.handle());
             settings::install(app.handle(), config);
+            if autostart::opens_panel(app.handle()) {
+                lock(&startup_setup).get_or_insert(cli::Cmd::Show);
+            }
             store::setup(app.handle());
             permissions::install(app.handle());
             clipboard::install(app.handle());

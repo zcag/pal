@@ -571,7 +571,7 @@ fn relaunch_script(pid: u32, exe: &Path, bundle: Option<&Path>, env: &[(String, 
             let env: Vec<String> = env.iter().map(|(k, v)| format!(" --env {}", q(&format!("{k}={v}")))).collect();
             format!("exec open -n{} {}", env.concat(), q(&b.to_string_lossy()))
         }
-        None => format!("exec {}", q(&exe.to_string_lossy())),
+        None => format!("exec {} --background", q(&exe.to_string_lossy())),
     };
     format!("{}{launch}\n", autostart::wait_for_exit(pid))
 }
@@ -955,7 +955,7 @@ mod tests {
         let s = relaunch_script(1, exe, Some(bundle), &[]);
         assert!(s.ends_with("exec open -n '/Applications/pal.app'\n"), "{s}");
         let s = relaunch_script(7, Path::new("/usr/bin/pal"), None, &env);
-        assert!(s.ends_with("exec '/usr/bin/pal'\n"), "no bundle: the binary itself, in this environment: {s}");
+        assert!(s.ends_with("exec '/usr/bin/pal' --background\n"), "no bundle: the binary itself, in this environment, not opening the panel: {s}");
         if cfg!(target_os = "macos") {
             assert_eq!(bundle_of(exe).as_deref(), Some(bundle));
             assert_eq!(bundle_of(Path::new("/Users/u/proj/pal/target/debug/pal")), None, "a dev build has no bundle");

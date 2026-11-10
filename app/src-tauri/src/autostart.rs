@@ -28,6 +28,12 @@
 //! (`<data dir>/launchd/handover`), so a manager that will not start the
 //! job cannot loop. A debug build does none of this: the definition would
 //! point at `target/debug/pal` and outlive the checkout.
+//!
+//! On Linux a start by hand without a subcommand (the app menu, a
+//! terminal, an AppImage run as it is) opens the panel, so pal shows it
+//! started; across a hand-over a marker (`<data dir>/launchd/show`) tells
+//! the agent's instance. pal's own starts stay hidden: the agent's, and
+//! the XDG entry and relaunches, which pass `--background`.
 
 use std::path::{Path, PathBuf};
 
@@ -35,8 +41,34 @@ use pal_core::config::Config;
 use tauri::plugin::TauriPlugin;
 use tauri::AppHandle;
 
-/// Hand-overs closer together than this run unsupervised instead.
+/// Hand-overs closer together than this run unsupervised instead; also how
+/// long the show marker counts.
 const HANDOVER_GAP_SECS: u64 = 60;
+
+static STARTED_BY_HAND: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn set_started_by_hand(by_hand: bool) {
+    STARTED_BY_HAND.store(cfg!(target_os = "linux") && by_hand, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// In setup, once [`install`] kept this process: whether it opens the
+/// panel. A process the agent started opens it only for the start by hand
+/// that handed over to it.
+pub fn opens_panel(app: &AppHandle) -> bool {
+    let marked = take_show_marker(&state_dir());
+    marked || (STARTED_BY_HAND.load(std::sync::atomic::Ordering::Relaxed) && !supervised(app))
+}
+
+fn unix_now() -> u64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs())
+}
+
+fn take_show_marker(dir: &Path) -> bool {
+    let marker = dir.join("show");
+    let Ok(text) = std::fs::read_to_string(&marker) else { return false };
+    remove_if_present(&marker);
+    text.trim().parse::<u64>().is_ok_and(|at| unix_now().saturating_sub(at) < HANDOVER_GAP_SECS)
+}
 
 pub fn plugin() -> TauriPlugin<tauri::Wry> {
     let b = tauri_plugin_autostart::Builder::new();
@@ -44,6 +76,8 @@ pub fn plugin() -> TauriPlugin<tauri::Wry> {
     // asked anything there; the LaunchAgent is written below.
     #[cfg(target_os = "macos")]
     let b = b.app_name("io.cagdas.pal").macos_launcher(tauri_plugin_autostart::MacosLauncher::LaunchAgent);
+    #[cfg(target_os = "linux")]
+    let b = b.arg("--background");
     b.build()
 }
 
@@ -102,7 +136,7 @@ fn state_dir() -> PathBuf {
 /// one when not. One file, unix seconds.
 fn handover_allowed(dir: &Path) -> bool {
     let marker = dir.join("handover");
-    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs());
+    let now = unix_now();
     let last: u64 = std::fs::read_to_string(&marker).ok().and_then(|s| s.trim().parse().ok()).unwrap_or(0);
     if now.saturating_sub(last) < HANDOVER_GAP_SECS {
         return false;
@@ -144,6 +178,11 @@ fn remove_if_present(path: &Path) -> bool {
 fn handover(script: &str, log: &Path) {
     use std::os::unix::process::CommandExt;
     use std::process::{Command, Stdio};
+    if STARTED_BY_HAND.load(std::sync::atomic::Ordering::Relaxed) {
+        if let Err(e) = pal_core::fs::write_atomic(&state_dir().join("show"), unix_now().to_string()) {
+            eprintln!("autostart\tshow marker write failed\t{e}");
+        }
+    }
     let out = std::fs::OpenOptions::new().create(true).append(true).open(log).ok();
     let err = out.as_ref().and_then(|f| f.try_clone().ok());
     let mut cmd = Command::new("/bin/sh");
@@ -374,11 +413,13 @@ mod platform {
             Ok(v) => v,
             Err(e) => return eprintln!("autostart\tstatus failed\t{e}"),
         };
-        if want == have {
+        if !want && !have {
             return;
         }
+        // Enabled again when it is: an entry written before `--background` gets it.
         let r = if want { m.enable() } else { m.disable() };
         match r {
+            Ok(()) if want == have => {}
             Ok(()) => eprintln!("autostart\txdg entry\t{}", if want { "registered" } else { "removed" }),
             Err(e) => eprintln!("autostart\txdg entry {} failed\t{e}", if want { "register" } else { "remove" }),
         }
@@ -507,12 +548,19 @@ mod tests {
     }
 
     #[test]
-    fn handover_marker_gates_a_minute() {
+    fn markers_count_for_a_minute() {
         let dir = tempfile::tempdir().unwrap();
         assert!(handover_allowed(dir.path()));
         assert!(!handover_allowed(dir.path()), "a second hand-over right after the first");
         std::fs::write(dir.path().join("handover"), "1").unwrap();
         assert!(handover_allowed(dir.path()), "an old marker");
+        assert!(!take_show_marker(dir.path()), "no show marker");
+        std::fs::write(dir.path().join("show"), unix_now().to_string()).unwrap();
+        assert!(take_show_marker(dir.path()));
+        assert!(!take_show_marker(dir.path()), "taken once");
+        std::fs::write(dir.path().join("show"), "1").unwrap();
+        assert!(!take_show_marker(dir.path()), "an old show marker");
+        assert!(!dir.path().join("show").exists());
     }
 
     #[test]

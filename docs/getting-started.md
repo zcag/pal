@@ -87,8 +87,10 @@ Autostart: `launch_at_login` writes and enables a `pal.service` user unit
 (`Restart=on-failure`, wanted by `graphical-session.target`), so a session
 that reaches that target (GNOME, KDE, Hyprland under uwsm) starts pal and
 relaunches it after a crash. Hyprland without uwsm reaches neither that
-target nor XDG autostart, so start `pal` from `hyprland.lua` (`hl.exec_cmd("pal")` at startup): the
-hand-started pal moves itself under the unit at startup. Without systemd
+target nor XDG autostart, so start `pal --background` from `hyprland.lua` (`hl.exec_cmd("pal --background")` at startup): the
+hand-started pal moves itself under the unit at startup. Started without
+`--background` (the app menu, a terminal, the AppImage) pal opens its
+panel, so a start by hand shows it is there. Without systemd
 the setting writes `~/.config/autostart/pal.desktop` and nothing relaunches
 a crashed pal. See [Config](config.md#crash-relaunch).
 
