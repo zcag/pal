@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.18.9 · 2026-11-10
+
+- **Fixed: on GNOME, pal kept one CPU core busy while idle** (#2): its clipboard watcher looped when GNOME refused the clipboard watch it asked for. It now hears about copies from X11, which GNOME passes every copy to, and uses no CPU while nothing is copied, an image on the clipboard included.
+- **Less work while idle everywhere**: the privacy item on Linux is told when a microphone or camera starts or stops instead of scanning every process every 2 seconds; the bar's state files are written once a second at most, not on every update; nothing renders for a bar nobody sees; and hidden windows (Settings, the panel) stop polling.
+- **An extension host that keeps crashing** is restarted after a growing pause, up to 30 seconds, instead of twice a second.
+- **Stats and Media** stop their own polling when no bar shows their items.
+
 ## 0.18.8 · 2026-11-10
 
 - **Fixed: on an X display with no window manager the panel hid as soon as one started**; the focus a starting window manager takes no longer closes it.
