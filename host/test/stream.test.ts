@@ -10,14 +10,15 @@ beforeAll(async () => {
     s: {
       "index.ts": simpleExt("search", {
         extra: "input: true,",
+        top: `const roundTrip = () => core.call("round.trip");`,
         list: `async (q, ctx) => {
           if (q === "has") return [{ id: String(typeof ctx?.partial) , name: "x" }];
-          if (q === "burst") { for (let i = 0; i < 20; i++) ctx.partial([{ id: "b" + i, name: "b" }]); await Bun.sleep(30); return [{ id: "done", name: "d" }]; }
+          if (q === "burst") { for (let i = 0; i < 20; i++) ctx.partial([{ id: "b" + i, name: "b" }]); await roundTrip(); await roundTrip(); return [{ id: "done", name: "d" }]; }
           if (q === "late") { ctx.partial([{ id: "early", name: "e" }]); setTimeout(() => ctx.partial([{ id: "after", name: "a" }]), 5); return [{ id: "done", name: "d" }]; }
           ctx.partial([{ id: "fast", name: "Fast" }]);
-          await Bun.sleep(20);
+          await roundTrip();
           ctx.partial([{ id: "fast", name: "Fast" }, { id: "mid", name: "Mid" }]);
-          await Bun.sleep(20);
+          await roundTrip();
           return [{ id: "fast", name: "Fast" }, { id: "mid", name: "Mid" }, { id: "slow", name: "Slow" }];
         }`,
       }),

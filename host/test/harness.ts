@@ -472,8 +472,8 @@ export class Host {
       };
     }
     try {
-      const result = fn ? await fn(req.params) : null;
-      this.write({ id: req.id, result: result === undefined ? null : result });
+      const result = await fn?.(req.params);
+      this.write({ id: req.id, result: result ?? null });
     } catch (e) {
       this.write({ id: req.id, error: e instanceof Error ? e.message : String(e) });
     }
