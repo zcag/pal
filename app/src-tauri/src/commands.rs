@@ -594,7 +594,7 @@ pub fn restart(app: &AppHandle) -> Result<(), String> {
         crate::quit(app);
         return Ok(());
     }
-    let exe = std::env::var_os("APPIMAGE").map(PathBuf::from).or_else(autostart::program).ok_or("no path to this binary")?;
+    let exe = autostart::program().ok_or("no path to this binary")?;
     let script = relaunch_script(std::process::id(), &exe, bundle_of(&exe).as_deref(), &autostart::carried_env());
     eprintln!("restart\t{}", script.lines().last().unwrap_or_default());
     std::os::unix::process::CommandExt::process_group(std::process::Command::new("sh").arg("-c").arg(&script).stdin(std::process::Stdio::null()), 0)

@@ -27,7 +27,10 @@
 //! startup (nothing is visible yet) and happens at most once a minute
 //! (`<data dir>/launchd/handover`), so a manager that will not start the
 //! job cannot loop. A debug build does none of this: the definition would
-//! point at `target/debug/pal` and outlive the checkout.
+//! point at `target/debug/pal` and outlive the checkout. Neither does a pal
+//! started from an AppImage (Linux): its binary is in a mount that ends
+//! with the process, as does a sandbox it may run in (firejail), so the
+//! agent could not start it; the definition names the AppImage file.
 //!
 //! On Linux a start by hand without a subcommand (the app menu, a
 //! terminal, an AppImage run as it is) opens the panel, so pal shows it
@@ -119,10 +122,19 @@ pub(crate) fn carried_env() -> Vec<(String, String)> {
     ["PAL_CONFIG", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME"].iter().filter_map(|k| std::env::var(k).ok().filter(|v| !v.is_empty()).map(|v| (k.to_string(), v))).collect()
 }
 
-/// This binary, symlinks resolved: what the agent runs.
+/// What the agent runs: the AppImage this process was started from (the
+/// binary inside it is in a mount that ends with this process), else this
+/// binary, symlinks resolved.
 pub(crate) fn program() -> Option<PathBuf> {
+    if let Some(appimage) = appimage() {
+        return Some(appimage);
+    }
     let exe = std::env::current_exe().ok()?;
     Some(std::fs::canonicalize(&exe).unwrap_or(exe))
+}
+
+fn appimage() -> Option<PathBuf> {
+    std::env::var_os("APPIMAGE").filter(|p| !p.is_empty()).map(PathBuf::from)
 }
 
 /// `<data dir>/launchd`: the session definition, the hand-over marker and
@@ -467,6 +479,9 @@ mod platform {
         xdg(app, false);
         let Some(program) = program() else { return };
         let enabled = sync_unit(want, &program);
+        if appimage().is_some() {
+            return eprintln!("autostart\tunsupervised\tstarted from an AppImage, which stays mounted only while this process runs");
+        }
         let me = std::process::id();
         match unit_pid() {
             Err(e) => eprintln!("autostart\tunsupervised\tno systemd user manager to hand over to: {e}"),
