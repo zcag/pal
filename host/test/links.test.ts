@@ -1,12 +1,16 @@
 // Extension links (docs/design/links.md): `checkLinks` against the manifest
 // and the code, `checkLinkParams` coercing a query string by the declared
 // types, `checkLinkEffect` refusing what needs a level, the host's `link`
-// method end to end on a fixture, and every loaded extension's links block
-// (their routes are tested in their own repos).
+// method end to end on a fixture, and a store description on every
+// extension's route (its links block against its code is a load warning,
+// which manifest.test.ts holds to none; the routes are tested in their own
+// repos).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { checkLinkEffect, checkLinkParams, checkLinks } from "../../sdk/src/manifest.ts";
 import type { Extension, Manifest } from "../../sdk/src/protocol.ts";
-import { Host, HostError, Root, manifest } from "./harness.ts";
+import { Host, HostError, Root, extensionsByName, manifest } from "./harness.ts";
 
 const ext = (link?: Extension["link"]): Extension => ({ palettes: { a: { list: () => [], pick: () => {} } }, ...(link && { link }) });
 const man = (links?: Manifest["links"]): Manifest => ({ name: "x", title: "X", ...(links && { links }) });
@@ -97,15 +101,10 @@ export default { palettes: { a: { list: () => [], pick: () => {} } },
 });
 
 describe("the extension repos' extensions", () => {
-  // Every manifest's links block held to its code, as the host loads them: whichever extension repos this run reads.
-  test("every manifest's links block is clean against its code (the host's load warnings), and each route has a description for the store", async () => {
-    const host = await Host.bundled();
-    try {
-      const loaded = host.loaded();
-      expect(loaded.flatMap((l) => l.warnings.filter((w) => w.startsWith("links")).map((w) => `${l.extension}: ${w}`))).toEqual([]);
-      for (const l of loaded.filter((l) => l.manifest.links)) for (const [route, spec] of Object.entries(l.manifest.links!)) expect(spec.description, `${l.extension}/${route}`).toBeTruthy();
-    } finally {
-      await host.close();
+  test("each route has a description for the store", () => {
+    for (const [name, dir] of extensionsByName()) {
+      const m = JSON.parse(readFileSync(join(dir, "pal.json"), "utf8")) as Manifest;
+      for (const [route, spec] of Object.entries(m.links ?? {})) expect(spec.description, `${name}/${route}`).toBeTruthy();
     }
   });
 });

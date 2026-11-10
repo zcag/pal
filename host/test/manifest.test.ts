@@ -7,7 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { badged, checkIcon, tile, tileBrand, tinted } from "../../sdk/src/icon.ts";
 import { checkBarSettings, checkPalettes, kindOf, paletteMeta } from "../../sdk/src/manifest.ts";
 import type { Extension, Manifest, ManifestPalette, Palette } from "../../sdk/src/protocol.ts";
-import { Host, Root, extensionsByName, manifest, simpleExt } from "./harness.ts";
+import { Host, Root, extensionsByName, manifest, simpleExt, type Loaded } from "./harness.ts";
 
 const rows = () => [{ id: "a", name: "A" }];
 const pick = () => {};
@@ -305,22 +305,23 @@ describe("the host carries the warnings", () => {
 });
 
 describe("the bundled extensions", () => {
-  test("every one agrees with its manifest: no warnings, every manifest palette served", async () => {
+  let loaded: Loaded[];
+  beforeAll(async () => {
     const host = await Host.bundled();
-    try {
-      // Every directory with an entry file (one without is not an extension yet).
-      const dirs = [...extensionsByName()].filter(([, dir]) => ["index.ts", "index.js"].some((f) => existsSync(`${dir}/${f}`))).map(([name]) => name).sort();
-      const loaded = host.loaded();
-      expect(loaded.map((l) => l.extension).sort()).toEqual(dirs);
-      const drift = Object.fromEntries(loaded.filter((l) => l.warnings.length).map((l) => [l.extension, l.warnings]));
-      expect(drift).toEqual({});
-      for (const l of loaded) {
-        for (const key of Object.keys(l.manifest.palettes ?? {})) expect(l.palettes.map((p) => p.name)).toContain(key);
-      }
-    } finally {
-      host.kill();
-    }
+    loaded = host.loaded();
+    host.kill();
   }, 30_000);
+
+  test("every one agrees with its manifest: no warnings, every manifest palette served", () => {
+    // Every directory with an entry file (one without is not an extension yet).
+    const dirs = [...extensionsByName()].filter(([, dir]) => ["index.ts", "index.js"].some((f) => existsSync(`${dir}/${f}`))).map(([name]) => name).sort();
+    expect(loaded.map((l) => l.extension).sort()).toEqual(dirs);
+    const drift = Object.fromEntries(loaded.filter((l) => l.warnings.length).map((l) => [l.extension, l.warnings]));
+    expect(drift).toEqual({});
+    for (const l of loaded) {
+      for (const key of Object.keys(l.manifest.palettes ?? {})) expect(l.palettes.map((p) => p.name)).toContain(key);
+    }
+  });
 
   // A registry lists palettes from the manifest alone (sdk/pack listingOf),
   // so one without a title is its bare key in the Store and root search.
