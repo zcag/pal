@@ -24,9 +24,13 @@ pub(crate) const REPO: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../..");
 /// The sidecar's file name next to our executable (`bundle.externalBin`): not
 /// `bun`, which the .deb would install as /usr/bin/bun over the user's own.
 const SIDECAR: &str = "pal-bun";
-/// Between a host exit and the respawn: a crash loop stays readable in
-/// the log and never pegs a core.
+/// Between a host exit and the respawn, doubled for each exit in a row up
+/// to [`RESTART_MAX`] (a host that cannot start, or one extension crashing
+/// it on load, must not respawn Bun and reload everything twice a second
+/// for good), and back to this once a host stayed up [`RESTART_SETTLED`].
 const RESTART_DELAY: Duration = Duration::from_millis(500);
+const RESTART_MAX: Duration = Duration::from_secs(30);
+const RESTART_SETTLED: Duration = Duration::from_secs(60);
 /// A hung extension must not hang a keystroke or a pick for good; long
 /// enough for a `list` that shells out (`scripts` runs `gh`), and the
 /// write of the request counts too, since a host that stopped reading
@@ -201,6 +205,8 @@ pub struct Host {
     started: Mutex<Instant>,
     /// Set by `stop`: the loop in `start` then ends instead of respawning.
     stopping: AtomicBool,
+    /// Set by `restart`: an exit asked for, respawned without the crash backoff.
+    restarting: AtomicBool,
     /// Whether a host process is up; `stop` waits for it to go down.
     alive: watch::Sender<bool>,
 }
@@ -214,11 +220,14 @@ impl Host {
             pending: Mutex::new(HashMap::new()),
             started: Mutex::new(Instant::now()),
             stopping: AtomicBool::new(false),
+            restarting: AtomicBool::new(false),
             alive: watch::Sender::new(false),
         });
         app.manage(host.clone());
         tauri::async_runtime::spawn(async move {
+            let mut delay = RESTART_DELAY;
             loop {
+                let ran = Instant::now();
                 match host.run_once().await {
                     Ok(status) => eprintln!("host\texit\t{status}"),
                     Err(e) => eprintln!("host\tspawn failed\t{e}"),
@@ -228,7 +237,12 @@ impl Host {
                 if host.stopping.load(Ordering::SeqCst) {
                     return;
                 }
-                tokio::time::sleep(RESTART_DELAY).await;
+                if ran.elapsed() >= RESTART_SETTLED || host.restarting.swap(false, Ordering::SeqCst) {
+                    delay = RESTART_DELAY;
+                }
+                eprintln!("host\trespawn in\t{:.1}s", delay.as_secs_f64());
+                tokio::time::sleep(delay).await;
+                delay = (delay * 2).min(RESTART_MAX);
             }
         });
     }
@@ -344,6 +358,7 @@ impl Host {
     /// Ends the running host: closing its stdin is its exit signal, and the
     /// loop in `start` spawns a fresh one after `RESTART_DELAY`.
     pub async fn restart(&self) {
+        self.restarting.store(true, Ordering::SeqCst);
         *self.stdin.lock().await = None;
     }
 
