@@ -17,10 +17,21 @@
 use super::*;
 use tauri::WindowEvent;
 
+/// The panel was last shown on an X display with no window manager (the
+/// AppImage catalog's test starts one only after pal shows): the focus a
+/// window manager takes when it starts is no reason to hide.
+static SHOWN_WITHOUT_WM: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+fn without_window_manager(w: &WebviewWindow) -> bool {
+    use gtk::prelude::*;
+    let Some(screen) = w.gtk_window().ok().and_then(|g| GtkWindowExt::screen(&g)) else { return false };
+    screen.downcast::<gdkx11::X11Screen>().is_ok_and(|x| !x.supports_net_wm_hint(&gtk::gdk::Atom::intern("_NET_ACTIVE_WINDOW")))
+}
+
 pub fn install(window: &WebviewWindow) {
     let app = window.app_handle().clone();
     window.on_window_event(move |e| {
-        if matches!(e, WindowEvent::Focused(false)) {
+        if matches!(e, WindowEvent::Focused(false)) && !SHOWN_WITHOUT_WM.load(std::sync::atomic::Ordering::Relaxed) {
             hide(&app);
         }
     });
@@ -74,6 +85,7 @@ pub fn reveal(_app: &AppHandle) {}
 
 pub fn show(app: &AppHandle) {
     let Some(w) = app.get_webview_window(WINDOW) else { return };
+    SHOWN_WITHOUT_WM.store(without_window_manager(&w), std::sync::atomic::Ordering::Relaxed);
     let _ = w.show();
     let _ = w.set_focus();
     let webview: &tauri::Webview = w.as_ref();

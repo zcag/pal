@@ -3399,6 +3399,7 @@ dependencies = [
  "block2",
  "clap",
  "futures-util",
+ "gdkx11",
  "gtk",
  "image",
  "libc",

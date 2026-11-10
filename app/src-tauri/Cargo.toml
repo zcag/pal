@@ -70,6 +70,8 @@ objc2-core-location = { version = "0.3", default-features = false, features = ["
 zbus = "5"
 # the HUD's webview size request (panel/linux.rs); the version tauri uses
 gtk = "0.18"
+# whether an X11 display has a window manager (panel/linux.rs); the version tauri's GTK uses
+gdkx11 = "0.18"
 
 [dev-dependencies]
 tempfile = "3"
