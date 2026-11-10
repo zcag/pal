@@ -18,6 +18,7 @@ import { linkFor } from "./links";
 import { SUBMENU, menuRows, type BarMenuNode } from "./bar";
 import { paletteTitle } from "./fixtures";
 import { typesFirst } from "./ui/touch";
+import { usePageVisible } from "./visible";
 
 export const LIMIT = 200;
 /** `pal_core::dialog::Dialog`: the file panel in front, for the root's hint. */
@@ -625,11 +626,16 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     );
   }, [byKey, ctx, mark]);
   const refreshEvery = view.kind === "view" && view.spec ? scope?.refresh : undefined;
+  const onScreen = usePageVisible();
+  const wasOnScreen = useRef(onScreen);
   useEffect(() => {
-    if (!refreshEvery || !(refreshEvery > 0)) return;
+    const back = onScreen && !wasOnScreen.current;
+    wasOnScreen.current = onScreen;
+    if (!refreshEvery || !(refreshEvery > 0) || !onScreen) return;
+    if (back && !busy) reask("refresh");
     const t = setInterval(() => { if (!busy) reask("refresh"); }, refreshEvery * 1000);
     return () => clearInterval(t);
-  }, [refreshEvery, levelKey, busy, reask]);
+  }, [refreshEvery, levelKey, busy, reask, onScreen]);
   // What the shell is told is on top: a view level with its tree, by its source (or the bar item whose `{ view }` it is).
   const open = useMemo<ViewOpen | null>(() => {
     if (view.kind !== "view" || !view.spec) return null;

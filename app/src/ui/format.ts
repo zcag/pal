@@ -64,7 +64,7 @@ const listeners = new Set<() => void>();
 let tick = 0, timer: ReturnType<typeof setInterval> | undefined;
 const subscribe = (fn: () => void) => {
   listeners.add(fn);
-  timer ??= setInterval(() => { tick++; listeners.forEach((l) => l()); }, TICK_MS);
+  timer ??= setInterval(() => { if (document.visibilityState === "hidden") return; tick++; listeners.forEach((l) => l()); }, TICK_MS);
   return () => {
     listeners.delete(fn);
     if (!listeners.size && timer) { clearInterval(timer); timer = undefined; }

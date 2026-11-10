@@ -10,6 +10,11 @@ use tauri::{AppHandle, Emitter};
 /// `extension/palette` to open straight into; `hold` that the switcher
 /// opened it (the page lists flat, cursor on row 2).
 pub const SHOWN: &str = "pal://shown";
+/// To one of this machine's windows: it was shown or hidden, `{ visible }`
+/// (views.rs). A hidden page stops its own polls; the macOS panel's page
+/// never goes `document.hidden` (it stays ordered in at alpha 0), so this
+/// is the signal there.
+pub const VISIBLE: &str = "pal://visible";
 /// To the panel's page while the switcher holds a palette: `{ step: 1 |
 /// -1 }` moves the cursor with wrap (a press of the chord, its shift
 /// variant), `{ commit: true }` runs the row under it (the modifier let

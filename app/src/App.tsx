@@ -8,6 +8,7 @@ import { iconOf } from "./items";
 import { mark, surface, useCore, usePrefs, useLiveViews } from "./core";
 import { Confirm, Presence, type ToastSpec } from "./ui";
 import { SHOWN_EVENT } from "./ui/virtual";
+import { usePageVisible } from "./visible";
 import type { Effect } from "./items";
 import type { Item } from "./ui/types";
 /** The window to a design's fitted panel height (compact.rs `panel_fit`), or the full height back (`null`). */
@@ -57,13 +58,15 @@ export default function App({ remote }: { remote?: AppRemote }) {
   const prefs = usePrefs();
   // The glance strip's cards (glance.rs): read on every show and every few seconds, the bar items' last renders, so the strip says what the bar says.
   const [glance, setGlance] = useState<Glance>([]);
+  const visible = usePageVisible();
   useEffect(() => {
-    const read = () => { invoke<Glance>("glance_items").then(setGlance).catch(() => {}); };
+    const read = () => { invoke<Glance>("glance_items").then((g) => setGlance((was) => (JSON.stringify(was) === JSON.stringify(g) ? was : g))).catch(() => {}); };
+    window.addEventListener(SHOWN_EVENT, read);
+    if (!visible) return () => window.removeEventListener(SHOWN_EVENT, read);
     read();
     const t = setInterval(read, 10_000);
-    window.addEventListener(SHOWN_EVENT, read);
     return () => { clearInterval(t); window.removeEventListener(SHOWN_EVENT, read); };
-  }, []);
+  }, [visible]);
 
 
   // A remote home has no hotkey to show it: the index first listing, and the tab coming back into view, are its shows (the Now rows and the glance asked again).

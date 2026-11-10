@@ -198,6 +198,9 @@ pub fn view_open(app: AppHandle, caller: crate::remote::Caller, open: Option<Ope
 
 /// The shell shows or hides `window` (lib.rs, bar/popover.rs); `clear` when the page starts over.
 pub fn set_visible(app: &AppHandle, window: &str, visible: bool, clear: bool) {
+    if !crate::remote::is_remote(window) {
+        crate::events::emit_to(app, window, crate::events::VISIBLE, serde_json::json!({ "visible": visible }));
+    }
     let changes = with(app, |t| t.set_visible(window, visible, clear));
     announce(app, changes);
 }

@@ -26,6 +26,7 @@ import { listed, ok, store, useStore, type Status, type StoreState } from "./sto
 import type { ExtensionsStore } from "./ui/SettingsStore";
 import { useRemote } from "./ui/SettingsRemote";
 import { copyText } from "./remote";
+import { usePageVisible } from "./visible";
 
 // ---- what the core sends (settings.rs `View`, pal_core::config::Config) ----
 
@@ -388,11 +389,12 @@ export default function Settings() {
     return () => { for (const u of [a, b, c, d, e, s]) u.then((f) => f()); window.removeEventListener("focusout", onBlur); clearTimeout(timer.current); };
   }, [read, refresh]);
   // The bar's live state (a render, a stale mark) has no event of its own: re-read while the Bar page is up.
+  const onScreen = usePageVisible();
   useEffect(() => {
-    if (page !== "bar" && page !== "overview") return;
+    if ((page !== "bar" && page !== "overview") || !onScreen) return;
     const t = setInterval(refresh, 5000);
     return () => clearInterval(t);
-  }, [page, refresh]);
+  }, [page, refresh, onScreen]);
 
   // Escape or cmd+w (ctrl+w off macOS, keys.ts's mapping) closes (hides) the window; the design's inner scopes stop what they handle.
   useEffect(() => {
