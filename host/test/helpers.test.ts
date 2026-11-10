@@ -10,7 +10,7 @@ import { EXEC_MS, exec, run } from "../../sdk/src/exec.ts";
 import { IMAGE_MISS_TTL, forgetImages, imageData } from "../../sdk/src/image.ts";
 import { pngSize } from "../../sdk/src/png.ts";
 import { HINT_GLYPH, column, failed, hint, keyHint, keycap, row, text, toast } from "../../sdk/src/rows.ts";
-import { bytes, errorMessage, mdEscape, oneLine, slug, truncate } from "../../sdk/src/text.ts";
+import { bytes, errorMessage, mdEscape, oneLine, slug, truncate, wellFormedJson } from "../../sdk/src/text.ts";
 import { BARE_TOKEN_TTL, EXPIRY_MARGIN, TokenError, mintToken, parseToken } from "../../sdk/src/token.ts";
 
 describe("text", () => {
@@ -29,6 +29,8 @@ describe("text", () => {
   test("truncate and oneLine", () => {
     expect(truncate("abcdef", 4)).toBe("abc…");
     expect(truncate("abcd", 4)).toBe("abcd");
+    expect(truncate("blocks 🎉 now", 9)).toBe("blocks …");
+    expect(wellFormedJson({ a: "x\ud83c", b: "🎉", c: "\\ud83c" })).toBe('{"a":"x\\ufffd","b":"🎉","c":"\\\\ud83c"}');
     expect(oneLine("  a \n\n b\tc ")).toBe("a b c");
     expect(oneLine("1 item was shared\u034F\u200C \u034F\u200C \u200B\uFEFF\u00ADto you")).toBe("1 item was shared to you");
   });

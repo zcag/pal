@@ -6,8 +6,18 @@
 export const bytes = (n: number): string =>
   n < 1024 ? `${n} B` : n < 1024 ** 2 ? `${(n / 1024).toFixed(n < 10 * 1024 ? 1 : 0)} KB` : n < 1024 ** 3 ? `${(n / 1024 ** 2).toFixed(1)} MB` : n < 1024 ** 4 ? `${(n / 1024 ** 3).toFixed(2)} GB` : `${(n / 1024 ** 4).toFixed(2)} TB`;
 
-/** `s` cut to `n` characters, an ellipsis as the last when it was longer. */
-export const truncate = (s: string, n: number): string => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+/** `s` cut to `n` characters, an ellipsis as the last when it was longer; never between the halves of a surrogate pair (an emoji). */
+export const truncate = (s: string, n: number): string => {
+  if (s.length <= n) return s;
+  const cut = s.slice(0, n - 1);
+  return `${/[\ud800-\udbff]$/.test(cut) ? cut.slice(0, -1) : cut}…`;
+};
+
+/** `JSON.stringify(v)` with each lone surrogate as U+FFFD: serde_json refuses the `\udXXX` escape JavaScript writes for one. */
+export const wellFormedJson = (v: unknown): string => {
+  const s = JSON.stringify(v);
+  return s.includes("\\ud") ? s.replace(/(?<!\\)((?:\\\\)*)\\ud[89a-f][0-9a-f]{2}/g, "$1\\ufffd") : s;
+};
 
 /** The invisible characters a mail preheader is padded with (zero-width spaces and joiners, the combining grapheme joiner, soft hyphens, the byte-order mark): a row would show them as a run of nothing. */
 const INVISIBLE = /[\u200B-\u200D\u2060\uFEFF\u034F\u00AD]/g;

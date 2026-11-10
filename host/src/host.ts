@@ -26,6 +26,7 @@ import { basename, dirname, resolve } from "node:path";
 import { tileBrand } from "../../sdk/src/icon.ts";
 import { checkBarRules, checkBarSettings, checkControls, checkDeps, checkLeaderboards, checkLinks, checkPalettes, checkSync, depNames } from "../../sdk/src/manifest.ts";
 import { PROTOCOL, PROTOCOL_MIN, type BarMeta, type ControlsChanged, type DisabledChanged, type Extension, type Manifest, type Notification, type PaletteMeta, type Reload, type Reloaded, type Request, type ResolvedSettings, type Response, type SettingSpec, type SettingsChanged, type StatesChanged } from "../../sdk/src/protocol.ts";
+import { wellFormedJson } from "../../sdk/src/text.ts";
 import { barMetas, barMethods } from "./bar.ts";
 import { advance, advanced, ready as clockReady, timers as clockTimers } from "./clock.ts";
 import { call, resolve as resolveCore } from "./bridge.ts";
@@ -65,7 +66,7 @@ let disabled = new Set<string>();
 /** Per extension held back by its `requires`, the reason: a change there is what reloads it. */
 const blocked = new Map<string, string>();
 
-const send = (msg: Response | Notification) => process.stdout.write(JSON.stringify(msg) + "\n");
+const send = (msg: Response | Notification) => process.stdout.write(wellFormedJson(msg) + "\n");
 // stdout is the protocol: an extension's console.log would land between the
 // frames, so everything console prints goes to stderr.
 console.log = console.info = console.debug = console.error;

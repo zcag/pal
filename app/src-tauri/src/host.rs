@@ -277,7 +277,13 @@ impl Host {
         self.alive.send_replace(true);
         let mut lines = BufReader::new(child.stdout.take().expect("stdout is piped")).lines();
         while let Ok(Some(line)) = lines.next_line().await {
-            let Ok(mut msg) = serde_json::from_str::<Value>(&line) else { continue };
+            let mut msg = match serde_json::from_str::<Value>(&line) {
+                Ok(msg) => msg,
+                Err(e) => {
+                    eprintln!("host\tunreadable line\t{e}\t{}", line.chars().take(120).collect::<String>());
+                    continue;
+                }
+            };
             // With a method it is the host speaking (a request when it has an
             // id, a notification otherwise); without one, a reply to ours.
             // The payload is moved out, not cloned: a listing is megabytes.
