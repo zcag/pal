@@ -3,9 +3,10 @@
 // promote a registry index. The CLI is ../bin/pal-pack.ts; build-extensions.sh,
 // our CI and third parties all run this one implementation.
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { chmod, copyFile, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, dirname, isAbsolute, join, normalize, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, normalize, resolve, sep } from "node:path";
 import { checkLeaderboards, checkSync } from "../src/manifest.ts";
 import { PROTOCOL } from "../src/protocol.ts";
 import { tarball } from "./tar.ts";
@@ -156,21 +157,27 @@ const COMMENT_LINES = /^\s*(?:\/\/|\/\*|\*).*$/gm;
  */
 export async function pageSources(dir: string): Promise<string[]> {
   const beside = (await readdir(dir)).filter((f) => f.endsWith(".ts") && !["index.ts", "fixture.ts"].includes(f) && !f.endsWith(".test.ts") && !f.startsWith("."));
-  const surface = (await walk(join(dir, "surface"))).files.filter((f) => f.path.endsWith(".ts")).map((f) => `surface/${f.path}`);
-  const seen = new Set([...surface, ...beside]), queue = [...seen];
+  const surface = (await readdir(join(dir, "surface"), { recursive: true }))
+    .filter((f) => f.endsWith(".ts") && !f.split(sep).some((part) => part.startsWith(".")))
+    .sort()
+    .map((f) => `surface/${f.split(sep).join("/")}`);
+  const seen = new Set([...surface, ...beside]);
   const found = [...beside];
-  while (queue.length) {
-    const rel = queue.shift()!;
-    const text = (await readFile(join(dir, rel), "utf8")).replace(COMMENT_LINES, "");
-    for (const m of text.matchAll(IMPORTS)) {
-      const target = normalize(join(dirname(rel), m[1]));
-      if (target.startsWith("..") || isAbsolute(target)) throw new Error(`${basename(dir)}: ${rel} imports ${m[1]}, outside the extension`);
-      if (seen.has(target) || target === "index.ts" || target === "fixture.ts" || target.endsWith(".test.ts")) continue;
-      if (!(await exists(join(dir, target)))) throw new Error(`${basename(dir)}: ${rel} imports ${m[1]}, which is not there`);
-      seen.add(target);
-      queue.push(target);
-      found.push(target);
+  for (let level = [...seen]; level.length; ) {
+    const texts = await Promise.all(level.map((rel) => readFile(join(dir, rel), "utf8")));
+    const next: string[] = [];
+    for (const [i, rel] of level.entries()) {
+      for (const m of texts[i].replace(COMMENT_LINES, "").matchAll(IMPORTS)) {
+        const target = normalize(join(dirname(rel), m[1]));
+        if (target.startsWith("..") || isAbsolute(target)) throw new Error(`${basename(dir)}: ${rel} imports ${m[1]}, outside the extension`);
+        if (seen.has(target) || target === "index.ts" || target === "fixture.ts" || target.endsWith(".test.ts")) continue;
+        if (!existsSync(join(dir, target))) throw new Error(`${basename(dir)}: ${rel} imports ${m[1]}, which is not there`);
+        seen.add(target);
+        next.push(target);
+        found.push(target);
+      }
     }
+    level = next;
   }
   return found;
 }
