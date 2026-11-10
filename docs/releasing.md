@@ -35,10 +35,14 @@ release, once every bundle is on it. Nothing is done by hand after the tag.
    (`app/scripts/build-extensions.sh`: the index checked with `minisign`
    against `PAL_KEYS`, each package against its tree hash), so the jobs
    install `minisign`. ~13 min each without
-   a cache, about 4 of it the dependencies: a push to `main` that changes
-   `Cargo.lock` or a `Cargo.toml` runs the same build without bundling
-   (`warm`) and saves the Rust cache, which a tag run restores (a tag sees
-   only its own caches and `main`'s). The rest is pal's crates under fat LTO
+   a cache, about 4 of it the dependencies: once a release is published,
+   `manifest` dispatches `release.yml` on `main`, which runs the same build
+   without bundling (`warm`) and saves the Rust cache the next tag run
+   restores (a tag sees only its own caches and `main`'s). It never runs
+   beside a tag run, so it takes no macOS runner a release needs, and a
+   warm that fails leaves its run green (the next release is only colder).
+   `gh workflow run release.yml --ref main` runs one by hand, after a
+   dependency change or to try a `release.yml` edit's build steps. The rest is pal's crates under fat LTO
    with one codegen unit, kept for the app's speed. A fourth job, `manifest`, then reads `latest.json` back from the
    draft and fails if any of the three platforms or any bundle is missing:
    the three jobs merge into that one file in parallel, and a platform can

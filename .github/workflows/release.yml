@@ -10,18 +10,22 @@
 # all three platforms (the three jobs merge into one file in parallel) and
 # that stable lists every bundled extension's build, and publishes.
 #
-# A push to main that changes the dependencies runs the same build without
-# bundling or releasing (`warm`): it saves the Rust cache, and a tag run can
-# restore only its own caches and main's. Without it every release compiled
-# every crate from nothing (~4 of the ~12 min a macOS job spends in cargo;
-# the rest is pal's crates and fat LTO, which no cache skips).
+# A run on main (`warm`) is the same build without bundling or releasing:
+# it saves the Rust cache, and a tag run can restore only its own caches and
+# main's. Without it every release compiled every crate from nothing (~4 of
+# the ~12 min a macOS job spends in cargo; the rest is pal's crates and fat
+# LTO, which no cache skips). `manifest` dispatches it once the release is
+# published, for the next tag to restore. Until 0.18.9 it ran on main pushes
+# that changed the dependencies, but every release commit is one (the
+# version bump), so it always started beside the tag run, asked for two more
+# macOS runners at once, and ended red when GitHub gave up acquiring them. A
+# warm that fails only leaves the next release colder, so its run stays green.
 name: release
 
 on:
   push:
     tags: ["v*"]
-    branches: [main]
-    paths: ["Cargo.lock", "**/Cargo.toml", ".github/workflows/release.yml"]
+  workflow_dispatch:
 
 concurrency:
   group: release-${{ github.ref }}
@@ -66,8 +70,9 @@ jobs:
 
   bundle:
     needs: extensions
-    # A push to main skips `extensions` and still warms the cache.
+    # A warm run skips `extensions` and still builds.
     if: ${{ !cancelled() && (github.ref_type != 'tag' || needs.extensions.result == 'success') }}
+    continue-on-error: ${{ github.ref_type != 'tag' }}
     permissions:
       contents: write
     strategy:
@@ -295,6 +300,7 @@ jobs:
     if: github.ref_type == 'tag'
     runs-on: ubuntu-24.04
     permissions:
+      actions: write
       contents: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -346,3 +352,5 @@ jobs:
       # updater and the site's Download buttons both follow releases/latest.
       - name: publish as the latest release
         run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+      - name: warm main's Rust cache for the next release
+        run: gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref main || echo "::warning::no warm run dispatched on main; the next release compiles the dependencies"
