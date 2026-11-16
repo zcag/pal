@@ -216,21 +216,24 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
     set(&mut p, "click_script", format!("{pal_bin} bar click {key} --anchor sketchybar"));
     set(&mut p, "script", input_script(key, item, draw.hover, palette, pal_bin));
     out.props.insert(main.clone(), p);
-    // Each segment and the count: (name, segment id, glyph, picture file, text, colour).
-    let extras: Vec<(String, Option<String>, String, Option<std::path::PathBuf>, Option<String>, String)> = item
+    let extras: Vec<Extra> = item
         .segments
         .iter()
-        .map(|s| {
-            let picture = match s.picture() {
+        .map(|s| Extra {
+            name: format!("{main}.{}", s.id),
+            segment: Some(s.id.clone()),
+            icon: s.glyph().unwrap_or_default().to_string(),
+            picture: match s.picture() {
                 Some(IconKind::Image { value, .. }) => glyph::image_file(&value),
                 _ => None,
-            };
-            (format!("{main}.{}", s.id), Some(s.id.clone()), s.glyph().unwrap_or_default().to_string(), picture, s.text.clone(), if item.stale && !item.urgent { color(Some("muted")) } else { color(s.color.as_deref().or(draw.tint())) })
+            },
+            text: s.text.clone(),
+            color: if item.stale && !item.urgent { color(Some("muted")) } else { color(s.color.as_deref().or(draw.tint())) },
         })
-        .chain(item.count().map(|n| (format!("{main}.badge"), None, String::new(), None, Some(n.to_string()), color(draw.badge_tint()))))
+        .chain(item.count().map(|n| Extra { name: format!("{main}.badge"), segment: None, icon: String::new(), picture: None, text: Some(n.to_string()), color: color(draw.badge_tint()) }))
         .collect();
     let last = extras.len().saturating_sub(1);
-    for (i, (name, segment, icon, picture, text, col)) in extras.into_iter().enumerate() {
+    for (i, Extra { name, segment, icon, picture, text, color: col }) in extras.into_iter().enumerate() {
         let mut p = Props::new();
         set(&mut p, "drawing", if item.hidden { "off" } else { "on" });
         set(&mut p, "updates", "on");
@@ -278,6 +281,16 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
         out.props.insert(name, p);
     }
     out
+}
+
+/// A sketchybar item after the main one: a segment (its glyph or picture file) or the count.
+struct Extra {
+    name: String,
+    segment: Option<String>,
+    icon: String,
+    picture: Option<std::path::PathBuf>,
+    text: Option<String>,
+    color: String,
 }
 
 /// The `--add` position and the `--move` for a `before:<item>` /
