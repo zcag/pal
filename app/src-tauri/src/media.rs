@@ -22,7 +22,6 @@ use tauri::AppHandle;
 pub fn install(app: &AppHandle) {
     #[cfg(target_os = "macos")]
     {
-        use tauri::Manager;
         let staged = crate::host::resources(app).map(|d| d.join("mediaremote")).filter(|d| d.join("mediaremote-adapter.pl").is_file());
         let dir = staged.unwrap_or_else(|| std::path::PathBuf::from(crate::host::REPO).join("app/src-tauri/mediaremote"));
         if !media::configure(&dir) {
