@@ -61,10 +61,13 @@ const quant = (path, raw) => (process.env.SHOTS_RAW || raw ? true : spawnSync("p
 // like highway's takes over a minute to load and seconds a frame, and its shots time out.
 const browser = await chromium.launch({ headless: true, args: ["--force-color-profile=srgb", "--hide-scrollbars", "--use-angle=metal", "--enable-gpu", "--ignore-gpu-blocklist"] });
 let failed = 0;
+const MAC_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36";
 
 async function shoot({ url, viewport, scale, theme, keys, settle, path, raw, box }) {
   // en-GB: a page's own toLocale* reads as the SDK writes dates (16 Sep, 14:32), not the headless default's Sep 16, 02:32 PM.
-  const context = await browser.newContext({ viewport, deviceScaleFactor: scale, colorScheme: theme, timezoneId: TZ, locale: "en-GB" });
+  // A Mac's browser on every machine: the panel reads the platform for its keycaps (⌘, not Ctrl) and for what cmd+ means, so a Linux run draws and presses what a Mac run does.
+  const context = await browser.newContext({ viewport, deviceScaleFactor: scale, colorScheme: theme, timezoneId: TZ, locale: "en-GB", userAgent: MAC_UA });
+  await context.addInitScript(() => Object.defineProperty(Navigator.prototype, "platform", { get: () => "MacIntel" }));
   // The fixtures' clock: Date reads NOW (timers still run, so a page settles and animates as it would).
   await context.clock.setFixedTime(NOW);
   // Chance, seeded in every frame (a game's deal, a page's shuffle): the same picture every run (fixture-kit's seeded(42), mulberry32).
