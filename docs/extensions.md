@@ -753,6 +753,11 @@ export default {
   opens the field from a hidden action on the first digit or `#` typed
   and answers with that character as `value`, so a notation is typed
   without a mode key.
+- **Following the end**: `follow: true` on the view opens the level
+  scrolled to its end, and a new tree (an answer, a `view.update`) keeps
+  it there while the reader is at the end; scrolled up to read, it is left
+  alone. For a conversation whose newest message is last (Wisp's
+  conversation). An app before it opens the level at the top.
 - One pick at a time, and the search row sweeps meanwhile; a key pressed
   while the reply is on its way **queues** (four at most, the rest dropped)
   and runs against the tree the reply brings, so fast typing loses

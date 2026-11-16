@@ -1449,7 +1449,7 @@ export const Launcher = forwardRef<LauncherHandle, LauncherProps>(function Launc
     : view.kind === "show"
     ? <div ref={show} className="pal-show" role="document" aria-label={showTitle}><Detail detail={view.detail} loading={view.loading} /></div>
     : view.kind === "view"
-    ? (spec ? <SurfaceContext.Provider value={surfaceHost}><View tree={spec.tree} label={viewTitle} autoFocus rootRef={viewEl} onAction={(id, values) => viewCommand({ type: "action", id, values })} marked={sel && sel.palette === viewPalette ? idsOf(sel) : undefined} onMark={viewRows.length ? markView : undefined} /></SurfaceContext.Provider> : null)
+    ? (spec ? <SurfaceContext.Provider value={surfaceHost}><View tree={spec.tree} label={viewTitle} autoFocus follow={spec.follow} rootRef={viewEl} onAction={(id, values) => viewCommand({ type: "action", id, values })} marked={sel && sel.palette === viewPalette ? idsOf(sel) : undefined} onMark={viewRows.length ? markView : undefined} /></SurfaceContext.Provider> : null)
     : form
     // The title is the search row's (as for a view), so the form draws none of its own.
     ? <div ref={formEl} className="pal-form-level" aria-busy={busy || undefined}><Form key={form.key} fields={form.spec.fields} submitTitle={form.spec.submit.title} cancelTitle={form.spec.cancel} errors={form.spec.errors} onSubmit={submitForm} onCancel={pop} /></div>

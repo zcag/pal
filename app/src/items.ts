@@ -120,6 +120,7 @@ export const toAction = (a: Action): Action => ({ id: String(a.id), title: Strin
 export const toView = (v: ViewSpec): ViewSpec => ({
   tree: v.tree, actions: (v.actions ?? []).map(toAction), title: v.title, id: v.id, keys: v.keys,
   input: v.input && typeof v.input === "object" && typeof v.input.submit === "string" ? { value: v.input.value, placeholder: v.input.placeholder, submit: v.input.submit, cancel: v.input.cancel } : undefined,
+  follow: v.follow === true || undefined,
 });
 
 /** A wire field (`default`) as the Form component takes it (`value`); a kind the UI cannot draw is dropped by the host already. */

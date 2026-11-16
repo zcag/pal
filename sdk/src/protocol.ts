@@ -386,9 +386,12 @@ export type ViewNode =
  * against the tree the reply brings, so fast typing loses nothing; the
  * queue is dropped when the level changes. An action id may not start
  * with `pal:` (the shell's own). `input` turns the search row into a text
- * field the view reads on Enter (`ViewInput`).
+ * field the view reads on Enter (`ViewInput`). `follow`: the level opens
+ * scrolled to its end, and a new tree keeps it there while the reader is
+ * at the end (a chat whose newest message is last); scrolled up, it is
+ * left alone. An app before it opens the level at the top.
  */
-export type View = { tree: ViewNode; actions: Action[]; title?: string; id?: string; keys?: "actions"; input?: ViewInput };
+export type View = { tree: ViewNode; actions: Action[]; title?: string; id?: string; keys?: "actions"; input?: ViewInput; follow?: true };
 
 /**
  * A line of text the view asks for (`View.input`): while it is set the

@@ -11,6 +11,8 @@ import type { ViewNode } from "./types";
 const IMAGE_SRC = /^(icon:\/\/|data:image\/)/;
 /** `Transition.delay` steps, at most. */
 const MAX_DELAY = 8;
+/** How close to the bottom (px) a `follow` view counts as read to the end. */
+const FOLLOW_SLACK = 32;
 /** A colour of the extension's own on a tile or a gradient stop (`HexColor`): `#rgb`, `#rgba`, `#rrggbb`, `#rrggbbaa`. */
 export const HEX_COLOR = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 const TAG_COLORS = new Set(["grey", "blue", "green", "amber", "red", "violet", "pink", "teal", "neutral", "accent"]);
@@ -100,7 +102,7 @@ function movingKeys(tree: ViewNode, into = new Set<string>()): Set<string> {
  * tree slides from there (a FLIP: measured before the commit, animated
  * after it, `--pal-motion-move`).
  */
-export function View({ tree, label, autoFocus, rootRef, onAction, marked, onMark }: { tree: ViewNode; label?: string; /** Take focus on mount: the level has no input, so the document itself is what the keys and a screen reader land on. */ autoFocus?: boolean; /** The document element, for a caller that hands focus back to it (after a `View.input` field closes). */ rootRef?: Ref<HTMLDivElement>; /** A click on a node carrying `action`: run that view action. */ onAction?: ViewActionHandler; /** The marked rows' ids (`NodeBase.mark`), drawn tinted. */ marked?: string[]; /** A cmd+click (toggle) or shift+click (range) on a node carrying `mark`. */ onMark?: (id: string, how: "toggle" | "range") => void }) {
+export function View({ tree, label, autoFocus, rootRef, onAction, marked, onMark, follow }: { tree: ViewNode; label?: string; /** `View.follow`: open at the end, and stay there across new trees while the reader is at the end. */ follow?: boolean; /** Take focus on mount: the level has no input, so the document itself is what the keys and a screen reader land on. */ autoFocus?: boolean; /** The document element, for a caller that hands focus back to it (after a `View.input` field closes). */ rootRef?: Ref<HTMLDivElement>; /** A click on a node carrying `action`: run that view action. */ onAction?: ViewActionHandler; /** The marked rows' ids (`NodeBase.mark`), drawn tinted. */ marked?: string[]; /** A cmd+click (toggle) or shift+click (range) on a node carrying `mark`. */ onMark?: (id: string, how: "toggle" | "range") => void }) {
   const root = useRef<HTMLDivElement>(null);
   useImperativeHandle(rootRef, () => root.current as HTMLDivElement, []);
   useEffect(() => { if (autoFocus) root.current?.focus({ preventScroll: true }); }, [autoFocus]);
@@ -114,7 +116,11 @@ export function View({ tree, label, autoFocus, rootRef, onAction, marked, onMark
   }, [tree]);
   const marks = useMemo<Marks | null>(() => (marked || onMark ? { marked: new Set(marked), onMark } : null), [marked?.join("\0"), onMark]);
   const last = useRef<ViewNode | null>(null);
+  const atEnd = useRef(true);
+  useLayoutEffect(() => { const el = root.current; if (follow && atEnd.current && el) el.scrollTop = el.scrollHeight; }, [tree, follow]);
   if (last.current !== tree) {
+    const el = root.current;
+    if (el) atEnd.current = el.scrollHeight - el.scrollTop - el.clientHeight < FOLLOW_SLACK;
     // Before the commit, with the old tree still in the DOM: where every moving node is now, transform and all, so the slide starts from what is on screen. Boxes of keys not in the new tree are dropped.
     moves.moving = movingKeys(tree);
     for (const [k, el] of moves.els) if (moves.moving.has(k)) moves.boxes.set(k, el.getBoundingClientRect());

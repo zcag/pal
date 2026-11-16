@@ -173,4 +173,4 @@ export type ViewNode =
 export type ViewInput = { value?: string; placeholder?: string; submit: string; cancel?: string };
 
 /** A view level: the tree, its actions (first is Enter), an optional title over the tree; `keys: "actions"` maps bare keys to actions; `input` asks for a line of text. */
-export type ViewSpec = { tree: ViewNode; actions: Action[]; title?: string; id?: string; keys?: "actions"; input?: ViewInput };
+export type ViewSpec = { tree: ViewNode; actions: Action[]; title?: string; id?: string; keys?: "actions"; input?: ViewInput; follow?: true };
