@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.11 · 2026-11-16
+
+- **Bar items can sit in a capsule**: on sketchybar an item's background now runs behind all its segments with round ends, and `subtle` draws it in the bar's own text colour, faint, so a group of counts reads as one thing on a busy bar. Wisp's inbox uses it.
+- **Logos that take the bar's colour**: a template picture is drawn in the item's ink on sketchybar too, as it already was on the macOS menu bar.
+- **Fixed: a pal command run while pal was not open could start pal without its extensions**: started that way, through the `~/.local/bin/pal` link, it now finds its own bundle.
+
 ## 0.18.10 · 2026-11-16
 
 - **Bar items can show real logos**: a segment of an item may be a picture, a product's own logo, an SVG included. On the macOS menu bar each such segment becomes a status item of its own, in its colours; on sketchybar it is the segment's icon.
