@@ -342,19 +342,22 @@ fn draw_strip(glyph: Option<char>, text: &Text, style: &Style) -> Option<Rgba> {
 /// the bundle's artwork. Blocking (a favicon may fetch); `None` for
 /// anything else or on failure.
 pub fn image(icon: &serde_json::Value) -> Option<Rgba> {
-    let png = image_png(icon)?;
-    let img = image::load_from_memory(&png).ok()?.into_rgba8();
+    let img = pal_core::icons::decode(&image_bytes(icon)?, SIZE)?;
     let img = image::imageops::resize(&img, SIZE, SIZE, image::imageops::FilterType::Lanczos3);
     Some(Rgba { width: SIZE, height: SIZE, data: img.into_raw() })
 }
 
 /// The image bytes behind an `{ image }` / `{ app }` icon (see [`image`]):
-/// a `data:` URI decoded, else the cached PNG file read.
-pub fn image_png(icon: &serde_json::Value) -> Option<Vec<u8>> {
+/// a `data:` URI decoded (base64, or percent-encoded text such as an SVG,
+/// a logo's own shape), else the cached PNG file read.
+pub fn image_bytes(icon: &serde_json::Value) -> Option<Vec<u8>> {
     if let Some(src) = icon.get("image").and_then(|s| s.as_str()).filter(|s| s.starts_with("data:image/")) {
-        let (_, b64) = src.split_once(";base64,")?;
-        use base64::Engine;
-        return base64::engine::general_purpose::STANDARD.decode(b64.trim()).ok();
+        if let Some((_, b64)) = src.split_once(";base64,") {
+            use base64::Engine;
+            return base64::engine::general_purpose::STANDARD.decode(b64.trim()).ok();
+        }
+        let (_, text) = src.split_once(',')?;
+        return Some(percent_encoding::percent_decode_str(text).collect());
     }
     std::fs::read(image_file(icon)?).ok()
 }
@@ -397,6 +400,16 @@ pub fn image_file(icon: &serde_json::Value) -> Option<std::path::PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_svg_data_url_is_drawn_like_a_png_one() {
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="#25D366" d="M0 0h24v24H0z"/></svg>"##;
+        let encoded = percent_encoding::utf8_percent_encode(svg, percent_encoding::NON_ALPHANUMERIC).to_string();
+        let img = image(&serde_json::json!({ "image": format!("data:image/svg+xml;utf8,{encoded}") })).expect("a percent-encoded svg");
+        assert_eq!((img.width, img.height), (SIZE, SIZE));
+        let mid = ((SIZE / 2 * SIZE + SIZE / 2) * 4) as usize;
+        assert_eq!(&img.data[mid..mid + 4], &[0x25, 0xd3, 0x66, 0xff], "the logo's own colour");
+    }
 
     #[test]
     fn a_nerd_font_glyph_renders_to_a_png_and_an_emoji_does_not() {

@@ -199,7 +199,7 @@ fn fit(img: RgbaImage, size: u32) -> RgbaImage {
 
 /// Decode PNG/JPEG/GIF, ICO (the entry closest to `size` from above), or SVG
 /// (rasterised at `size`).
-fn decode(bytes: &[u8], size: u32) -> Option<RgbaImage> {
+pub fn decode(bytes: &[u8], size: u32) -> Option<RgbaImage> {
     if bytes.starts_with(&[0, 0, 1, 0]) {
         return decode_ico(bytes, size);
     }
