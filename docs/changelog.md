@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.18.10 · 2026-11-16
+
+- **Bar items can show real logos**: a segment of an item may be a picture, a product's own logo, an SVG included. On the macOS menu bar each such segment becomes a status item of its own, in its colours; on sketchybar it is the segment's icon.
+- **A click on one segment of a bar item is that segment's**: the extension can open the popover right where that segment points, as Wisp's per-network counts open on that network's tab.
+- **A conversation opens at its newest message** and stays there as new ones arrive, unless you scrolled up to read (`View.follow`, for any view).
+- **Fixed: a reply with a lone surrogate character lost the whole reply** in the extension host.
+
 ## 0.18.9 · 2026-11-10
 
 - **Fixed: on GNOME, pal kept one CPU core busy while idle** (#2): its clipboard watcher looped when GNOME refused the clipboard watch it asked for. It now hears about copies from X11, which GNOME passes every copy to, and uses no CPU while nothing is copied, an image on the clipboard included.
