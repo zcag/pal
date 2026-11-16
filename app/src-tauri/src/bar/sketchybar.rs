@@ -78,6 +78,12 @@ pub struct Rendered {
     pub props: BTreeMap<String, Props>,
 }
 
+/// A bracket member as sketchybar's `/regex/` matching exactly that name.
+fn member(name: &str) -> String {
+    let escaped: String = name.chars().flat_map(|c| if c.is_ascii_alphanumeric() || c == '_' || c == '-' { vec![c] } else { vec!['\\', c] }).collect();
+    format!("/^{escaped}$/")
+}
+
 /// A sketchybar bracket: its name, its members (the item's names in strip order) and its properties.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Band {
@@ -425,7 +431,8 @@ pub fn diff(prev: Option<&Rendered>, next: Option<&Rendered>, rtl: bool, placed:
             Some(old) => b.props.iter().filter(|(k, v)| old.props.get(*k) != Some(*v)).map(|(k, v)| format!("{k}={v}")).collect(),
             None => {
                 argv.extend(["--add".into(), "bracket".into(), b.name.clone()]);
-                argv.extend(b.members.iter().cloned());
+                // Each member as an anchored pattern: sketchybar 2.24 reads a bare member starting `p.` (every `pal.` name) as a popup position.
+                argv.extend(b.members.iter().map(|m| member(m)));
                 b.props.iter().map(|(k, v)| format!("{k}={v}")).collect()
             }
         };
@@ -1021,12 +1028,12 @@ mod tests {
         assert_eq!((wa["icon.background.image.padding_left"].as_str(), caps.props["pal.wisp.inbox.at"]["icon.padding_left"].as_str()), ("8", "8"), "the capsule's inset, then its 8 pt rhythm");
         assert_eq!(caps.props["pal.wisp.inbox.at"]["label.color"], "0xffff8a82", "a segment's own colour stays");
         let added = diff(None, Some(&caps), true, None).join(" ");
-        assert!(added.ends_with(&format!("--add bracket pal.wisp.inbox.band pal.wisp.inbox pal.wisp.inbox.whatsapp pal.wisp.inbox.at --set pal.wisp.inbox.band background.color=0x24{ink:06x} background.corner_radius=11 background.drawing=on background.height=22")), "{added}");
+        assert!(added.ends_with(&format!(r"--add bracket pal.wisp.inbox.band /^pal\.wisp\.inbox$/ /^pal\.wisp\.inbox\.whatsapp$/ /^pal\.wisp\.inbox\.at$/ --set pal.wisp.inbox.band background.color=0x24{ink:06x} background.corner_radius=11 background.drawing=on background.height=22")), "{added}");
         let same = diff(Some(&caps), Some(&caps), true, None);
         assert!(same.is_empty(), "{same:?}");
         let fewer = props("wisp/inbox", &draw(json!({ "background": "subtle", "segments": [{ "id": "at", "icon": "\u{f0065}", "text": "1" }] }), "right", false), &pal(), "pal");
         let d = diff(Some(&caps), Some(&fewer), true, None).join(" ");
-        assert!(d.starts_with("--remove pal.wisp.inbox.band") && d.contains("--add bracket pal.wisp.inbox.band pal.wisp.inbox pal.wisp.inbox.at"), "new members: the bracket again: {d}");
+        assert!(d.starts_with("--remove pal.wisp.inbox.band") && d.contains(r"--add bracket pal.wisp.inbox.band /^pal\.wisp\.inbox$/ /^pal\.wisp\.inbox\.at$/"), "new members: the bracket again: {d}");
         // A segment's picture is its own item's icon background, and its click carries the segment.
         let seg = props("wisp/inbox", &draw(json!({ "segments": [{ "id": "whatsapp", "icon": { "image": uri }, "text": "2", "color": "green" }] }), "right", false), &pal(), "pal");
         let s = &seg.props["pal.wisp.inbox.whatsapp"];
