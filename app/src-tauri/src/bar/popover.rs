@@ -852,12 +852,19 @@ pub async fn bar_action(app: AppHandle, caller: Caller, key: String, action: Str
 /// back for the page (its `client` part is the device's to run). With
 /// `line`, a glance card's line (glance.rs): that line's action instead.
 #[tauri::command]
-pub async fn bar_web_open(app: AppHandle, caller: Caller, key: String, line: Option<usize>) -> Result<Value, String> {
+pub async fn bar_web_open(app: AppHandle, caller: Caller, key: String, line: Option<usize>, segment: Option<String>) -> Result<Value, String> {
     let label = caller.label();
     if crate::remote::page_of(label) != Some("bar") {
         return Err(format!("{key}: only a remote page's bar sheet opens items this way"));
     }
     let e = entry(&app, &key).ok_or_else(|| format!("no bar item {key}"))?;
+    // One of its segments: that segment's action, whose level opens the sheet; anything else the item's own sheet.
+    if let Some(s) = segment {
+        let r = super::opened(&app, &key, Some(&format!("segment:{s}")), "hotkey", None, label).await?;
+        if crate::effects::stays_open(&r) {
+            return Ok(r);
+        }
+    }
     if let Some(action) = line.and_then(|n| e.last?.glance?.lines.into_iter().nth(n)?.action) {
         return super::opened(&app, &key, Some(&action), "hotkey", None, label).await;
     }

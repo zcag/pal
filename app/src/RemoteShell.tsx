@@ -13,6 +13,7 @@ import { schemeInForce } from "./theme";
 import { Presence } from "./ui";
 import { bySide, hiddenKeys, type Side } from "./bar-sides";
 import { MenubarItem, defaultLook, shapeItem, type BarLook, type BarStripItem } from "./ui/BarStrip";
+import { partsOf } from "./ui/bar-model";
 import { touchFirst, useMedia } from "./ui/touch";
 import { POPOVER_W } from "./ui/popover-size";
 
@@ -102,7 +103,7 @@ export default function RemoteShell() {
   const touch = useMemo(touchFirst, []);
   const narrow = useMedia(NARROW);
   const app = useRef<EmbedHandle>(null);
-  const [sheet, setSheet] = useState<{ key: string; x: number; title: string; line?: number } | null>(null);
+  const [sheet, setSheet] = useState<{ key: string; x: number; title: string; line?: number; segment?: string } | null>(null);
   const [frameHeight, setHeight] = useState<number | null>(null);
   const fit = useSheetScale();
   const height = frameHeight === null ? null : frameHeight * fit.scale;
@@ -161,19 +162,24 @@ export default function RemoteShell() {
       {strip && <header className="pal-remote__top">
         <div className="g-bar pal-remote__strip" data-theme={scheme} role="toolbar" aria-label="Bar items" onWheel={sideways}>
           <div className="g-mb pal-remote__items">
-            {SIDES.map((side) => <div key={side} className="pal-remote__side" data-side={side}>{shaped[side].map(({ key, look, item }) => (
-              <button
-                key={key}
-                type="button"
-                className="pal-remote__item"
-                data-key={key}
-                data-open={sheet?.key === key || undefined}
-                aria-label={item.title || item.tooltip || key}
-                onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setSheet(sheet?.key === key ? null : { key, x: r.left + r.width / 2, title: item.title || item.tooltip || key }); }}
-              >
-                <MenubarItem item={item} look={look} dark={scheme === "dark"} />
-              </button>
-            ))}</div>)}
+            {/* A pictured item is a button per part, as the menu bar draws it (`Draw::parts`): a segment's opens the sheet on that segment. */}
+            {SIDES.map((side) => <div key={side} className="pal-remote__side" data-side={side}>{shaped[side].flatMap(({ key, look, item }) => partsOf(item).map((part, i) => {
+              const segment = part === item ? undefined : item.segments?.[i - (partsOf(item).length - (item.segments?.length ?? 0))]?.id;
+              const open = sheet?.key === key && sheet.segment === segment;
+              return (
+                <button
+                  key={`${key}#${segment ?? ""}`}
+                  type="button"
+                  className="pal-remote__item"
+                  data-key={key}
+                  data-open={open || undefined}
+                  aria-label={part.title || part.tooltip || item.tooltip || key}
+                  onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setSheet(open ? null : { key, segment, x: r.left + r.width / 2, title: item.title || item.tooltip || key }); }}
+                >
+                  <MenubarItem item={part} look={look} dark={scheme === "dark"} />
+                </button>
+              );
+            }))}</div>)}
           </div>
         </div>
         <span className="pal-remote__link" aria-hidden title="Reconnecting to pal" />
@@ -187,7 +193,7 @@ export default function RemoteShell() {
           <div className="pal-remote-sheet" style={{ "--pal-sheet-x": `${sheet.x}px` } as CSSProperties}>
             <div className="pal-remote-sheet__scrim" onClick={close} aria-hidden />
             <div ref={fit.ref} className="pal-remote-sheet__card" role="dialog" aria-label={sheet.title} data-sized={height !== null || undefined} style={height !== null ? ({ "--pal-sheet-h": `${height}px` } as CSSProperties) : undefined}>
-              <iframe key={`${sheet.key}:${sheet.line}`} className="pal-remote-sheet__frame" src={sheetSrc(sheet.key, sheet.line) + (embed ? passOn(location.search) : "")} title={sheet.title} allow="clipboard-write" style={scaled} />
+              <iframe key={`${sheet.key}:${sheet.line}:${sheet.segment ?? ""}`} className="pal-remote-sheet__frame" src={sheetSrc(sheet.key, sheet.line, sheet.segment) + (embed ? passOn(location.search) : "")} title={sheet.title} allow="clipboard-write" style={scaled} />
             </div>
           </div>
         )}
