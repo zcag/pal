@@ -362,6 +362,29 @@ pub fn image_bytes(icon: &serde_json::Value) -> Option<Vec<u8>> {
     std::fs::read(image_file(icon)?).ok()
 }
 
+/// A template picture in `ink` (`0xAARRGGBB`): its shape, every pixel that
+/// colour at the picture's own alpha, as a cached PNG for sketchybar, which
+/// draws a picture as it is (the menu bar tints a template itself).
+pub fn tinted_file(icon: &serde_json::Value, ink: u32) -> Option<std::path::PathBuf> {
+    use std::hash::{Hash, Hasher};
+    let mut h = std::hash::DefaultHasher::new();
+    (icon.to_string(), ink).hash(&mut h);
+    let path = pal_core::icons::cache_dir().join(format!("bar-tint-{:016x}.png", h.finish()));
+    if !path.is_file() {
+        let mut img = image(icon)?;
+        let a = (ink >> 24) as f32 / 255.0;
+        for px in img.data.as_chunks_mut::<4>().0 {
+            px[0] = (ink >> 16) as u8;
+            px[1] = (ink >> 8) as u8;
+            px[2] = ink as u8;
+            px[3] = (px[3] as f32 * a).round() as u8;
+        }
+        std::fs::create_dir_all(path.parent()?).ok()?;
+        pal_core::fs::write_atomic(&path, img.png()).ok()?;
+    }
+    Some(path)
+}
+
 /// A PNG file for an `{ app }`, `icon://`, `data:` or absolute-path icon
 /// (sketchybar wants a path): the core's cache for an app, a favicon and
 /// a file on disk (an image by extension, SVG included, the same policy

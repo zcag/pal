@@ -11,6 +11,11 @@ pub const NAMES: [&str; 12] = ["grey", "blue", "green", "amber", "red", "violet"
 const LIGHT: [u32; 12] = [0x55565F, 0x2457B0, 0x1B6B40, 0x874C00, 0xB02925, 0x5B39C2, 0xA0286A, 0x0B6664, 0x1A1A1F, 0x5C5D66, 0x4F46D6, 0xC02B27];
 const DARK: [u32; 12] = [0xA3A4AE, 0x7FB0FF, 0x5CCB8E, 0xF0B25A, 0xFF8A82, 0xB39DFF, 0xF08CC0, 0x5FCFCB, 0xECECF0, 0xA3A4AE, 0x9F97FF, 0xFF6E66];
 
+/// A band in the bar's own text colour, faint: a capsule that groups an
+/// item on any bar, light or dark (`BarItem.background`).
+pub const SUBTLE: &str = "subtle";
+const SUBTLE_ALPHA: u32 = 14;
+
 /// The map for one theme, with the config's `[bar.sketchybar.colors]`
 /// overrides (`0xAARRGGBB`, `#rrggbb` or `rrggbb`) on top.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -43,6 +48,9 @@ impl Palette {
     /// `0xAARRGGBB` for a colour spec: a name of the map, else a hex
     /// spelling (`#rrggbb`, `0xAARRGGBB`); `None` for anything else.
     pub fn resolve(&self, spec: &str) -> Option<u32> {
+        if spec == SUBTLE {
+            return self.argb("text").map(|t| at(t, SUBTLE_ALPHA));
+        }
         self.argb(spec).or_else(|| parse(spec))
     }
 

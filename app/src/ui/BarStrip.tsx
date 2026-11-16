@@ -165,16 +165,23 @@ const px = (v: string | undefined) => (v === undefined ? undefined : Number(v));
 
 /** pal's sketchybar items for one bar item, from their properties (`sketchybar::props`): the main item, then its segments and its count. */
 export function SketchyItem({ item, look = defaultLook, dark, anchor }: { item: BarStripItem; look?: BarLook; dark: boolean; anchor?: (el: HTMLElement | null) => void }) {
-  const props = describeSketchy(item, look, dark);
+  const all = describeSketchy(item, look, dark);
+  // A band around the segments (a bracket) comes last and has no `drawing` of its own.
+  const bracket = all.length > 1 && all[all.length - 1].drawing === undefined ? all[all.length - 1] : undefined;
+  const props = bracket ? all.slice(0, -1) : all;
   const main = props[0];
   // A picture is the icon's background image (sketchybar.rs): the item's own, then each segment's, in the props' order.
   const pictures = [typeof item.icon === "object" && item.icon && "image" in item.icon ? item.icon : undefined, ...(item.segments ?? []).map(pictureOf)];
-  const band: CSSProperties = main["background.drawing"] === "on" ? { background: cssOf(main["background.color"]), borderRadius: px(main["background.corner_radius"]), height: px(main["background.height"]) } : {};
+  const b = bracket ?? main;
+  const band: CSSProperties = b["background.drawing"] === "on" ? { background: cssOf(b["background.color"]), borderRadius: px(b["background.corner_radius"]), height: px(b["background.height"]) } : {};
   return (
     <span ref={anchor} className="g-sb__group" style={band}>
       {props.map((p, i) => p.drawing === "off" ? null : (
         <span key={i} className="g-sb__item">
-          {p["icon.drawing"] === "on" && pictures[i] && <img className="g-sb__picture" src={pictureUrl(pictures[i]!.image, 32)} alt="" style={{ paddingLeft: px(p["icon.padding_left"]), paddingRight: 4 }} />}
+          {p["icon.drawing"] === "on" && pictures[i] && (pictures[i]!.template
+            // A template takes the item's ink (glyph::tinted_file): its shape as a mask over that colour.
+            ? <span className="g-sb__picture g-sb__picture--tinted" style={{ marginLeft: px(p["icon.padding_left"]), marginRight: 4, background: cssOf(p["icon.color"]), maskImage: `url("${pictureUrl(pictures[i]!.image, 32)}")`, WebkitMaskImage: `url("${pictureUrl(pictures[i]!.image, 32)}")` }} />
+            : <img className="g-sb__picture" src={pictureUrl(pictures[i]!.image, 32)} alt="" style={{ paddingLeft: px(p["icon.padding_left"]), paddingRight: 4 }} />)}
           {p["icon.drawing"] === "on" && !pictures[i] && (
             <Runs text={p.icon} mono className="g-sb__icon" style={{ color: cssOf(p["icon.color"]), fontSize: px(p["icon.font.size"]), paddingLeft: px(p["icon.padding_left"]), paddingRight: px(p["icon.padding_right"]), width: px(p["icon.width"]) }} />
           )}

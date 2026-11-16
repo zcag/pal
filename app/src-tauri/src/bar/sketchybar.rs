@@ -66,6 +66,9 @@ pub type Props = BTreeMap<String, String>;
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Rendered {
     pub position: String,
+    /// A band behind the item and its segments (`BarItem.background` with
+    /// segments): a bracket of the item's names, added after them.
+    pub band: Option<Band>,
     /// The side `--add` puts it on: the position's own, or for a
     /// `before:`/`after:` one the reference's (sketchybar's `--move` does
     /// not cross sides), which `update` queries; `right` until then.
@@ -73,6 +76,14 @@ pub struct Rendered {
     /// Names in strip order, the main item first.
     pub order: Vec<String>,
     pub props: BTreeMap<String, Props>,
+}
+
+/// A sketchybar bracket: its name, its members (the item's names in strip order) and its properties.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Band {
+    pub name: String,
+    pub members: Vec<String>,
+    pub props: Props,
 }
 
 /// `━━━───`: `cells` of heavy and light box drawing for `progress` 0..1.
@@ -106,12 +117,14 @@ fn input_script(key: &str, item: &BarItem, hover: bool, palette: &Palette, pal_b
 /// An item's `background` band: 22 pt tall (it fits the 26 pt bar of an external display) with 6 pt corners.
 const BAND_HEIGHT: &str = "22";
 const BAND_RADIUS: &str = "6";
+/// A band around segments is a capsule: its ends are half circles.
+const CAPSULE_RADIUS: &str = "11";
 
 pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Rendered {
     let item = &draw.item;
     let look = &draw.look;
     let main = name_of(key);
-    let mut out = Rendered { position: draw.position.clone(), side: placement(&draw.position).0, order: vec![main.clone()], props: BTreeMap::new() };
+    let mut out = Rendered { position: draw.position.clone(), side: placement(&draw.position).0, order: vec![main.clone()], props: BTreeMap::new(), band: None };
     let text = palette.argb("text").unwrap_or_default();
     // Every colour the item draws is at the look's opacity; a muted one at dim of that.
     let color = |spec: Option<&str>| {
@@ -123,11 +136,14 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
         colors::spell(colors::at(c, look.opacity))
     };
     let background = item.background.as_deref().and_then(|b| palette.resolve(b));
-    // On a band the plain ink is the band's contrast, not the bar's text colour.
-    let item_color = match (background, draw.tint()) {
+    // On a solid band the plain ink is the band's contrast, not the bar's text colour; a faint one (`subtle`) keeps the bar's.
+    let item_color = match (background.filter(|bg| bg >> 24 >= 0x80), draw.tint()) {
         (Some(bg), None | Some("text")) => colors::spell(colors::at(colors::ink_on(bg), look.opacity)),
         _ => color(draw.tint()),
     };
+    // With segments the band is a bracket around them all, a capsule with round ends; alone it is the item's own background.
+    let banded = item.background.is_some() && !item.segments.is_empty();
+    let argb = |spelled: &str| u32::from_str_radix(spelled.trim_start_matches("0x"), 16).unwrap_or(text);
     let spacing = look.spacing.to_string();
     let mut p = Props::new();
     set(&mut p, "drawing", if item.hidden { "off" } else { "on" });
@@ -149,6 +165,7 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
     // src/text.c; the icon's own paddings do not count then) and needs the
     // empty icon text drawing. Checked against v2.24.0.
     let image = match &icon {
+        Some(IconKind::Image { value, template: true }) => glyph::tinted_file(value, argb(&item_color)),
         Some(IconKind::Image { value, .. }) => glyph::image_file(value),
         _ => None,
     };
@@ -179,13 +196,14 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
     set(&mut p, "label.drawing", if title.is_empty() { "off" } else { "on" });
     set(&mut p, "label.color", item_color.clone());
     set(&mut p, "label.max_chars", look.max_chars.to_string());
-    set(&mut p, "background.drawing", if item.background.is_some() { "on" } else { "off" });
-    if item.background.is_some() {
+    let own = item.background.is_some() && !banded;
+    set(&mut p, "background.drawing", if own { "on" } else { "off" });
+    if own {
         set(&mut p, "background.color", colors::spell(background.unwrap_or(text)));
     }
     // A band, not a slab: inset from the bar's edges with rounded ends; 0 is sketchybar's full height for the hover wash.
-    set(&mut p, "background.height", if item.background.is_some() { BAND_HEIGHT } else { "0" });
-    set(&mut p, "background.corner_radius", if item.background.is_some() { BAND_RADIUS } else { "0" });
+    set(&mut p, "background.height", if own { BAND_HEIGHT } else { "0" });
+    set(&mut p, "background.corner_radius", if own { BAND_RADIUS } else { "0" });
     let trailing = item.segments.is_empty() && item.count().is_none();
     // Icon only: the icon takes the label's right padding (the owner's `icon_only`); the look's spacing before whatever follows it.
     let icon_right = if title.is_empty() && trailing { "8".to_string() } else { spacing.clone() };
@@ -219,21 +237,30 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
     let extras: Vec<Extra> = item
         .segments
         .iter()
-        .map(|s| Extra {
-            name: format!("{main}.{}", s.id),
-            segment: Some(s.id.clone()),
-            icon: s.glyph().unwrap_or_default().to_string(),
-            picture: match s.picture() {
-                Some(IconKind::Image { value, .. }) => glyph::image_file(&value),
-                _ => None,
-            },
-            text: s.text.clone(),
-            color: if item.stale && !item.urgent { color(Some("muted")) } else { color(s.color.as_deref().or(draw.tint())) },
+        .map(|s| {
+            let col = if item.stale && !item.urgent { color(Some("muted")) } else if banded && s.color.is_none() { item_color.clone() } else { color(s.color.as_deref().or(draw.tint())) };
+            Extra {
+                name: format!("{main}.{}", s.id),
+                segment: Some(s.id.clone()),
+                icon: s.glyph().unwrap_or_default().to_string(),
+                // A template picture takes the segment's ink, as on the menu bar.
+                picture: match s.picture() {
+                    Some(IconKind::Image { value, template: true }) => glyph::tinted_file(&value, argb(&col)),
+                    Some(IconKind::Image { value, .. }) => glyph::image_file(&value),
+                    _ => None,
+                },
+                text: s.text.clone(),
+                color: col,
+            }
         })
         .chain(item.count().map(|n| Extra { name: format!("{main}.badge"), segment: None, icon: String::new(), picture: None, text: Some(n.to_string()), color: color(draw.badge_tint()) }))
         .collect();
     let last = extras.len().saturating_sub(1);
+    // In a capsule whose own item draws nothing, the first segment takes the capsule's inset, as the last one ends on it.
+    let inset = banded && icon_text.is_empty() && image.is_none() && title.is_empty();
     for (i, Extra { name, segment, icon, picture, text, color: col }) in extras.into_iter().enumerate() {
+        // A capsule spaces its segments 8 apart at least: a rhythm, not runs packed against each other.
+        let lead = if (inset && i == 0) || (banded && look.spacing < 8) { "8".to_string() } else { spacing.clone() };
         let mut p = Props::new();
         set(&mut p, "drawing", if item.hidden { "off" } else { "on" });
         set(&mut p, "updates", "on");
@@ -246,7 +273,7 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
                 set(&mut p, "icon.background.image", file.to_string_lossy());
                 set(&mut p, "icon.background.image.drawing", "on");
                 set(&mut p, "icon.background.image.scale", "0.5");
-                set(&mut p, "icon.background.image.padding_left", spacing.clone());
+                set(&mut p, "icon.background.image.padding_left", lead.clone());
                 set(&mut p, "icon.background.image.padding_right", "4");
             }
             None => {
@@ -255,13 +282,13 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
             }
         }
         set(&mut p, "icon.color", col.clone());
-        set(&mut p, "icon.padding_left", spacing.clone());
+        set(&mut p, "icon.padding_left", lead.clone());
         set(&mut p, "icon.padding_right", "2");
         let text = text.unwrap_or_default();
         set(&mut p, "label", text.clone());
         set(&mut p, "label.drawing", if text.is_empty() { "off" } else { "on" });
         set(&mut p, "label.color", col);
-        set(&mut p, "label.padding_left", if icon.is_empty() && picture.is_none() { spacing.clone() } else { "0".to_string() });
+        set(&mut p, "label.padding_left", if icon.is_empty() && picture.is_none() { lead.clone() } else { "0".to_string() });
         set(&mut p, "label.padding_right", if i == last { "8" } else { "2" });
         if draw.icon_size() > 0.0 {
             set(&mut p, "icon.font.size", format!("{}", draw.icon_size()));
@@ -279,6 +306,14 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
         });
         out.order.push(name.clone());
         out.props.insert(name, p);
+    }
+    if banded {
+        let mut b = Props::new();
+        set(&mut b, "background.drawing", "on");
+        set(&mut b, "background.color", colors::spell(background.unwrap_or(text)));
+        set(&mut b, "background.height", BAND_HEIGHT);
+        set(&mut b, "background.corner_radius", CAPSULE_RADIUS);
+        out.band = Some(Band { name: format!("{main}.band"), members: out.order.clone(), props: b });
     }
     out
 }
@@ -327,6 +362,11 @@ pub fn diff(prev: Option<&Rendered>, next: Option<&Rendered>, rtl: bool, placed:
     let (mut prev, next) = (prev.unwrap_or(&empty), next.unwrap_or(&empty));
     // A position is fixed at `--add`: a key that moved to another one is removed and added afresh.
     let moved = !prev.props.is_empty() && !next.props.is_empty() && prev.position != next.position;
+    // A bracket's members are fixed at `--add`: one whose members changed goes first and comes back after the items.
+    let band_kept = !moved && prev.band.as_ref().zip(next.band.as_ref()).is_some_and(|(a, b)| a.name == b.name && a.members == b.members);
+    if let Some(b) = prev.band.as_ref().filter(|_| !band_kept) {
+        argv.extend(["--remove".into(), b.name.clone()]);
+    }
     if moved {
         argv.extend(prev.props.keys().flat_map(|n| ["--remove".to_string(), n.clone()]));
         prev = &empty;
@@ -378,6 +418,21 @@ pub fn diff(prev: Option<&Rendered>, next: Option<&Rendered>, rtl: bool, placed:
         }
         for pair in next.order.windows(2) {
             argv.extend(["--move".into(), pair[1].clone(), along(rtl).into(), pair[0].clone()]);
+        }
+    }
+    if let Some(b) = &next.band {
+        let changed: Vec<String> = match prev.band.as_ref().filter(|_| band_kept) {
+            Some(old) => b.props.iter().filter(|(k, v)| old.props.get(*k) != Some(*v)).map(|(k, v)| format!("{k}={v}")).collect(),
+            None => {
+                argv.extend(["--add".into(), "bracket".into(), b.name.clone()]);
+                argv.extend(b.members.iter().cloned());
+                b.props.iter().map(|(k, v)| format!("{k}={v}")).collect()
+            }
+        };
+        if !changed.is_empty() {
+            argv.push("--set".into());
+            argv.push(b.name.clone());
+            argv.extend(changed);
         }
     }
     argv
@@ -952,6 +1007,26 @@ mod tests {
         assert_eq!((m["icon.background.image.padding_left"].as_str(), m["icon.background.image.padding_right"].as_str()), ("8", "4"), "the slot's paddings ride the image");
         assert_eq!(m["background.drawing"], "off", "no background of the item's own");
         assert!(!m.contains_key("background.image"), "not the item's background image: never drawn without background.drawing, and behind the label");
+        // With segments and a background the band is a bracket around them all, a capsule; `subtle` keeps the bar's ink; a template picture takes that ink.
+        let caps = props("wisp/inbox", &draw(json!({ "background": "subtle", "segments": [{ "id": "whatsapp", "icon": { "image": uri, "template": true }, "text": "2" }, { "id": "at", "icon": "\u{f0065}", "text": "1", "color": "red" }] }), "right", false), &pal(), "pal");
+        let band = caps.band.as_ref().expect("a band");
+        let ink = pal().argb("text").unwrap() & 0xFF_FFFF;
+        assert_eq!((band.name.as_str(), band.members.clone()), ("pal.wisp.inbox.band", vec!["pal.wisp.inbox".to_string(), "pal.wisp.inbox.whatsapp".into(), "pal.wisp.inbox.at".into()]));
+        assert_eq!((band.props["background.corner_radius"].as_str(), band.props["background.height"].as_str()), ("11", "22"));
+        assert_eq!(band.props["background.color"], format!("0x24{ink:06x}"), "the text colour, faint");
+        assert_eq!(caps.props["pal.wisp.inbox"]["background.drawing"], "off", "the item's own band gives way to the bracket");
+        let wa = &caps.props["pal.wisp.inbox.whatsapp"];
+        assert_eq!(wa["label.color"], format!("0xff{ink:06x}"), "the bar's ink, not a contrast ink");
+        assert!(wa["icon.background.image"].contains("bar-tint-"), "a template tinted for sketchybar: {}", wa["icon.background.image"]);
+        assert_eq!((wa["icon.background.image.padding_left"].as_str(), caps.props["pal.wisp.inbox.at"]["icon.padding_left"].as_str()), ("8", "8"), "the capsule's inset, then its 8 pt rhythm");
+        assert_eq!(caps.props["pal.wisp.inbox.at"]["label.color"], "0xffff8a82", "a segment's own colour stays");
+        let added = diff(None, Some(&caps), true, None).join(" ");
+        assert!(added.ends_with(&format!("--add bracket pal.wisp.inbox.band pal.wisp.inbox pal.wisp.inbox.whatsapp pal.wisp.inbox.at --set pal.wisp.inbox.band background.color=0x24{ink:06x} background.corner_radius=11 background.drawing=on background.height=22")), "{added}");
+        let same = diff(Some(&caps), Some(&caps), true, None);
+        assert!(same.is_empty(), "{same:?}");
+        let fewer = props("wisp/inbox", &draw(json!({ "background": "subtle", "segments": [{ "id": "at", "icon": "\u{f0065}", "text": "1" }] }), "right", false), &pal(), "pal");
+        let d = diff(Some(&caps), Some(&fewer), true, None).join(" ");
+        assert!(d.starts_with("--remove pal.wisp.inbox.band") && d.contains("--add bracket pal.wisp.inbox.band pal.wisp.inbox pal.wisp.inbox.at"), "new members: the bracket again: {d}");
         // A segment's picture is its own item's icon background, and its click carries the segment.
         let seg = props("wisp/inbox", &draw(json!({ "segments": [{ "id": "whatsapp", "icon": { "image": uri }, "text": "2", "color": "green" }] }), "right", false), &pal(), "pal");
         let s = &seg.props["pal.wisp.inbox.whatsapp"];

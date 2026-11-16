@@ -127,6 +127,11 @@ fn drawn(item: &Value, look: &BarLook, dark: bool) -> Value {
         .collect();
     // A pictured item is a status item per part (`Draw::parts`).
     let menubar = if draw.item.pictured() { json!(draw.parts().iter().map(|(_, d)| menubar::describe(d, &palette)).collect::<Vec<_>>()) } else { json!(menubar::describe(&draw, &palette)) };
+    // A band around the segments (a bracket) is the strip's last entry.
+    let mut sketchy = sketchy;
+    if let Some(b) = &r.band {
+        sketchy.push(Value::Object(b.props.iter().map(|(k, v)| (k.clone(), Value::String(v.clone()))).collect()));
+    }
     json!({ "menubar": menubar, "sketchybar": sketchy })
 }
 

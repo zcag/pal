@@ -50,7 +50,8 @@ export class Palette {
     this.map = new Map(COLOR_NAMES.map((n, i) => [n, (0xff000000 | base[i]) >>> 0]));
   }
   argb(name: string) { return this.map.get(name); }
-  resolve(spec: string) { return this.argb(spec) ?? parseHex(spec); }
+  /** `subtle` is the bar's text colour, faint (`colors::SUBTLE`): a capsule's band. */
+  resolve(spec: string) { return spec === "subtle" ? (this.argb("text") === undefined ? undefined : at(this.argb("text")!, 14)) : this.argb(spec) ?? parseHex(spec); }
   /** `rgb_of` as `#rrggbb`. */
   rgb(spec: string): string | undefined { const c = this.resolve(spec); return c === undefined ? undefined : `#${(c & 0xffffff).toString(16).padStart(6, "0")}`; }
   muted(dim: number) { return at(this.argb("muted") ?? 0xffa3a4ae, dim); }
@@ -217,7 +218,9 @@ export function describeSketchy(item: BarStripItem, look: BarLook, dark: boolean
   const color = (spec: string | undefined) => spell(at(spec === "muted" ? pal.muted(look.dim) : spec ? pal.resolve(spec) ?? text : text, look.opacity));
   const bg = item.background ? pal.resolve(item.background) : undefined;
   const t = tint(item, look);
-  const itemColor = bg !== undefined && (!t || t === "text") ? spell(at(inkOn(bg), look.opacity)) : color(t);
+  const itemColor = bg !== undefined && bg >>> 24 >= 0x80 && (!t || t === "text") ? spell(at(inkOn(bg), look.opacity)) : color(t);
+  // With segments the band is a bracket around them all (`sketchybar::Band`), the item's own background off.
+  const banded = !!item.background && !!item.segments?.length, own = !!item.background && !banded;
   const k = iconKind(item.icon);
   let icon = k?.kind === "glyph" ? k.glyph : k?.kind === "text" ? k.text : "";
   if (typeof item.progress === "number") icon = `${rule(item.progress)} ${icon}`.trimEnd();
@@ -229,10 +232,10 @@ export function describeSketchy(item: BarStripItem, look: BarLook, dark: boolean
   p["label.drawing"] = title ? "on" : "off";
   p["label.color"] = itemColor;
   p["label.max_chars"] = num(look.maxChars);
-  p["background.drawing"] = item.background ? "on" : "off";
-  if (item.background) p["background.color"] = spell(bg ?? text);
-  p["background.height"] = item.background ? "22" : "0";
-  p["background.corner_radius"] = item.background ? "6" : "0";
+  p["background.drawing"] = own ? "on" : "off";
+  if (own) p["background.color"] = spell(bg ?? text);
+  p["background.height"] = own ? "22" : "0";
+  p["background.corner_radius"] = own ? "6" : "0";
   const sp = num(look.spacing);
   const trailing = !(item.segments?.length) && count(item) === undefined;
   p["icon.padding_left"] = "8";
@@ -246,17 +249,21 @@ export function describeSketchy(item: BarStripItem, look: BarLook, dark: boolean
   if (look.font === "mono") p["label.font.family"] = "Menlo";
   if (look.width > 0 && title) p["label.width"] = num(look.width);
   const out = [p];
-  const extras = (item.segments ?? []).map((s) => ({ icon: glyphOf(s), picture: pictureOf(s) !== undefined, text: s.text ?? "", col: item.stale && !item.urgent ? color("muted") : color(s.color ?? t) }));
+  const extras = (item.segments ?? []).map((s) => ({ icon: glyphOf(s), picture: pictureOf(s) !== undefined, text: s.text ?? "", col: item.stale && !item.urgent ? color("muted") : banded && !s.color ? itemColor : color(s.color ?? t) }));
   if (count(item) !== undefined) extras.push({ icon: "", picture: false, text: String(count(item)), col: color(badgeTint(item, look)) });
+  // In a capsule whose own item draws nothing, the first segment takes the capsule's inset.
+  const inset = banded && !icon && k?.kind !== "image" && !title;
   extras.forEach((x, i) => {
+    const lead = (inset && i === 0) || (banded && look.spacing < 8) ? "8" : sp;
     const e: SketchyProps = {
-      drawing: item.hidden ? "off" : "on", icon: x.icon, "icon.drawing": x.icon || x.picture ? "on" : "off", "icon.color": x.col, "icon.padding_left": sp, "icon.padding_right": "2",
-      label: x.text, "label.drawing": x.text ? "on" : "off", "label.color": x.col, "label.padding_left": x.icon || x.picture ? "0" : sp, "label.padding_right": i === extras.length - 1 ? "8" : "2",
+      drawing: item.hidden ? "off" : "on", icon: x.icon, "icon.drawing": x.icon || x.picture ? "on" : "off", "icon.color": x.col, "icon.padding_left": lead, "icon.padding_right": "2",
+      label: x.text, "label.drawing": x.text ? "on" : "off", "label.color": x.col, "label.padding_left": x.icon || x.picture ? "0" : lead, "label.padding_right": i === extras.length - 1 ? "8" : "2",
     };
     if (is > 0) e["icon.font.size"] = num(is);
     if (ls > 0) e["label.font.size"] = num(ls);
     if (look.font === "mono") e["label.font.family"] = "Menlo";
     out.push(e);
   });
+  if (banded) out.push({ "background.drawing": "on", "background.color": spell(bg ?? text), "background.height": "22", "background.corner_radius": "11" });
   return out;
 }

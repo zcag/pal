@@ -24,8 +24,8 @@
 // direction. An extension never sees these three envelopes; they are here
 // for a host or a test harness.
 
-/** The protocol a package is built for; bumped by a change that breaks extensions built before it, or that extensions built after it rely on (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. 2: `preview`, `ignoreStore`, `Effect.show.actions`. 3: the detail header (`Detail.caption`, `title`, `chips`, `stats`). 4: controls (`controls`, `Extension.controls`, `Manifest.controls`, the control view components). 5: accounts (`leaderboard`, `account`, `storage.onChange`, the kit's `score`, `leaderboard`, `account`, `signIn`, `storage.onChange`, `Manifest.sync` and `leaderboards`). 6: `each` in a sync object rule (`SyncObjectRule`). 7: replays (`leaderboard.post`'s `replay`, `leaderboard.replay`, `LeaderboardRow.replay`, the kit's `score` with `{ replay }` and `replay`). 9: the `outputs` control (`OutputsState`, its ops, `outputsRow`); `tabs.pause`, the media probe's `position`. 10: a segment's picture (`BarSegment.icon` as `{ image }`) and its own click (`segment:<id>`). */
-export const PROTOCOL: number = 10;
+/** The protocol a package is built for; bumped by a change that breaks extensions built before it, or that extensions built after it rely on (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. 2: `preview`, `ignoreStore`, `Effect.show.actions`. 3: the detail header (`Detail.caption`, `title`, `chips`, `stats`). 4: controls (`controls`, `Extension.controls`, `Manifest.controls`, the control view components). 5: accounts (`leaderboard`, `account`, `storage.onChange`, the kit's `score`, `leaderboard`, `account`, `signIn`, `storage.onChange`, `Manifest.sync` and `leaderboards`). 6: `each` in a sync object rule (`SyncObjectRule`). 7: replays (`leaderboard.post`'s `replay`, `leaderboard.replay`, `LeaderboardRow.replay`, the kit's `score` with `{ replay }` and `replay`). 9: the `outputs` control (`OutputsState`, its ops, `outputsRow`); `tabs.pause`, the media probe's `position`. 10: a segment's picture (`BarSegment.icon` as `{ image }`) and its own click (`segment:<id>`). 11: `background: "subtle"` and a band behind an item's segments; template pictures tinted on sketchybar. */
+export const PROTOCOL: number = 11;
 /** The oldest package protocol this SDK and host still run. Equal to `pal_core::registry::PROTOCOL_MIN`. */
 export const PROTOCOL_MIN: number = 1;
 
@@ -902,7 +902,14 @@ export type BarItem = {
   tooltip?: string;
   /** Seconds until the next `render`, this once (prs: 60 while checks run, else the manifest's `every`). */
   refresh?: number;
-  /** Per-render bar background tint (a named bar colour or `#rrggbb`); sketchybar only: a 22 pt band with rounded ends, its ink black or white by contrast unless `color` names one. */
+  /**
+   * Per-render bar background tint (a named bar colour, `#rrggbb`, or
+   * `subtle`: the bar's own text colour, faint, a capsule that groups the
+   * item on any bar); sketchybar only: a 22 pt band with rounded ends, its
+   * ink black or white by contrast on a solid colour unless `color` names
+   * one. With `segments` the band runs behind them all, a capsule with
+   * round ends (a sketchybar bracket of the item's names).
+   */
   background?: string;
   /** Per-render glyph size in points; wins over the Bar settings size. */
   icon_size?: number;

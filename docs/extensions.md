@@ -1202,7 +1202,10 @@ diffs it against the last one:
   already does; a click on a segment runs the item's `segment:<id>` action,
   and an answer that is a `view`, `push` or `show` opens the popover on that
   level, anything else the item's own popover: Wisp's per-network counts
-  open on that network's tab), `badge` (a
+  open on that network's tab; a template picture takes the segment's ink on
+  sketchybar too), `background` (sketchybar: a band behind the item, a
+  capsule behind it and its segments when it has some; `subtle` is the
+  bar's own text colour, faint), `badge` (a
   count, or `"dot"`), `color` (the tag palette plus `text`, `muted`, `accent`,
   `destructive`), `urgent` (drawn as an alarm), `stale` (muted, "could not
   refresh"), `progress` (0..1, a thin fill), `tooltip`, `refresh` (seconds until
