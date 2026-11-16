@@ -18,7 +18,7 @@
     },
     "sdk": {
       "name": "@zcag/pal",
-      "version": "0.18.10",
+      "version": "0.18.11",
       "bin": {
         "pal-pack": "./bin/pal-pack.ts",
       },
