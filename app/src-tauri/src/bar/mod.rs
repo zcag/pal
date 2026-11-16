@@ -74,8 +74,9 @@ pub fn can_draw() -> bool {
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub struct Segment {
     pub id: String,
+    /// A glyph or text, or `{ image }` (a picture: the menu bar then draws the item's segments as status items of their own, [`Draw::parts`]).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub icon: Option<String>,
+    pub icon: Option<Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -210,9 +211,26 @@ pub enum IconKind {
     Image { value: Value, template: bool },
 }
 
+impl Segment {
+    /// The icon as text (a glyph, an emoji); none for a picture.
+    pub fn glyph(&self) -> Option<&str> {
+        self.icon.as_ref()?.as_str()
+    }
+
+    /// The icon when it is a picture.
+    pub fn picture(&self) -> Option<IconKind> {
+        icon_kind(self.icon.as_ref()?).filter(|k| matches!(k, IconKind::Image { .. }))
+    }
+}
+
 impl BarItem {
     pub fn icon_kind(&self) -> Option<IconKind> {
         icon_kind(self.icon.as_ref()?)
+    }
+
+    /// A segment carries a picture: the menu bar draws the item as several status items.
+    pub fn pictured(&self) -> bool {
+        self.segments.iter().any(|s| s.picture().is_some())
     }
 
     /// Whether the item is drawn dim: stale, or coloured `muted` by the
@@ -532,6 +550,38 @@ pub struct Draw {
 }
 
 impl Draw {
+    /// What the menu bar draws as status items, left to right, with the
+    /// segment each stands for: the item itself; or, when a segment carries
+    /// a picture (one image cannot hold several), the item without its
+    /// segments (when it still has an icon, a title or a count) and then
+    /// every segment as an item of its own: its icon, its text for the
+    /// title, its colour and tooltip, the item's state.
+    pub fn parts(&self) -> Vec<(Option<String>, Draw)> {
+        if !self.item.pictured() {
+            return vec![(None, self.clone())];
+        }
+        let base = &self.item;
+        let main = BarItem { segments: Vec::new(), ..base.clone() };
+        let mut out = Vec::new();
+        if main.icon.is_some() || main.title.as_deref().is_some_and(|t| !t.is_empty()) || main.count().is_some() || main.dot() {
+            out.push((None, Draw { item: main, ..self.clone() }));
+        }
+        for s in &base.segments {
+            let item = BarItem {
+                icon: s.icon.clone(),
+                title: s.text.clone(),
+                color: s.color.clone().or_else(|| base.color.clone()),
+                tooltip: s.tooltip.clone().or_else(|| base.tooltip.clone()),
+                stale: base.stale,
+                urgent: base.urgent,
+                menu: base.menu.clone(),
+                ..BarItem::default()
+            };
+            out.push((Some(s.id.clone()), Draw { item, ..self.clone() }));
+        }
+        out
+    }
+
     /// A dynamic glyph size wins over the item's configured appearance:
     /// the look's `icon_size`, else its `size`.
     pub fn icon_size(&self) -> f64 {
@@ -1305,6 +1355,13 @@ pub async fn open_action(app: &AppHandle, key: &str, action: &str, anchor: &str)
     opened(app, key, Some(action), anchor, None, popover::WINDOW).await
 }
 
+/// A click on one of the item's segments: its `segment:<id>` action, whose
+/// Effect opens the popover on that level as [`open`]'s does
+/// (`popover::on_segment_click` falls back to the item's own popover).
+pub async fn open_segment(app: &AppHandle, key: &str, segment: &str, anchor: &str, rect: Option<Rect>) -> Result<Value, String> {
+    opened(app, key, Some(&format!("segment:{segment}")), anchor, rect, popover::WINDOW).await
+}
+
 /// `window` is the page the level lands in: the popover's, or a remote page's bar sheet.
 async fn opened(app: &AppHandle, key: &str, action: Option<&str>, anchor: &str, rect: Option<Rect>, window: &str) -> Result<Value, String> {
     let (ext, id) = split_key(key).ok_or_else(|| format!("bad key {key}"))?;
@@ -1520,6 +1577,24 @@ mod fixture {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_pictured_segment_makes_every_segment_a_part_of_its_own() {
+        let png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+        let draw = |item: Value| Draw { item: serde_json::from_value(item).unwrap(), order: 3, position: "right".into(), hover: false, look: pal_core::config::BarLook::default() };
+        let plain = draw(json!({ "icon": "\u{f09b}", "segments": [{ "id": "a", "icon": "\u{f0369}", "text": "2" }] }));
+        assert_eq!(plain.parts().len(), 1, "glyph segments stay in the item");
+        assert!(plain.parts()[0].0.is_none());
+        let p = draw(json!({ "segments": [{ "id": "wa", "icon": { "image": png }, "text": "2", "color": "green" }, { "id": "at", "icon": "\u{f0065}", "text": "1" }], "tooltip": "3 unread", "stale": true }));
+        let parts = p.parts();
+        assert_eq!(parts.iter().map(|(s, _)| s.clone()).collect::<Vec<_>>(), [Some("wa".to_string()), Some("at".to_string())], "no icon, title or count: no part for the item itself");
+        let wa = &parts[0].1.item;
+        assert_eq!((wa.icon_kind().map(|k| matches!(k, IconKind::Image { .. })), wa.title.as_deref(), wa.color.as_deref(), wa.tooltip.as_deref(), wa.stale), (Some(true), Some("2"), Some("green"), Some("3 unread"), true));
+        assert!(parts.iter().all(|(_, d)| d.order == 3 && d.item.segments.is_empty()));
+        let with_count = draw(json!({ "badge": 4, "segments": [{ "id": "wa", "icon": { "image": png } }] }));
+        assert_eq!(with_count.parts()[0].1.item.count(), Some(4), "a count keeps the item's own part, first");
+        assert_eq!(with_count.parts().len(), 2);
+    }
 
     #[test]
     fn item_parses_the_wire_shape_and_diffs_by_value() {

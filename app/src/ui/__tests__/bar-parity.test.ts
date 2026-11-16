@@ -8,7 +8,7 @@
 import { describe, expect, test } from "vitest";
 import snapshot from "./bar-parity.json";
 import { defaultLook, type BarStripItem } from "../BarStrip";
-import { describeMenubar, describeSketchy, shapeItem } from "../bar-model";
+import { describeMenubarAll, describeSketchy, shapeItem } from "../bar-model";
 import { lookOf, resolveLook } from "../SettingsTypes";
 
 type Case = { name: string; look: string; look_file: Record<string, unknown>; item: BarStripItem; dark: { menubar: unknown; sketchybar: unknown }; light: { menubar: unknown; sketchybar: unknown } };
@@ -23,7 +23,7 @@ describe("strip parity with the renderers", () => {
       const look = resolveLook(defaultLook, lookOf(c.look_file));
       const item = shapeItem(c.item, look);
       for (const theme of ["dark", "light"] as const) {
-        expect({ theme, menubar: describeMenubar(item, look, theme === "dark") }).toEqual({ theme, menubar: c[theme].menubar });
+        expect({ theme, menubar: describeMenubarAll(item, look, theme === "dark") }).toEqual({ theme, menubar: c[theme].menubar });
         expect({ theme, sketchybar: describeSketchy(item, look, theme === "dark") }).toEqual({ theme, sketchybar: c[theme].sketchybar });
       }
     });

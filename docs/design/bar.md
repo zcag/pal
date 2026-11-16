@@ -170,7 +170,7 @@ export type BarCtx = { reason: "load" | "every" | "show" | "wake" | "network" | 
 
 export type BarSource = {
   render(ctx: BarCtx): BarItem | Promise<BarItem>;
-  /** A menu node was picked, its `action`. Any Effect; `keep` re-renders the item. A segment click opens the popover, like the rest of the item — it never reaches `onAction`. */
+  /** A menu node was picked, its `action`. Any Effect; `keep` re-renders the item. A click on a segment is `segment:<id>`: a `view`, `push` or `show` opens the popover on that level, anything else opens the item's popover. */
   onAction?(action: string, ctx: BarCtx): Effect | void | Promise<Effect | void>;
   /** A click on an item without `menu`, or one whose rendered item says `click: "open"`. */
   onOpen?(ctx: BarCtx): Effect | void | Promise<Effect | void>;
@@ -244,7 +244,7 @@ re-renders an extension's items as it relists its palettes.
 | `icon` emoji | the first run of the title text (Apple Color Emoji is on every Mac) | `icon=<emoji>` | in `text` |
 | `icon` `{ image }` / `{ app }` | decoded by `pal_core::icons` to 36 px, non-template; `{ image, template: true }` honoured | `icon.background.image=<cached png>` in the icon slot (an empty icon text, drawing; the item's own `background.image` draws only with `background.drawing=on`, and behind the label), scale 0.5 of sketchybar's 32 pt (16 pt), the slot's paddings as the image's | dropped |
 | `title` | the button title (`ImageLeft` of it) | `label=`; empty: `label.drawing=off` and the icon takes the label's right padding (the owner's `icon_only`, lib.sh:45) | `text` |
-| `segments` | joined into the title as `glyph text` runs, two spaces apart; colour lost, so the glyph must carry the state | one item per segment (`pal.<ext>.<id>.<seg>`) with its own `icon.color`/`label.color`, in one bracket | joined into `text` |
+| `segments` | joined into the title as `glyph text` runs, two spaces apart; colour lost, so the glyph must carry the state. A segment with a picture (`icon: { image }`) makes every segment a status item of its own (`Draw::parts`, keyed `<key>#<seg>`, ranked after the item), the picture its image and its text the title; a click on one is that segment's | one item per segment (`pal.<ext>.<id>.<seg>`) with its own `icon.color`/`label.color`, in one bracket; a picture is its `icon.background.image`, as an item's; its click is `bar click <key> --segment <seg>` | joined into `text` |
 | `badge` | count appended as ` 3` after the title; `dot` a 6 px disc drawn into the icon's corner, in the ink unless `badge_color` (`badge_style` in the look maps one to the other or drops it) | count as the number in a `.badge` item after the label, `dot` = `icon.color`, both in the item's colour unless `badge_color` | `text` suffix, `class: badge` |
 | `color`, `urgent` | the glyph PNG drawn in that colour, non-template; `text`/none stays template | `icon.color`/`label.color` from the map; every changed colour eases with `--animate sin 10` | `class: <color>`, `urgent` |
 | `stale` | the template icon at `dim` (50%), tooltip "(stale)" | icon, label and segments at the `muted` colour at `dim` (the owner's `stale_mark`, symmetric) | `class: stale` |

@@ -25,7 +25,11 @@
 //! app's menus and the notch is dropped from the bar by the system (on
 //! hornet the owner's own items leave room for two of pal's; the rest
 //! exist, `rect()` says so, and are not drawn), which is the spec's open
-//! "menu bar width" question, not something the renderer can fix.
+//! "menu bar width" question, not something the renderer can fix. An
+//! item whose segments carry pictures is several status items
+//! ([`Draw::parts`]): the item and one per segment, keyed `<key>#<segment>`,
+//! ranked after the item; a click on a segment's is that segment's
+//! (`popover::on_segment_click`).
 
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -42,8 +46,17 @@ use crate::{lock, settings};
 
 struct Icon {
     id: String,
-    order: i64,
+    /// The item's `order`, then the part's place in it ([`Draw::parts`]).
+    rank: (i64, usize),
     draw: Draw,
+}
+
+/// The item key and the segment of a status item's key (`<key>#<segment>`).
+fn split_part(key: &str) -> (&str, Option<&str>) {
+    match key.split_once('#') {
+        Some((k, s)) => (k, Some(s)),
+        None => (key, None),
+    }
 }
 
 static ICONS: LazyLock<Mutex<BTreeMap<String, Icon>>> = LazyLock::new(Mutex::default);
@@ -126,7 +139,7 @@ fn runs(draw: &Draw) -> String {
         parts.push(clip(t, draw.look.max_chars));
     }
     for s in &item.segments {
-        let run = format!("{} {}", s.icon.as_deref().unwrap_or_default(), s.text.as_deref().unwrap_or_default()).trim().to_string();
+        let run = format!("{} {}", s.glyph().unwrap_or_default(), s.text.as_deref().unwrap_or_default()).trim().to_string();
         if !run.is_empty() {
             parts.push(run);
         }
@@ -319,11 +332,15 @@ fn logical(app: &AppHandle, rect: &tauri::Rect) -> Rect {
     Rect { x: p.x, y: p.y, w: s.width, h: s.height }
 }
 
-fn on_event(app: &AppHandle, key: &str, ev: TrayIconEvent) {
+fn on_event(app: &AppHandle, part: &str, ev: TrayIconEvent) {
+    let (key, segment) = split_part(part);
     match ev {
-        TrayIconEvent::Click { rect, button: MouseButton::Left, button_state: MouseButtonState::Up, .. } => popover::on_click(app, key, Some(logical(app, &rect)), "menubar"),
+        TrayIconEvent::Click { rect, button: MouseButton::Left, button_state: MouseButtonState::Up, .. } => match segment {
+            Some(s) => popover::on_segment_click(app, key, s, Some(logical(app, &rect)), "menubar"),
+            None => popover::on_click(app, key, Some(logical(app, &rect)), "menubar"),
+        },
         TrayIconEvent::Enter { rect, .. } => {
-            let hover = lock(&ICONS).get(key).is_some_and(|i| i.draw.hover);
+            let hover = lock(&ICONS).get(part).is_some_and(|i| i.draw.hover);
             if hover {
                 popover::on_hover(app, key, Some(logical(app, &rect)), true, "menubar");
             }
@@ -333,9 +350,24 @@ fn on_event(app: &AppHandle, key: &str, ev: TrayIconEvent) {
     }
 }
 
+/// On the main thread: the status items of `key`, one per part ([`Draw::parts`]); the parts it no longer has removed.
+fn apply_parts(app: &AppHandle, key: &str, draw: Option<Draw>) {
+    let parts: Vec<(String, usize, Draw)> = draw
+        .filter(|d| !d.item.hidden)
+        .map(|d| d.parts().into_iter().enumerate().map(|(i, (seg, d))| (seg.map_or_else(|| key.to_string(), |s| format!("{key}#{s}")), i, d)).collect())
+        .unwrap_or_default();
+    let gone: Vec<String> = lock(&ICONS).keys().filter(|k| split_part(k).0 == key && !parts.iter().any(|(p, _, _)| p == *k)).cloned().collect();
+    for k in gone {
+        apply_now(app, &k, 0, None);
+    }
+    for (k, i, d) in parts {
+        apply_now(app, &k, i, Some(d));
+    }
+}
+
 /// On the main thread: create, update or remove the icon for `key`.
-fn apply_now(app: &AppHandle, key: &str, draw: Option<Draw>) {
-    let existing = lock(&ICONS).get(key).map(|i| (i.id.clone(), i.order, i.draw.clone()));
+fn apply_now(app: &AppHandle, key: &str, place: usize, draw: Option<Draw>) {
+    let existing = lock(&ICONS).get(key).map(|i| (i.id.clone(), i.rank, i.draw.clone()));
     let Some(draw) = draw.filter(|d| !d.item.hidden) else {
         if let Some((id, _, _)) = existing {
             app.remove_tray_by_id(&id);
@@ -345,13 +377,13 @@ fn apply_now(app: &AppHandle, key: &str, draw: Option<Draw>) {
         return;
     };
     match existing {
-        Some((id, order, last)) if order == draw.order => {
+        Some((id, rank, last)) if rank == (draw.order, place) => {
             if last == draw {
                 return;
             }
             let Some(tray) = app.tray_by_id(&id) else {
                 lock(&ICONS).remove(key);
-                return apply_now(app, key, Some(draw));
+                return apply_now(app, key, place, Some(draw));
             };
             let palette = Palette::new(dark(app), &BTreeMap::new());
             if !same_image(&last, &draw) {
@@ -387,10 +419,10 @@ fn apply_now(app: &AppHandle, key: &str, draw: Option<Draw>) {
             match build(app, key, &draw) {
                 Ok(id) => {
                     eprintln!("bar\tmenubar\t{key}\tcreated\t{}", title_text(&draw));
-                    let order = draw.order;
-                    lock(&ICONS).insert(key.to_string(), Icon { id, order, draw });
+                    let rank = (draw.order, place);
+                    lock(&ICONS).insert(key.to_string(), Icon { id, rank, draw });
                     // The new icon landed leftmost: rebuild the ones that belong to its left, rightmost first, on the next turn of the loop, so the add itself returns at once.
-                    let lower: Vec<String> = lock(&ICONS).iter().filter(|(k, i)| k.as_str() != key && i.order < order).map(|(k, _)| k.clone()).collect();
+                    let lower: Vec<String> = lock(&ICONS).iter().filter(|(k, i)| k.as_str() != key && i.rank < rank).map(|(k, _)| k.clone()).collect();
                     if !lower.is_empty() {
                         let handle = app.clone();
                         let _ = app.run_on_main_thread(move || rebuild(&handle, lower));
@@ -406,13 +438,13 @@ fn apply_now(app: &AppHandle, key: &str, draw: Option<Draw>) {
 /// the left of the ones created before it: the menu bar then reads in
 /// ascending order. The draw is the one last applied.
 fn rebuild(app: &AppHandle, mut keys: Vec<String>) {
-    keys.sort_by_key(|k| std::cmp::Reverse(lock(&ICONS).get(k).map_or(0, |i| i.order)));
+    keys.sort_by_key(|k| std::cmp::Reverse(lock(&ICONS).get(k).map_or((0, 0), |i| i.rank)));
     for k in keys {
         let Some(i) = lock(&ICONS).remove(&k) else { continue };
         app.remove_tray_by_id(&i.id);
         match build(app, &k, &i.draw) {
             Ok(id) => {
-                lock(&ICONS).insert(k, Icon { id, order: i.order, draw: i.draw });
+                lock(&ICONS).insert(k, Icon { id, rank: i.rank, draw: i.draw });
             }
             Err(e) => eprintln!("bar\tmenubar\t{k}\trebuild failed\t{e}"),
         }
@@ -426,7 +458,7 @@ pub struct MenuBar;
 impl Target for MenuBar {
     fn apply(&self, app: &AppHandle, key: &str, draw: Option<&Draw>) {
         let (handle, key, draw) = (app.clone(), key.to_string(), draw.cloned());
-        let _ = app.run_on_main_thread(move || apply_now(&handle, &key, draw));
+        let _ = app.run_on_main_thread(move || apply_parts(&handle, &key, draw));
     }
 
     fn remove(&self, app: &AppHandle, key: &str) {
@@ -443,7 +475,11 @@ impl Target for MenuBar {
     }
 
     fn anchor(&self, app: &AppHandle, key: &str) -> Option<Rect> {
-        let id = lock(&ICONS).get(key)?.id.clone();
+        // The item's own status item, else its first segment's.
+        let id = {
+            let icons = lock(&ICONS);
+            icons.get(key).or_else(|| icons.iter().filter(|(k, _)| split_part(k).0 == key).min_by_key(|(_, i)| i.rank).map(|(_, i)| i))?.id.clone()
+        };
         let rect = app.tray_by_id(&id)?.rect().ok().flatten()?;
         Some(logical(app, &rect))
     }

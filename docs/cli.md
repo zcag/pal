@@ -206,7 +206,7 @@ absolute path of its binary, since sketchybar's `PATH` is launchd's).
 ```text
 pal bar list                                  every declared item: key, state (visible, hidden, held, stale, unrendered), title, last text
 pal bar json <ext>/<id>                       the item's last rendered state as JSON
-pal bar click <ext>/<id> [--anchor A]         a click: the popover under the item, or its open action
+pal bar click <ext>/<id> [--anchor A] [--segment S]   a click: the popover under the item, or its open action; on segment S, its segment:S action
 pal bar hover <ext>/<id> --state S [--anchor A]   the pointer entered (`enter`, `mouse.entered`) or left (`exit`, `mouse.exited`) the item
 pal bar action <ext>/<id> <action>            run one of the item's actions (a menu row's, or `segment:<id>`)
 pal bar render <ext>/<id>                     render the item again now

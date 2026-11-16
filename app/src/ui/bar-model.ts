@@ -9,7 +9,7 @@
  * (docs/design/screenshots.md, "Parity"). Each function names the Rust it
  * follows; change them together.
  */
-import type { BarLook, BarStripItem } from "./BarStrip";
+import type { BarLook, BarSegment, BarStripItem } from "./BarStrip";
 
 // ---- colours: `bar/colors.rs` ---------------------------------------------------
 
@@ -145,11 +145,33 @@ function glyphRun(k: IconKind | undefined): string | undefined {
 function runs(item: BarStripItem, look: BarLook): string {
   const parts: string[] = [];
   if (item.title) parts.push(clipText(item.title, look.maxChars));
-  for (const s of item.segments ?? []) { const r = `${s.icon ?? ""} ${s.text ?? ""}`.trim(); if (r) parts.push(r); }
+  for (const s of item.segments ?? []) { const r = `${glyphOf(s)} ${s.text ?? ""}`.trim(); if (r) parts.push(r); }
   return parts.join("  ");
 }
 
 /** `menubar::describe` over an already shaped item. */
+/** A segment's icon as text (`Segment::glyph`): none for a picture. */
+export const glyphOf = (s: BarSegment): string => (typeof s.icon === "string" ? s.icon : "");
+/** A segment's picture (`Segment::picture`). */
+export const pictureOf = (s: BarSegment): { image: string; template?: boolean } | undefined => (s.icon && typeof s.icon === "object" && "image" in s.icon ? s.icon : undefined);
+/** `BarItem::pictured`: a segment carries a picture, so the menu bar draws the item as several status items. */
+export const pictured = (item: BarStripItem) => (item.segments ?? []).some((s) => pictureOf(s) !== undefined);
+
+/** `Draw::parts`: the status items the menu bar draws for an item, left to right; the item itself unless a segment carries a picture. */
+export function partsOf(item: BarStripItem): BarStripItem[] {
+  if (!pictured(item)) return [item];
+  const { segments, ...main } = item;
+  const out: BarStripItem[] = [];
+  if (main.icon !== undefined || main.title || count(main) !== undefined || main.badge === "dot") out.push(main);
+  for (const s of segments ?? []) out.push({ icon: s.icon, title: s.text, color: s.color ?? item.color, stale: item.stale, urgent: item.urgent });
+  return out;
+}
+
+/** What the menu bar draws for an item (`parity.rs`): one status item described, or one per part when pictured. */
+export function describeMenubarAll(item: BarStripItem, look: BarLook, dark: boolean): MenubarDescribed | MenubarDescribed[] {
+  return pictured(item) ? partsOf(item).map((p) => describeMenubar(p, look, dark)) : describeMenubar(item, look, dark);
+}
+
 export function describeMenubar(item: BarStripItem, look: BarLook, dark: boolean): MenubarDescribed {
   const pal = new Palette(dark);
   const k = iconKind(item.icon);
@@ -224,12 +246,12 @@ export function describeSketchy(item: BarStripItem, look: BarLook, dark: boolean
   if (look.font === "mono") p["label.font.family"] = "Menlo";
   if (look.width > 0 && title) p["label.width"] = num(look.width);
   const out = [p];
-  const extras = (item.segments ?? []).map((s) => ({ icon: s.icon ?? "", text: s.text ?? "", col: item.stale && !item.urgent ? color("muted") : color(s.color ?? t) }));
-  if (count(item) !== undefined) extras.push({ icon: "", text: String(count(item)), col: color(badgeTint(item, look)) });
+  const extras = (item.segments ?? []).map((s) => ({ icon: glyphOf(s), picture: pictureOf(s) !== undefined, text: s.text ?? "", col: item.stale && !item.urgent ? color("muted") : color(s.color ?? t) }));
+  if (count(item) !== undefined) extras.push({ icon: "", picture: false, text: String(count(item)), col: color(badgeTint(item, look)) });
   extras.forEach((x, i) => {
     const e: SketchyProps = {
-      drawing: item.hidden ? "off" : "on", icon: x.icon, "icon.drawing": x.icon ? "on" : "off", "icon.color": x.col, "icon.padding_left": sp, "icon.padding_right": "2",
-      label: x.text, "label.drawing": x.text ? "on" : "off", "label.color": x.col, "label.padding_left": x.icon ? "0" : sp, "label.padding_right": i === extras.length - 1 ? "8" : "2",
+      drawing: item.hidden ? "off" : "on", icon: x.icon, "icon.drawing": x.icon || x.picture ? "on" : "off", "icon.color": x.col, "icon.padding_left": sp, "icon.padding_right": "2",
+      label: x.text, "label.drawing": x.text ? "on" : "off", "label.color": x.col, "label.padding_left": x.icon || x.picture ? "0" : sp, "label.padding_right": i === extras.length - 1 ? "8" : "2",
     };
     if (is > 0) e["icon.font.size"] = num(is);
     if (ls > 0) e["label.font.size"] = num(ls);

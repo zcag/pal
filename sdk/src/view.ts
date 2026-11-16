@@ -267,6 +267,10 @@ export function checkBarItem(v: unknown, where = "bar"): BarItem {
       if (ids.has(s.id)) throw new Error(`${where}: segment id "${s.id}" twice`);
       ids.add(s.id);
       if (s.color !== undefined && !BAR_COLORS.has(s.color)) throw new Error(`${where}: segment "${s.id}" has an unknown color "${s.color}"`);
+      if (s.icon !== undefined && typeof s.icon !== "string") {
+        const image = (s.icon as { image?: unknown } | null)?.image;
+        if (typeof image !== "string" || !(IMAGE_SRC.test(image) || image.startsWith("/"))) throw new Error(`${where}: segment "${s.id}"'s icon is a glyph or { image } (icon://, data:image/, an absolute path)`);
+      }
     }
   }
   if (item.menu !== undefined) checkBarMenu(item.menu, where);

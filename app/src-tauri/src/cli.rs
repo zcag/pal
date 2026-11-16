@@ -436,6 +436,9 @@ pub enum BarCmd {
         /// Where the click came from: `sketchybar` (the item's bounding rect is queried), `menubar`, or `x,y,w,h` in screen points.
         #[arg(long)]
         anchor: Option<String>,
+        /// A click on this segment of the item: its `segment:<id>` action opens the popover.
+        #[arg(long)]
+        segment: Option<String>,
     },
     /// The pointer entered or left the item (sketchybar's `mouse.entered` / `mouse.exited`).
     Hover {
@@ -775,9 +778,10 @@ impl Cmd {
 /// (or nothing) no rect. Then the popover's event.
 fn run_bar(app: &AppHandle, cmd: BarCmd) {
     use crate::bar::{popover, sketchybar, Rect};
-    let anchor_of = |anchor: Option<&str>, key: &str| -> (Option<Rect>, &'static str) {
+    // A segment's rect on sketchybar is its own item's (`<item>.<segment>`).
+    let anchor_of = |anchor: Option<&str>, key: &str, segment: Option<&str>| -> (Option<Rect>, &'static str) {
         match anchor {
-            Some("sketchybar") => (sketchybar::anchor_of(&sketchybar::name_of(key)), "sketchybar"),
+            Some("sketchybar") => (sketchybar::anchor_of(&segment.map_or_else(|| sketchybar::name_of(key), |s| format!("{}.{s}", sketchybar::name_of(key)))), "sketchybar"),
             Some("menubar") => (None, "menubar"),
             Some(s) => (Rect::parse(s), "cli"),
             None => (None, "cli"),
@@ -785,13 +789,16 @@ fn run_bar(app: &AppHandle, cmd: BarCmd) {
     };
     let app = app.clone();
     tauri::async_runtime::spawn_blocking(move || match cmd {
-        BarCmd::Click { key, anchor } => {
-            let (rect, name) = anchor_of(anchor.as_deref(), &key);
-            popover::on_click(&app, &key, rect, name);
+        BarCmd::Click { key, anchor, segment } => {
+            let (rect, name) = anchor_of(anchor.as_deref(), &key, segment.as_deref());
+            match segment {
+                Some(s) => popover::on_segment_click(&app, &key, &s, rect, name),
+                None => popover::on_click(&app, &key, rect, name),
+            }
         }
         BarCmd::Hover { key, anchor, state } => {
             let entered = matches!(state.trim(), "enter" | "entered" | "mouse.entered");
-            let (rect, name) = if entered { anchor_of(anchor.as_deref(), &key) } else { (None, "cli") };
+            let (rect, name) = if entered { anchor_of(anchor.as_deref(), &key, None) } else { (None, "cli") };
             popover::on_hover(&app, &key, rect, entered, name);
         }
         BarCmd::Action { key, action } => {

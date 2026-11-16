@@ -1196,7 +1196,13 @@ diffs it against the last one:
 - `icon` (a glyph from the bundled Nerd Font, an emoji, `{ image }`, `{ app }`),
   `title` (short: 64 characters at most, the menu bar does not truncate),
   `segments` (up to 8 extra runs after the title, each `{ id, icon?, text?,
-  color?, tooltip? }`; a click on one is the `segment:<id>` action), `badge` (a
+  color?, tooltip? }`; `icon` a glyph, or a picture `{ image, template? }`
+  for a product's real logo, which makes the menu bar draw each segment as a
+  status item of its own (one image holds one picture), as sketchybar
+  already does; a click on a segment runs the item's `segment:<id>` action,
+  and an answer that is a `view`, `push` or `show` opens the popover on that
+  level, anything else the item's own popover: Wisp's per-network counts
+  open on that network's tab), `badge` (a
   count, or `"dot"`), `color` (the tag palette plus `text`, `muted`, `accent`,
   `destructive`), `urgent` (drawn as an alarm), `stale` (muted, "could not
   refresh"), `progress` (0..1, a thin fill), `tooltip`, `refresh` (seconds until

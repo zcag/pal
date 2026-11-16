@@ -24,8 +24,8 @@
 // direction. An extension never sees these three envelopes; they are here
 // for a host or a test harness.
 
-/** The protocol a package is built for; bumped by a change that breaks extensions built before it, or that extensions built after it rely on (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. 2: `preview`, `ignoreStore`, `Effect.show.actions`. 3: the detail header (`Detail.caption`, `title`, `chips`, `stats`). 4: controls (`controls`, `Extension.controls`, `Manifest.controls`, the control view components). 5: accounts (`leaderboard`, `account`, `storage.onChange`, the kit's `score`, `leaderboard`, `account`, `signIn`, `storage.onChange`, `Manifest.sync` and `leaderboards`). 6: `each` in a sync object rule (`SyncObjectRule`). 7: replays (`leaderboard.post`'s `replay`, `leaderboard.replay`, `LeaderboardRow.replay`, the kit's `score` with `{ replay }` and `replay`). 9: the `outputs` control (`OutputsState`, its ops, `outputsRow`); `tabs.pause`, the media probe's `position`. */
-export const PROTOCOL: number = 9;
+/** The protocol a package is built for; bumped by a change that breaks extensions built before it, or that extensions built after it rely on (docs/registry.md). Equal to `pal_core::registry::PROTOCOL`. 2: `preview`, `ignoreStore`, `Effect.show.actions`. 3: the detail header (`Detail.caption`, `title`, `chips`, `stats`). 4: controls (`controls`, `Extension.controls`, `Manifest.controls`, the control view components). 5: accounts (`leaderboard`, `account`, `storage.onChange`, the kit's `score`, `leaderboard`, `account`, `signIn`, `storage.onChange`, `Manifest.sync` and `leaderboards`). 6: `each` in a sync object rule (`SyncObjectRule`). 7: replays (`leaderboard.post`'s `replay`, `leaderboard.replay`, `LeaderboardRow.replay`, the kit's `score` with `{ replay }` and `replay`). 9: the `outputs` control (`OutputsState`, its ops, `outputsRow`); `tabs.pause`, the media probe's `position`. 10: a segment's picture (`BarSegment.icon` as `{ image }`) and its own click (`segment:<id>`). */
+export const PROTOCOL: number = 10;
 /** The oldest package protocol this SDK and host still run. Equal to `pal_core::registry::PROTOCOL_MIN`. */
 export const PROTOCOL_MIN: number = 1;
 
@@ -855,8 +855,18 @@ export type Palette = ListPalette | ViewPalette;
 /** What an item may be coloured: the tag palette plus the bar's own text roles. */
 export type BarColor = TagColor | "text" | "muted" | "accent" | "destructive";
 
-/** One coloured run of a strip (`BarItem.segments`): a small glyph and/or text with its own colour. */
-export type BarSegment = { id: string; icon?: string; text?: string; color?: BarColor; tooltip?: string };
+/**
+ * One coloured run of a strip (`BarItem.segments`): a small glyph and/or
+ * text with its own colour. `icon` may be a picture (`{ image }`, as an
+ * item's: a product's real logo, `template` to take the bar's ink); then
+ * the menu bar draws each of the item's segments as a status item of its
+ * own (one image cannot hold several pictures), as sketchybar always does.
+ * A click on a segment runs the item's `segment:<id>` action: an answer
+ * that is a `view`, `push` or `show` opens the popover on that level (a
+ * popover on that segment's tab), anything else opens the item's popover
+ * as a click on the item would.
+ */
+export type BarSegment = { id: string; icon?: string | { image: string; template?: boolean }; text?: string; color?: BarColor; tooltip?: string };
 
 /**
  * What `render` answers: the item's whole state. The core diffs it against

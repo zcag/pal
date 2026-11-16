@@ -216,20 +216,41 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
     set(&mut p, "click_script", format!("{pal_bin} bar click {key} --anchor sketchybar"));
     set(&mut p, "script", input_script(key, item, draw.hover, palette, pal_bin));
     out.props.insert(main.clone(), p);
-    let extras: Vec<(String, Option<String>, Option<String>, String)> = item
+    // Each segment and the count: (name, segment id, glyph, picture file, text, colour).
+    let extras: Vec<(String, Option<String>, String, Option<std::path::PathBuf>, Option<String>, String)> = item
         .segments
         .iter()
-        .map(|s| (format!("{main}.{}", s.id), s.icon.clone(), s.text.clone(), if item.stale && !item.urgent { color(Some("muted")) } else { color(s.color.as_deref().or(draw.tint())) }))
-        .chain(item.count().map(|n| (format!("{main}.badge"), None, Some(n.to_string()), color(draw.badge_tint()))))
+        .map(|s| {
+            let picture = match s.picture() {
+                Some(IconKind::Image { value, .. }) => glyph::image_file(&value),
+                _ => None,
+            };
+            (format!("{main}.{}", s.id), Some(s.id.clone()), s.glyph().unwrap_or_default().to_string(), picture, s.text.clone(), if item.stale && !item.urgent { color(Some("muted")) } else { color(s.color.as_deref().or(draw.tint())) })
+        })
+        .chain(item.count().map(|n| (format!("{main}.badge"), None, String::new(), None, Some(n.to_string()), color(draw.badge_tint()))))
         .collect();
     let last = extras.len().saturating_sub(1);
-    for (i, (name, icon, text, col)) in extras.into_iter().enumerate() {
+    for (i, (name, segment, icon, picture, text, col)) in extras.into_iter().enumerate() {
         let mut p = Props::new();
         set(&mut p, "drawing", if item.hidden { "off" } else { "on" });
         set(&mut p, "updates", "on");
-        let icon = icon.unwrap_or_default();
         set(&mut p, "icon", icon.clone());
-        set(&mut p, "icon.drawing", if icon.is_empty() { "off" } else { "on" });
+        // A picture is the icon's own background image, as on the item ([`props`] above).
+        match &picture {
+            Some(file) => {
+                set(&mut p, "icon.drawing", "on");
+                set(&mut p, "icon.background.drawing", "on");
+                set(&mut p, "icon.background.image", file.to_string_lossy());
+                set(&mut p, "icon.background.image.drawing", "on");
+                set(&mut p, "icon.background.image.scale", "0.5");
+                set(&mut p, "icon.background.image.padding_left", spacing.clone());
+                set(&mut p, "icon.background.image.padding_right", "4");
+            }
+            None => {
+                set(&mut p, "icon.drawing", if icon.is_empty() { "off" } else { "on" });
+                set(&mut p, "icon.background.drawing", "off");
+            }
+        }
         set(&mut p, "icon.color", col.clone());
         set(&mut p, "icon.padding_left", spacing.clone());
         set(&mut p, "icon.padding_right", "2");
@@ -237,7 +258,7 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
         set(&mut p, "label", text.clone());
         set(&mut p, "label.drawing", if text.is_empty() { "off" } else { "on" });
         set(&mut p, "label.color", col);
-        set(&mut p, "label.padding_left", if icon.is_empty() { spacing.clone() } else { "0".to_string() });
+        set(&mut p, "label.padding_left", if icon.is_empty() && picture.is_none() { spacing.clone() } else { "0".to_string() });
         set(&mut p, "label.padding_right", if i == last { "8" } else { "2" });
         if draw.icon_size() > 0.0 {
             set(&mut p, "icon.font.size", format!("{}", draw.icon_size()));
@@ -248,10 +269,11 @@ pub fn props(key: &str, draw: &Draw, palette: &Palette, pal_bin: &str) -> Render
         if look.font == BarFont::Mono {
             set(&mut p, "label.font.family", "Menlo");
         }
-        // A segment is part of the item, not its own control: the click opens
-        // the same popover the icon does, rather than firing a `segment:<id>`
-        // action the extension likely has no handler for.
-        set(&mut p, "click_script", format!("{pal_bin} bar click {key} --anchor sketchybar"));
+        // A segment's click is its own (`segment:<id>`, popover::on_segment_click), which falls back to the item's popover; the count's is the item's.
+        set(&mut p, "click_script", match &segment {
+            Some(s) => format!("{pal_bin} bar click {key} --anchor sketchybar --segment {s}"),
+            None => format!("{pal_bin} bar click {key} --anchor sketchybar"),
+        });
         out.order.push(name.clone());
         out.props.insert(name, p);
     }
@@ -832,7 +854,7 @@ mod tests {
         assert_eq!(s.props["pal.x.y.block"]["icon.color"], "0xffff8a82");
         assert_eq!(s.props["pal.x.y.oss"]["label.color"], "0x80a3a4ae", "a segment without a colour takes the item's (muted, at dim)");
         assert_eq!(s.props["pal.x.y.oss"]["label.padding_right"], "8", "the last one carries the trailing padding");
-        assert_eq!(s.props["pal.x.y.block"]["click_script"], "pal bar click x/y --anchor sketchybar", "a segment click opens the popover, same as the icon");
+        assert_eq!(s.props["pal.x.y.block"]["click_script"], "pal bar click x/y --anchor sketchybar --segment block", "a segment's click is its own");
         let st = props("x/y", &draw(json!({ "stale": true, "segments": [{ "id": "a", "text": "1", "color": "red" }] }), "right", false), &pal(), "pal");
         assert_eq!(st.props["pal.x.y.a"]["label.color"], "0x80a3a4ae", "stale mutes the segments too, at dim");
         assert_eq!(st.props["pal.x.y"]["label.color"], "0x80a3a4ae");
@@ -917,6 +939,12 @@ mod tests {
         assert_eq!((m["icon.background.image.padding_left"].as_str(), m["icon.background.image.padding_right"].as_str()), ("8", "4"), "the slot's paddings ride the image");
         assert_eq!(m["background.drawing"], "off", "no background of the item's own");
         assert!(!m.contains_key("background.image"), "not the item's background image: never drawn without background.drawing, and behind the label");
+        // A segment's picture is its own item's icon background, and its click carries the segment.
+        let seg = props("wisp/inbox", &draw(json!({ "segments": [{ "id": "whatsapp", "icon": { "image": uri }, "text": "2", "color": "green" }] }), "right", false), &pal(), "pal");
+        let s = &seg.props["pal.wisp.inbox.whatsapp"];
+        assert_eq!((s["icon"].as_str(), s["icon.drawing"].as_str(), s["icon.background.image.drawing"].as_str(), s["label"].as_str(), s["label.padding_left"].as_str()), ("", "on", "on", "2", "0"));
+        assert!(std::path::Path::new(&s["icon.background.image"]).is_file());
+        assert_eq!(s["click_script"], "pal bar click wisp/inbox --anchor sketchybar --segment whatsapp");
         let alone = props("hue/home", &draw(json!({ "icon": { "image": uri } }), "right", false), &pal(), "pal");
         assert_eq!(alone.props["pal.hue.home"]["icon.background.image.padding_right"], "8", "icon only: the trailing padding");
         let broken = props("hue/home", &draw(json!({ "icon": { "image": "https://x/y.png" }, "title": "5 on" }), "right", false), &pal(), "pal");

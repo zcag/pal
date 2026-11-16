@@ -125,7 +125,9 @@ fn drawn(item: &Value, look: &BarLook, dark: bool) -> Value {
             Value::Object(keep)
         })
         .collect();
-    json!({ "menubar": menubar::describe(&draw, &palette), "sketchybar": sketchy })
+    // A pictured item is a status item per part (`Draw::parts`).
+    let menubar = if draw.item.pictured() { json!(draw.parts().iter().map(|(_, d)| menubar::describe(d, &palette)).collect::<Vec<_>>()) } else { json!(menubar::describe(&draw, &palette)) };
+    json!({ "menubar": menubar, "sketchybar": sketchy })
 }
 
 /// One case: the item drawn under a look, both themes.

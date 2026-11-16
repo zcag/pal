@@ -640,6 +640,31 @@ pub fn on_click(app: &AppHandle, key: &str, rect: Option<Rect>, anchor: &'static
     }
 }
 
+/// A click on one of the item's segments (a status item of its own on the
+/// menu bar, a sketchybar item of its own): the item's `segment:<id>`
+/// action, whose `view`, `push` or `show` opens the popover on that level;
+/// any other answer (`keep`, nothing, a failure) opens the item's popover
+/// as a click on the item does. With the item's popover already up, the
+/// click is the item's (it closes it).
+pub fn on_segment_click(app: &AppHandle, key: &str, segment: &str, rect: Option<Rect>, anchor: &'static str) {
+    let up = lock(&app.state::<Popover>().showing).as_ref().is_some_and(|s| s.key == key);
+    if up || entry(app, key).is_none() {
+        return on_click(app, key, rect, anchor);
+    }
+    remember(app, key, rect, anchor);
+    let (app, key, segment) = (app.clone(), key.to_string(), segment.to_string());
+    tauri::async_runtime::spawn(async move {
+        match super::open_segment(&app, &key, &segment, anchor, rect).await {
+            Ok(r) if crate::effects::stays_open(&r) => eprintln!("bar\tsegment\t{key}\t{segment}"),
+            Ok(_) => on_click(&app, &key, rect, anchor),
+            Err(e) => {
+                eprintln!("bar\tsegment\t{key}\t{segment}\tfailed\t{e}");
+                on_click(&app, &key, rect, anchor);
+            }
+        }
+    });
+}
+
 /// The pointer entered (`entered`) or left the item on a target.
 pub fn on_hover(app: &AppHandle, key: &str, rect: Option<Rect>, entered: bool, anchor: &'static str) {
     if entered {

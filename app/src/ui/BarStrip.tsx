@@ -17,12 +17,12 @@
  */
 import type { CSSProperties, ReactNode } from "react";
 import { appIconUrl, pictureUrl } from "./icons";
-import { clipText, cssOf, describeMenubar, describeSketchy, hasGlyph, labelSize, shapeItem, type MenubarDescribed } from "./bar-model";
+import { clipText, cssOf, describeMenubar, describeSketchy, hasGlyph, labelSize, partsOf, pictureOf, shapeItem, type MenubarDescribed } from "./bar-model";
 
 export { clipText, shapeItem };
 
 export type BarColor = "grey" | "blue" | "green" | "amber" | "red" | "violet" | "pink" | "teal" | "text" | "muted" | "accent" | "destructive";
-export type BarSegment = { id: string; icon?: string; text?: string; color?: BarColor | string };
+export type BarSegment = { id: string; icon?: string | { image: string; template?: boolean }; text?: string; color?: BarColor | string };
 /** The strip's part of an extension's `BarItem` (sdk `protocol.ts`), in its wire spelling: what `bar-model.ts` reads. */
 export type BarStripItem = {
   hidden?: boolean; icon?: string | { image: string; template?: boolean } | { app: string }; title?: string; segments?: BarSegment[]; badge?: number | "dot";
@@ -146,7 +146,7 @@ export function MenuBar({ items, look, dark, anchor, bare, battery }: { items: B
   return (
     <div className="g-mb" style={{ height: MENUBAR_H }}>
       <div className="g-mb__items">
-        {items.map((it, i) => <MenubarItem key={i} item={it} look={look} dark={dark} anchor={i === 0 ? anchor : undefined} />)}
+        {items.flatMap((it, i) => partsOf(it).map((p, j) => <MenubarItem key={`${i}.${j}`} item={p} look={look} dark={dark} anchor={i === 0 && j === 0 ? anchor : undefined} />))}
         {!bare && <span className="g-mb__item"><Battery level={battery} /></span>}
         {!bare && <span className="g-mb__item"><Wifi /></span>}
         <span className="g-mb__item"><ControlCenter /></span>
@@ -167,12 +167,15 @@ const px = (v: string | undefined) => (v === undefined ? undefined : Number(v));
 export function SketchyItem({ item, look = defaultLook, dark, anchor }: { item: BarStripItem; look?: BarLook; dark: boolean; anchor?: (el: HTMLElement | null) => void }) {
   const props = describeSketchy(item, look, dark);
   const main = props[0];
+  // A picture is the icon's background image (sketchybar.rs): the item's own, then each segment's, in the props' order.
+  const pictures = [typeof item.icon === "object" && item.icon && "image" in item.icon ? item.icon : undefined, ...(item.segments ?? []).map(pictureOf)];
   const band: CSSProperties = main["background.drawing"] === "on" ? { background: cssOf(main["background.color"]), borderRadius: px(main["background.corner_radius"]), height: px(main["background.height"]) } : {};
   return (
     <span ref={anchor} className="g-sb__group" style={band}>
       {props.map((p, i) => p.drawing === "off" ? null : (
         <span key={i} className="g-sb__item">
-          {p["icon.drawing"] === "on" && (
+          {p["icon.drawing"] === "on" && pictures[i] && <img className="g-sb__picture" src={pictureUrl(pictures[i]!.image, 32)} alt="" style={{ paddingLeft: px(p["icon.padding_left"]), paddingRight: 4 }} />}
+          {p["icon.drawing"] === "on" && !pictures[i] && (
             <Runs text={p.icon} mono className="g-sb__icon" style={{ color: cssOf(p["icon.color"]), fontSize: px(p["icon.font.size"]), paddingLeft: px(p["icon.padding_left"]), paddingRight: px(p["icon.padding_right"]), width: px(p["icon.width"]) }} />
           )}
           {p["label.drawing"] === "on" && (
