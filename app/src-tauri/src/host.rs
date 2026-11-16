@@ -89,8 +89,10 @@ struct Layout {
 /// The bun that runs the host and installs an extension's dependencies
 /// (`pal_core::extensions`): needs no app handle, so the CLI resolves it too.
 pub(crate) fn bun() -> PathBuf {
-    let sidecar = tauri::utils::platform::current_exe()
+    // Through the link too (`~/.local/bin/pal`): the sidecar is beside the real binary.
+    let sidecar = std::env::current_exe()
         .ok()
+        .and_then(|exe| exe.canonicalize().ok())
         .and_then(|exe| exe.parent().map(|d| d.join(SIDECAR)))
         .filter(|p| p.is_file());
     let on_path = std::env::var_os("PATH").and_then(|p| std::env::split_paths(&p).map(|d| d.join("bun")).find(|b| b.is_file()));
@@ -106,6 +108,13 @@ pub(crate) fn base(resource_dir: Option<PathBuf>) -> PathBuf {
         (false, Some(dir)) => dir,
         _ => PathBuf::from(REPO),
     }
+}
+
+/// The app's resources, also when it was started through the link (a CLI
+/// command run while no pal was up becomes the app): without the fallback
+/// such an app takes the build machine's checkout for its host.
+pub(crate) fn resources(app: &AppHandle) -> Option<PathBuf> {
+    app.path().resource_dir().ok().or_else(resource_dir_through_link)
 }
 
 /// The bundle's resources when pal runs through a symlink (`~/.local/bin/pal`
@@ -175,14 +184,14 @@ pub(crate) fn store_inputs(base: &Path, config: &pal_core::config::Config) -> pa
 
 /// The extension operations (`pal_core::manage`) for the running app.
 pub(crate) fn manager(app: &AppHandle) -> pal_core::manage::Manager {
-    let inputs = store_inputs(&base(app.path().resource_dir().ok()), &crate::settings::config(app));
+    let inputs = store_inputs(&base(resources(app)), &crate::settings::config(app));
     pal_core::manage::Manager::new(crate::settings::file(app), inputs)
 }
 
 impl Layout {
     fn resolve(app: &AppHandle) -> Layout {
         let bun = bun();
-        let base = base(app.path().resource_dir().ok());
+        let base = base(resources(app));
         let store = pal_core::extensions::Store::locate();
         // There before the host starts, so the host links the SDK into it
         // (`linkApi`) before anything there imports `@zcag/pal`: Bun keeps a

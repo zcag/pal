@@ -122,7 +122,7 @@ async fn serve(app: &AppHandle, uri: &str) -> Served {
 
 /// The kit: the resource tree's copy in a bundle, the repo's in a debug build (edits show on reload).
 fn kit_dir(app: &AppHandle) -> PathBuf {
-    let staged = app.path().resource_dir().ok().map(|d| d.join("surface-kit")).filter(|d| d.is_dir());
+    let staged = crate::host::resources(app).map(|d| d.join("surface-kit")).filter(|d| d.is_dir());
     match (cfg!(debug_assertions), staged) {
         (false, Some(dir)) => dir,
         _ => PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/surface-kit")),
