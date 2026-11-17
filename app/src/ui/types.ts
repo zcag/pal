@@ -91,6 +91,8 @@ export type Item = {
   complete?: string;
   /** The answer to the query, drawn as a headline row (`Item.hero` in the SDK). */
   hero?: boolean;
+  /** Nothing waits on the user here (`Item.quiet` in the SDK): name and subtitle drawn faint. */
+  quiet?: boolean;
   /** Drawn greyed; a pick on it does nothing (a menu row). */
   disabled?: boolean;
   /** Drawn muted but live: the "N more in ..." row after a capped section at the root. */

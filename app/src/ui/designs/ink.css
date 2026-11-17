@@ -134,8 +134,7 @@
 
 /* A bar popover is a 420-wide window: its header row a size down from the panel's headline (the sidebar keeps its own, smaller). */
 [data-design~="ink"] .pal-bar-page:not([data-sidebar]) {
-  --pal-search-h: 52px;
-  --pal-text-query: 20px;
+  --pal-text-query: 18px;
   --pal-text-placeholder: 16px;
   --pal-panel-fit: off;
 }

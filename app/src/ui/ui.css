@@ -182,6 +182,10 @@
 .pal-row__check, .pal-tile__check { color: var(--pal-accent); font-family: var(--pal-font-symbols); font-size: var(--pal-text-md); line-height: 1; }
 .pal-row[data-disabled] { opacity: 0.45; }
 .pal-row[data-muted] .pal-row__title { color: var(--pal-fg-muted); font-size: 0.92em; }
+/* `Item.quiet`: nothing waits on the user (a read conversation), so the row steps back: its name in the subtitle's ink, its subtitle fainter, its icon faded; under the cursor it reads as any row. */
+.pal-row[data-quiet]:not([data-active]) .pal-row__title { color: var(--pal-fg-muted); font-weight: var(--pal-weight-regular); }
+.pal-row[data-quiet]:not([data-active]) .pal-row__sub { color: var(--pal-fg-faint); }
+.pal-row[data-quiet]:not([data-active]) > .pal-icon { opacity: 0.55; }
 .pal-row .pal-icon[data-kind="glyph"], .pal-row .pal-icon__globe, .pal-action .pal-icon[data-kind="glyph"] { color: var(--pal-fg-muted); }
 .pal-row[data-active] .pal-icon, .pal-action[data-active] .pal-icon { color: var(--pal-cursor-fg, var(--pal-fg)); }
 .pal-row[data-active] .pal-row__sub, .pal-row[data-active] .pal-acc { color: var(--pal-cursor-fg-muted, var(--pal-fg-muted)); }
@@ -789,7 +793,7 @@ mark { background: var(--pal-match); color: inherit; border-radius: var(--pal-ra
 .pal-view__dot[data-color="violet"] { --dot: var(--pal-tag-violet); }
 .pal-view__dot[data-color="pink"] { --dot: var(--pal-tag-pink); }
 .pal-view__dot[data-color="teal"] { --dot: var(--pal-tag-teal); }
-/* A node with `action` is a control: a pointer, and a lift on hover (a stack or a tile brightens; a keycap too). `selected` is the keys' cursor: the accent ring. */
+/* A node with `action` is a control: a pointer, and a lift on hover (a stack or a tile brightens; a keycap too). `selected` is the keys' cursor: the accent ring, lighter on a list row (below). */
 .pal-view [data-action] { cursor: pointer; user-select: none; }
 .pal-view .pal-view__stack[data-action], .pal-view .pal-view__tile[data-action] { transition: filter var(--pal-dur-fast) var(--pal-ease), transform var(--pal-dur-fast) var(--pal-ease); }
 .pal-view .pal-view__stack[data-action]:hover, .pal-view .pal-view__tile[data-action]:hover { filter: brightness(1.06); }
@@ -799,6 +803,11 @@ mark { background: var(--pal-match); color: inherit; border-radius: var(--pal-ra
 /* Inside a clipping box (a treemap's strips) the ring would be cut on the box's edges, and between rows with no gap (a diff's lines) it would paint over the neighbours, so it goes inside instead. */
 .pal-view__stack[data-box] [data-selected], .pal-view__stack[data-tight] > [data-selected] { box-shadow: inset 0 0 0 2px var(--pal-accent), inset 0 0 0 4px var(--pal-bg); }
 .pal-view .pal-view__stack[data-selected][data-surface="elevated"] { box-shadow: 0 0 0 2px var(--pal-bg), 0 0 0 4px var(--pal-accent); }
+/* A list row (a clickable stack among the rows of a column, keyed ones inside their Presence wrapper; never a sized cell of a board, a calendar or a treemap) wears a lighter cursor than the ring a cell needs to stand out: lifted onto the elevated surface (a row with its own surface or marked keeps that), a thin line of the accent inside. */
+.pal-view__stack:not([data-direction="row"]) > .pal-view__stack[data-selected][data-action]:not([data-box]),
+.pal-view__stack:not([data-direction="row"]) > div:not(.pal-view__node) > .pal-view__stack[data-selected][data-action]:not([data-box]) { box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--pal-accent) 50%, transparent), var(--pal-bevel); }
+.pal-view__stack:not([data-direction="row"]) > .pal-view__stack[data-selected][data-action]:not([data-box], [data-surface], [data-marked]),
+.pal-view__stack:not([data-direction="row"]) > div:not(.pal-view__node) > .pal-view__stack[data-selected][data-action]:not([data-box], [data-surface], [data-marked]) { background: var(--pal-bg-elevated); }
 .pal-view .pal-kbd, .pal-view .pal-tag { flex: none; }
 /* Entrances (brief's motion table): fade, the toast's rise and its three siblings (--pal-motion-slide), a horizontal unfold for a card turning over, a pop from 0.8 for a merged tile. `both` keeps a delayed node hidden until its turn. A `move` (View.tsx useMove) is a transform played by script over --pal-motion-move; a re-mounted mover has its entrance switched off inline. */
 .pal-view [data-enter="fade"] { animation: pal-fade var(--pal-dur-base) var(--pal-ease) both; }
@@ -871,6 +880,8 @@ mark { background: var(--pal-match); color: inherit; border-radius: var(--pal-ra
 /* The HUD window's page (HudPage.tsx): the capsule at the bottom centre, 24px in so the shadow (20px below) stays inside the window; the text clips before the window does. Out: slower than the in, so it is not read as a flicker. */
 /* The bar popover's page (BarPage.tsx): the panel fills the window; `urgent` paints the title bar in the destructive colour. The ink is the accent's (white on the light theme's deep red, near-black on the dark theme's salmon, so it passes AA on both), and the crumb chip shades the band toward the theme's text colour, darker in light and lighter in dark, for the same reason. */
 .pal-bar-page { position: fixed; inset: 0; }
+/* The header row is a popover's title, not the panel's search: shorter, so the content starts near the top. */
+.pal-bar-page:not([data-sidebar]) { --pal-search-h: 36px; }
 .pal-bar-page[data-urgent] .pal-panel__search { background: var(--pal-destructive); }
 .pal-bar-page[data-urgent] .pal-search__input, .pal-bar-page[data-urgent] .pal-search__title { color: var(--pal-accent-fg); caret-color: var(--pal-accent-fg); }
 .pal-bar-page[data-urgent] .pal-search__input::placeholder { color: color-mix(in srgb, var(--pal-accent-fg) 70%, transparent); }

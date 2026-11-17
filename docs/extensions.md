@@ -575,7 +575,10 @@ is left to the load-time check.
   typed: a sum, the weather now, a translation; the list draws it as a
   headline, taller, its name in the design's display type over its
   subtitle; put it first. An app that predates it draws a plain row, so
-  it needs no newer pal). Any other key rides
+  it needs no newer pal), `quiet` (`true` on a row with nothing waiting
+  on the user: a read conversation, a done task; its name and subtitle
+  are drawn faint, so the rows that want attention stand out. An app that
+  predates it draws a plain row). Any other key rides
   through untouched (a `section` for the empty root, whatever the
   extension wants to keep on the row) and `pick` does not get it back.
   An accessory is right-aligned on the row: `{ text }`, `{ tag, color? }`

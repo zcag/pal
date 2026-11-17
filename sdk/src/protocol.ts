@@ -139,6 +139,12 @@ export type Item = {
    */
   hero?: boolean;
   /**
+   * Nothing here waits on the user (a read conversation, a done task): the
+   * list draws its name and subtitle faint, so the rows that do want
+   * attention stand apart. An app that predates it draws a plain row.
+   */
+  quiet?: boolean;
+  /**
    * Anything else rides along untouched (the core keeps unknown keys, the
    * UI ignores them). For a field of your own, a future version of the
    * shape cannot collide with; `pick` does not get it back.
