@@ -13,7 +13,7 @@ against `extensions/` on 2026-09-28: every row is covered.
 | [Gmail](https://www.raycast.com/tonka3000/gmail) | Unread mail, search, compose, mark read | have | `extensions/gmail`, `multi` (personal and work); read and mark-read only on the work account |
 | [TinyPNG](https://www.raycast.com/kawamataryo/tinypng) | Compress images from Finder selection or clipboard | have | `extensions/images`: compress, resize, convert |
 | [Google Maps Search](https://www.raycast.com/ratoru/google-maps-search) | Search places, directions from home/work | have | `extensions/maps` |
-| [WhatsApp](https://www.raycast.com/vimtor/whatsapp) | Open chats by contact | have | `extensions/whatsapp` over his OpenWA |
+| [WhatsApp](https://www.raycast.com/vimtor/whatsapp) | Open chats by contact | have | `whatsapp` over his Wisp (OpenWA until 2026-11-17) |
 | [ScreenOCR](https://www.raycast.com/huzef44/screenocr) | Select a screen region, OCR to clipboard | have | `extensions/screenshots`: area/window/screen capture, and Copy text (Vision OCR) on any capture |
 | [Port Manager](https://www.raycast.com/lucaschultz/port-manager) | Ports in use, kill the owner | have | Processes: `:3000` mode |
 | [Image Modification](https://www.raycast.com/HelloImSteven/sips) | Rotate, flip, resize, convert, strip EXIF via sips | have | `extensions/images` |

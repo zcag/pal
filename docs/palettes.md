@@ -177,7 +177,7 @@ second account gets the same palettes under `<name>@<suffix>-<palette>`
 | [Chats](#whatsapp-whatsapp-chats-whatsapp-unread-whatsapp-search-whatsapp-contacts-whatsappunread) | `whatsapp-chats` | live, primary | Open the chat (a group opens WhatsApp at the top) |
 | [Unread](#whatsapp-whatsapp-chats-whatsapp-unread-whatsapp-search-whatsapp-contacts-whatsappunread) | `whatsapp-unread` | live, normal | Open the chat |
 | [Search WhatsApp](#whatsapp-whatsapp-chats-whatsapp-unread-whatsapp-search-whatsapp-contacts-whatsappunread) | `whatsapp-search` | input, normal | Open the chat |
-| [Contacts](#whatsapp-whatsapp-chats-whatsapp-unread-whatsapp-search-whatsapp-contacts-whatsappunread) | `whatsapp-contacts` | indexed, catalog | Open a chat with the contact |
+| [Contacts](#whatsapp-whatsapp-chats-whatsapp-unread-whatsapp-search-whatsapp-contacts-whatsappunread) | `whatsapp-contacts` | input, normal | Open a chat with the person |
 | [Wi-Fi](#wi-fi-wifi) | `wifi` | live, normal | Join, scan, or turn the radio off or on |
 | [Window Management](#window-management-window-management-window-management-arrange) | `window-management` | indexed, normal | Apply to the focused window |
 | [Arrange Window](#window-management-window-management-window-management-arrange) | `window-management-arrange` | input, normal | Pick the window, then its layout |
@@ -4982,83 +4982,77 @@ Settings, `[extensions.screenshots]`:
 
 ## WhatsApp (`whatsapp-chats`, `whatsapp-unread`, `whatsapp-search`, `whatsapp-contacts`, `whatsapp/unread`)
 
-One extension, four palettes and a bar item over a self-hosted
-[OpenWA](https://github.com/openwa) gateway's HTTP API (the owner's at
-`http://wp.lan`, one session named `main` linked to his phone, the
-archive of every message since 2018 behind its `/api/search`).
-`whatsapp/README.md` has the setup for a gateway of your own.
+One extension, four palettes and a bar item over Wisp, the self-hosted
+inbox that holds the WhatsApp account live with its history. It
+`requires` the Wisp extension and reads through its client
+(`wisp/api.ts`, inlined at build) with its server and token, so it has
+no connection settings of its own. `whatsapp/README.md` has the detail.
 
 | palette | id | kind | what `Enter` does |
 | --- | --- | --- | --- |
 | Chats | `whatsapp-chats` | live, lazy, primary | opens the chat in the app or the web client |
 | Unread | `whatsapp-unread` | live, lazy | the same, over the unread chats only |
 | Search WhatsApp | `whatsapp-search` | input | opens the hit's chat |
-| Contacts | `whatsapp-contacts` | indexed, 1 h, catalog | opens a chat with the contact |
+| Contacts | `whatsapp-contacts` | input | opens a chat with the person |
 
-**Chats.** `GET /chats` (the list, live from WhatsApp), the status feed,
-broadcast lists and Channels dropped, the unread chats first then newest
+**Chats.** `GET /api/v1/conversations?view=all&account=` for Wisp's
+WhatsApp account (the first one turned on, asked once from
+`/api/v1/accounts`), 200 a page, three pages; direct chats and groups,
+broadcasts and channels dropped; the unread chats first then newest
 first. The unread chats' newest messages (their count, five at most)
-come from `/messages/<chat>/history` (live, `fromMe`, oldest first) laid
-over `/messages?chatId=` (the archive: the sender's saved name, the
-quoted reply), merged by message id, so the row says who said what and
-a media message is named (`[photo]`, `[voice message]`, `[document]
-name`; what the gateway cannot classify is its text, else `[message]`);
-the other rows carry the gateway's one-line summary. The row:
-the profile picture (else the initial on a tile; a group the group
-glyph), the name, the line, a `group` tag, the unread count in green,
-the time. The pane: the last twenty messages as a conversation (the
-sender in bold, "You" for yours, the time, a quoted reply as a
-blockquote, media in brackets), then kind, unread, the phone (a LID-era
-`@lid` id resolved through `/contacts/<lid>/phone`, once), the newest
-message's time, a link into the web client. Pictures are never on the
-listing's path: the gateway resolves them at ~150 ms each (50 ids took
-11.5 s live), so a background pass asks for eight at a time among the
-newest 48 chats and keeps the urls (good for about nine days, `oe` in
-the query) in storage under `pictures`. One chat list serves the bar
-and the palettes for 30 s.
+come from `/conversations/<id>/messages`, so the row says who said what
+and a media message is named (`[photo]`, `[voice message]` with its
+transcript, `[document] name`); the other rows carry Wisp's preview. The
+row: the picture (fetched at 64 px for the newest 48, else the initial
+on a tile; a group the group glyph), the name, the line, a `group` tag,
+the unread count in green, the time. The pane: the last twenty messages
+as a conversation (the sender in bold, "You" for yours, the time, a
+photo inline), then kind, unread, the phone (an incoming sender's
+`<phone>@s.whatsapp.net`, else the reach of the person Wisp merged the
+chat into), the newest message's time, a link into the web client. One
+chat list serves the bar and the palettes for 30 s.
 
 | action | shortcut | when |
 | --- | --- | --- |
 | Open chat | `Enter` | `whatsapp://send?phone=` in the desktop app, `https://web.whatsapp.com/send?phone=` on the web, per `open` (`auto` is the app when installed on macOS); a group has no link of its own, so WhatsApp opens at the top and the HUD says so |
-| Mark as read / Mark as unread | `⌘Enter` | `POST /chats/read` and `/chats/unread`, over the marked rows too |
-| Send a message | `⌘⇧R` | `send` on; a form with the text and a box to quote the latest message (`/messages/reply`, else `/messages/send-text`) |
-| React to the latest message | `⌘⇧E` | `send` on; WhatsApp's six quick reactions or remove yours (`/messages/react`) |
+| Mark as read / Mark as unread | `⌘Enter` | `POST /api/v1/conversations/<id>/read` and `/unread`, over the marked rows too |
+| Send a message | `⌘⇧R` | `send` on; a form with the text and a box to quote the latest message (`POST /conversations/<id>/messages`, `replyTo` to quote) |
+| React to the latest message | `⌘⇧E` | `send` on; WhatsApp's six quick reactions or remove yours (`POST` / `DELETE /messages/<id>/react`) |
 | Open in the web client | `⌘⇧O` | |
 | Copy number / Copy name | `⌘C` | `+905...`; a group's name |
 
 **Unread**: the same rows over the chats with something unread, direct
 messages then groups (the root's unread rows). **Search WhatsApp**:
-`/api/search?q=` (full-text over the archive, `<mark>` snippets), 300 ms
+`/api/v1/search?q=<words> in:whatsapp` (Wisp's search language), 300 ms
 after the last keystroke, 40 hits; the row is the matching line, who
-said it where (the chat's name from the list, a sender's from the
-contacts), when; the hits whose chat is already named show as soon as
-the search answers, in order up to one whose chat waits on its contact;
-`Enter` opens the chat, `⌘C` copies the message, the
-pane is the chat's conversation; a provider that is down is one hint
-row with the status and the gateway's message. **Contacts**: `/contacts`
-a thousand a page (the first page, then five in parallel), the saved
-ones (`isMyContact` with a name) one per number, an hour in memory; a
-name without a letter or digit, or that is the number itself, reads as
-the number alone; `Enter` opens a chat, `⌘C` copies `+<number>`, `⌘⇧C` a vCard 3.0.
+said it where, when; `Enter` opens the chat, `⌘C` copies the message,
+the pane is the chat's conversation; Wisp failing is one hint row with
+the status and its message. **Contacts**: Wisp's people with a WhatsApp
+identity (`/api/v1/people`, the most recent with nothing typed, the
+matches for a name or a number), their number from `/people/<id>`'s
+reach; `Enter` opens a chat, `⌘C` copies `+<number>`, `⌘⇧C` a vCard 3.0.
 
 **`send`, off by default.** Off is read and mark-read only: no Send a
 message, no React, no reply field in the popover; every write path
 checks it again at pick time and refuses with a toast naming the
-setting. The key can do all of it; the setting is the control (the
-owner's rule for sends: an outward action, only as a form he submits).
+setting. Wisp's `client` token acts as the owner on his keystroke; the
+setting is the control (the owner's rule for sends: an outward action,
+only as a form he submits).
 
 **The bar item** `whatsapp/unread`: the number of unread chats as the
 badge, hidden at zero (the core's `show = "always"` keeps the glyph and
 lists the recent chats in the popover), red while a direct chat is unread
-(its `dm` rule); every 120 s and on show, wake, network. The popover is a
-view of the item's own (`view.ts`): direct messages then groups with the
-picture as a data url, the newest message and the time, a cursor the
-arrows move and a click sets; `Enter` opens, `m` marks read, `a` all,
-`r` (send on) a message field whose `Enter` sends, `o` WhatsApp, `p` the
-Unread palette, `⌘⇧O` the web client.
+(its `dm` rule); every 30 s, on show, wake, network, and within a second
+of a `message.new` on the WhatsApp account or an `unread.changed` that
+moved its unread on Wisp's event stream. The popover is a view of the
+item's own (`view.ts`): direct messages then groups with the picture as
+a data url, the newest message and the time, a cursor the arrows move
+and a click sets; `Enter` opens, `m` marks read, `a` all, `r` (send on)
+a message field whose `Enter` sends, `o` WhatsApp, `p` the Unread
+palette, `⌘⇧O` the web client.
 
-Popover keys of `whatsapp/unread` (rendered every 120 s and on show, wake,
-network; the arrows move the cursor, a click sets it):
+Popover keys of `whatsapp/unread` (the arrows move the cursor, a click
+sets it):
 
 | keys | does |
 | --- | --- |
@@ -5071,27 +5065,23 @@ network; the arrows move the cursor, a click sets it):
 | `p` | Open the Unread palette |
 | `cmd+shift+o` | Open the row's chat in the web client |
 
-Links: `pal://whatsapp/open?chat=<id | phone | name>` (a chat id, a
-number, or a name from the chats then the contacts, exact then prefix)
-and `pal://whatsapp/search?q=`.
+Links: `pal://whatsapp/open?chat=<id | phone | name>` (Wisp's
+conversation id, a number or a WhatsApp id with one, or a name from the
+chats then Wisp's people, exact then prefix) and
+`pal://whatsapp/search?q=`.
 
-Settings, `[extensions.whatsapp]`:
+Settings, `[extensions.whatsapp]` (the server and token are the Wisp
+extension's, `[extensions.wisp]`):
 
 | key | type | default | what |
 | --- | --- | --- | --- |
-| `base_url` | text | `http://wp.lan` | Where the gateway answers; `/api` is under it. |
-| `api_key` | secret | (none) | Sent as `x-api-key`; in the OS keychain. |
-| `session` | text | `main` | The session's name; the UUID is resolved once and kept in storage (`session:<name>`), resolved again on a 404 naming the session. |
 | `send` | boolean | `false` | Send a message, React, the popover's reply field. |
 | `open` | `auto`, `app`, `web` | `auto` | Where a chat opens. |
 
-Hint rows: no key (Open WhatsApp settings), the gateway unreachable at
-its url, the key rejected (401), a session not ready (a `qr_ready` one
-says to scan the code at the gateway's url; the chat list answers 409
-meanwhile), a session name nobody has, a 429 (refused locally for
-`Retry-After`, 60 s without), the search provider down. Not shown: muted
-and pinned chats and a group's member count (the gateway's chat summary
-has none of them).
+Hint rows: Wisp not set up, unreachable at its url, the token refused
+(each with Open Wisp settings), no WhatsApp account in Wisp. Not shown:
+muted and pinned chats, a group's member count, a quoted message (Wisp's
+v1 messages do not carry what they quote).
 
 ## Images (`images`)
 
