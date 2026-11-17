@@ -17,6 +17,7 @@
 .g-mb__icon { font-size: 16px; line-height: 1; }
 .g-mb__itext { font-size: 13px; line-height: 1; white-space: pre; }
 .g-mb__picture { width: 18px; height: 18px; border-radius: 4px; object-fit: cover; }
+.g-mb__picture--tinted { display: inline-block; border-radius: 0; background: currentColor; mask: center / contain no-repeat; -webkit-mask: center / contain no-repeat; }
 .g-mb__image[data-progress] .g-mb__icon { font-size: 14px; margin-bottom: 4px; }
 .g-mb__title { font-size: 13px; }
 .g-mb__dot { position: absolute; top: 0; right: -1px; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }

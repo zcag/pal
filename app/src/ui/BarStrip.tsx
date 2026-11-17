@@ -117,7 +117,9 @@ function MenubarImage({ d, item, textPx }: { d: MenubarDescribed; item: BarStrip
   const [words, tail] = count && text.endsWith(count.trimStart()) ? [text.slice(0, text.length - count.trimStart().length), text.slice(text.length - count.trimStart().length)] : [text, ""];
   return (
     <span className="g-mb__image" data-progress={d.progress !== null || undefined} style={{ color: ink }}>
-      {d.icon === "image" && src && <img className="g-mb__picture" src={src} alt="" />}
+      {d.icon === "image" && src && (d.template
+        ? <span className="g-mb__picture g-mb__picture--tinted" style={{ maskImage: `url("${src}")`, WebkitMaskImage: `url("${src}")` }} />
+        : <img className="g-mb__picture" src={src} alt="" />)}
       {/* A run is drawn into the image as text (glyph::strip), at the text's size; a lone glyph fills the 18 pt square. */}
       {d.glyph && <Runs text={d.glyph} className={d.icon === "run" ? "g-mb__itext" : "g-mb__icon"} style={{ opacity: alpha, fontSize: d.icon === "run" ? textPx : d.size > 0 ? d.size : undefined }} />}
       {text && <Runs text={words} className="g-mb__itext" style={{ opacity: alpha, fontSize: textPx }} />}
