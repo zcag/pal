@@ -140,7 +140,7 @@ const OVERLAY_CSS = `
 :host([hidden]) { display: none; }
 [hidden] { display: none !important; }
 .scrim { position: fixed; inset: 0; z-index: 2147483600; background: rgb(0 0 0 / 0.3); animation: pal-fade 120ms ease-out; }
-.dialog { position: fixed; z-index: 2147483601; top: max(10vh, 16px); left: 50%; translate: -50% 0; width: min(720px, calc(100vw - 32px)); height: min(480px, calc(100dvh - max(10vh, 16px) - 16px)); border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgb(0 0 0 / 0.35); animation: pal-drop 140ms ease-out; }
+.dialog { position: fixed; z-index: 2147483601; top: max(10vh, 16px); left: 50%; translate: -50% 0; width: min(720px, calc(100vw - 32px)); height: min(480px, calc(100dvh - max(10vh, 16px) - 16px)); border-radius: var(--pal-radius-panel, 12px); overflow: hidden; box-shadow: 0 20px 60px rgb(0 0 0 / 0.35); animation: pal-drop 140ms ease-out; }
 pal-panel { height: 100%; }
 @keyframes pal-fade { from { opacity: 0; } }
 @keyframes pal-drop { from { opacity: 0; transform: translateY(-6px) scale(0.98); } }
@@ -162,6 +162,7 @@ function start(script: HTMLScriptElement | undefined, server: string): PalApi {
     sent = now;
     faces = pageFaces(new Set([now["--pal-font-ui"], now["--pal-font-mono"]].flatMap((s) => (s ? families(s) : []))));
     for (const el of els) el.tokens(now, faces);
+    overlay?.style.setProperty("--pal-radius-panel", now["--pal-radius-panel"] ?? "");
   };
   let up = false, barOn = !noBar && store.get<boolean>("pal:bar") !== false;
   let bar: PalBar | null = null, panel: PalPanel | null = null, overlay: HTMLElement | null = null, before: Element | null = null;
@@ -228,6 +229,7 @@ function start(script: HTMLScriptElement | undefined, server: string): PalApi {
       shadow.append(style, scrim, dialog);
       overlay = host;
       host.hidden = true;
+      host.style.setProperty("--pal-radius-panel", sent["--pal-radius-panel"] ?? "");
       document.body.append(host);
     }
     if (overlay.hidden) { before = document.activeElement; overlay.hidden = false; }
