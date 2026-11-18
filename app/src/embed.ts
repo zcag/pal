@@ -55,11 +55,19 @@ export function listenHost() {
       return;
     }
     if (e.origin !== host) return;
-    for (const h of handlers) h(e.data);
+    if (handlers.size) for (const h of handlers) h(e.data);
+    else early.push(e.data);
   });
 }
 
-export const onHost = (h: (m: Exclude<ToPal, { hello: true }>) => void) => { handlers.add(h); return () => { handlers.delete(h); }; };
+/** The host's calls that came before the page listened (it answers `hello` at once, before React has mounted), handed to the first listener. */
+const early: Exclude<ToPal, { hello: true }>[] = [];
+
+export const onHost = (h: (m: Exclude<ToPal, { hello: true }>) => void) => {
+  handlers.add(h);
+  for (const m of early.splice(0)) h(m);
+  return () => { handlers.delete(h); };
+};
 
 /** A message to the host, held until it has said hello. */
 export const toHost = (m: FromPal) => (host === null ? waiting.push(m) : post(m));
