@@ -192,7 +192,6 @@ export default function RemoteShell() {
             }))}</div>)}
           </div>
         </div>
-        {embed?.kind === "bar" && <button type="button" className="pal-remote__more" aria-label="Items shown here" title="Items shown here" data-open={picking !== null || undefined} onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setSheet(null); setPicking(picking === null ? r.left + r.width / 2 : null); }}>⋯</button>}
         <span className="pal-remote__link" aria-hidden title="Reconnecting to pal" />
         {!embed && <a className="pal-remote__settings" href="?settings" aria-label="Settings" title="Settings">{SLIDERS}</a>}
       </header>}

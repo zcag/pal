@@ -27,9 +27,8 @@ matches it, and does the rest itself:
   closes the panel, **shift B** shows and hides the bar. Never while
   someone types in a field or an editable element, and never a key the page
   already handled (`preventDefault`).
-- **Which bar items show**, per device: a right-click on the strip (or its
-  ⋯, at the right end, shown while the pointer is on the strip) lists every
-  item to tick on or off. The pick is kept in the page's own storage, so
+- **Which bar items show**, per device: a right-click on the strip (a long
+  press on a phone) lists every item to tick on or off. The pick is kept in the page's own storage, so
   per site and per browser; until a device picks, the site's default from
   pal's config shows (Settings, below).
 - **Light or dark as the page is**: the page's background decides, else
@@ -172,8 +171,8 @@ right, as the menu bar draws it. A strip wider than the
 element scrolls sideways (a mouse wheel too). The element's height is the
 strip's, which pal tells it (26px today), so your page needs no number.
 A click opens the item's popover under it, drawn over your page, and a
-click outside the popover or Escape closes it. A right-click on the strip,
-or its ⋯, opens the item picker: it changes `hide` and tells
+click outside the popover or Escape closes it. A right-click on the strip (a long
+press on a phone) opens the item picker: it changes `hide` and tells
 `pal-bar-hide`, for your page to keep.
 
 | attribute | on | what |

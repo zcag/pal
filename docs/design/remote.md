@@ -241,7 +241,7 @@ for the bar's on/off and hidden items, a Settings section to pick them,
   until pal restarts) and Settings lists it with Allow and Deny
   (`remote_embed_answer`); the allow list stays pal's, a site cannot add
   itself.
-- *Hidden items.* The strip's own picker (a right-click or its ⋯,
+- *Hidden items.* The strip's own picker (a right-click or a long press,
   `embed-picker.tsx`) changes the frame's hidden set at once and tells
   the host `bar-hide`; `<pal-bar>` takes it as its `hide`, and the module
   keeps it in the host page's `localStorage`, which is per site by

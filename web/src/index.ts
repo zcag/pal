@@ -149,8 +149,8 @@ export class PalPanel extends PalFrame {
  * (the frame grows downward, the element keeps the strip's height, which
  * the page tells). Same attributes as `<pal-panel>` but `palette`, plus
  * `hide` (item keys, comma-separated, that leave the strip; changed live).
- * `pal-bar-items` lists every item; the strip's own picker (a right-click,
- * or its ⋯) sets `hide` and tells `pal-bar-hide`, for the host to keep.
+ * `pal-bar-items` lists every item; the strip's own picker (a right-click
+ * or a long press) sets `hide` and tells `pal-bar-hide`, for the host to keep.
  */
 export class PalBar extends PalFrame {
   protected readonly kind = "bar";

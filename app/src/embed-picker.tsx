@@ -1,6 +1,6 @@
 /**
  * Which bar items an embedded strip shows (docs/embed.md): a right-click on
- * the strip or its ⋯ opens this list under it; a flip hides or shows the
+ * the strip (a long press on touch) opens this list under it; a flip hides or shows the
  * item at once and tells the host (`pal-bar-hide`), which keeps it for this
  * device on that site.
  */

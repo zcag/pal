@@ -37,11 +37,7 @@ html[data-embed="bar"] .pal-remote-sheet__card {
 html[data-embed="bar"] .pal-remote-sheet__card::before { display: none; }
 html[data-embed="bar"] [data-exiting] > .pal-remote-sheet__card { transform: none; opacity: 0; transition: opacity var(--pal-dur-fast) var(--pal-ease-in); }
 
-/* The strip's item picker (embed-picker.tsx) and the ⋯ that opens it, quiet until the strip is hovered. */
-html[data-embed="bar"] .pal-remote__more { flex: none; height: 22px; padding: 0 6px; border: 0; border-radius: var(--pal-radius-control, 6px); background: none; color: var(--pal-fg-muted); font: inherit; line-height: 1; cursor: pointer; opacity: 0; transition: opacity var(--pal-dur-fast) var(--pal-ease); }
-html[data-embed="bar"] .pal-remote__top:hover .pal-remote__more, html[data-embed="bar"] .pal-remote__more:focus-visible, html[data-embed="bar"] .pal-remote__more[data-open] { opacity: 1; }
-@media (hover: none) { html[data-embed="bar"] .pal-remote__more { opacity: 0.6; } }
-html[data-embed="bar"] .pal-remote__more:hover, html[data-embed="bar"] .pal-remote__more[data-open] { background: var(--pal-selection); color: var(--pal-fg); }
+/* The strip's item picker (embed-picker.tsx), opened by a right-click on the strip. */
 .pal-embed-picker { list-style: none; margin: 0; padding: 8px 0; height: 100%; overflow: auto; box-sizing: border-box; }
 .pal-embed-picker__row { display: flex; align-items: center; gap: var(--pal-space-2); height: 30px; padding: 0 var(--pal-space-3); color: var(--pal-fg); font-size: 13px; cursor: pointer; }
 .pal-embed-picker__row:hover { background: var(--pal-selection); }
@@ -49,3 +45,4 @@ html[data-embed="bar"] .pal-remote__more:hover, html[data-embed="bar"] .pal-remo
 .pal-embed-picker__title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pal-embed-picker__key { flex: none; color: var(--pal-fg-muted); font-size: 11px; }
 .pal-embed-picker__none { margin: 0; padding: var(--pal-space-3); color: var(--pal-fg-muted); font-size: 13px; }
+html[data-embed="bar"]:not([data-remote="offline"]) .pal-remote__link { display: none; }

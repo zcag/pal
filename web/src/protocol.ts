@@ -21,7 +21,7 @@ export type EmbedEvents = {
   "bar-close": Record<string, never>;
   /** Every item the bar has (`<pal-bar>`), by key as `pal bar list` prints it, those `hide` leaves out included: sent once ready and whenever the set changes, for a host that lets someone pick. */
   "bar-items": { key: string; title: string }[];
-  /** Someone picked which items show (`<pal-bar>`'s own picker, a right-click or its ⋯): the keys now hidden. The element takes them as its `hide`; a host keeps them for this device. */
+  /** Someone picked which items show (`<pal-bar>`'s own picker, a right-click or a long press): the keys now hidden. The element takes them as its `hide`; a host keeps them for this device. */
   "bar-hide": { keys: string[] };
   /**
    * The app would hide pal here: Escape with nothing left to back out of
