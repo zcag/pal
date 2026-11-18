@@ -77,14 +77,26 @@ export function pageScheme(): "light" | "dark" {
 /** `accent_fg`, `accent-fg` or `--pal-accent-fg` as the custom property. */
 const tokenVar = (key: string) => `--pal-${key.replace(/^--pal-/, "").replaceAll("_", "-")}`;
 
-/** A colour in a form pal takes (hex, `rgb()`, `hsl()`): any other the browser reads (`oklch()`, a name) as `rgba()`; one it does not read as written, for pal to name. */
+/**
+ * A colour in a form pal takes (hex, `rgb()`, `hsl()`): any other the
+ * browser reads (`oklch()`, `light-dark()` in the page's scheme, a name)
+ * resolved on a probe in the page and drawn as `rgba()`; one it does not
+ * read as written, for pal to name.
+ */
 function cssColor(v: string): string {
   if (/^(#|rgba?\(|hsla?\()/i.test(v)) return v;
   if (!CSS.supports("color", v)) return v;
+  const probe = document.createElement("span");
+  probe.style.cssText = "display: none";
+  probe.style.color = v;
+  document.body.append(probe);
+  const resolved = getComputedStyle(probe).color;
+  probe.remove();
+  if (/^rgba?\(/.test(resolved)) return resolved;
   const c = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
   if (!c) return v;
   c.canvas.width = c.canvas.height = 1;
-  c.fillStyle = v;
+  c.fillStyle = resolved;
   c.fillRect(0, 0, 1, 1);
   const [r, g, b, a] = c.getImageData(0, 0, 1, 1).data;
   return `rgba(${r}, ${g}, ${b}, ${+(a / 255).toFixed(3)})`;
