@@ -86,7 +86,7 @@ sets them from code instead, over the CSS ones.
 | --- | --- |
 | `accent`, `accent-fg`, `accent-soft`, `bg`, `bg-glass`, `bg-elevated`, `bg-sunken`, `fg`, `fg-muted`, `fg-faint`, `line`, `line-strong`, `selection`, `scrim`, `match`, `knob`, `destructive`(`-soft`), `success`(`-soft`), the `tag-*` and `brand-*` colours, `tile-fg`, `tile-ring` | a colour: anything the browser reads (`oklch()` and names are passed on as `rgba()`) |
 | `radius-panel`, `radius-popover`, `radius-hud`, `radius-tile`, `radius-row`, `radius-icon`, `radius-control`, `radius-tag`, `radius-kbd` | pixels (`3px`) |
-| `font-ui`, `font-mono` | a font stack; the font has to load inside pal's frame, so name one the device has or one pal's page loads |
+| `font-ui`, `font-mono` | a font stack. A family the page loads itself (`@font-face` in one of its stylesheets) is loaded in pal's frames from the same files, which pal's origin fetches: the page's server answers those font files with `Access-Control-Allow-Origin` (pal's address, or `*`) |
 
 [Theme file](config.md#theme-file) says what each one colours. pal checks
 every value as it checks a theme file's; one it cannot use is dropped with
@@ -101,6 +101,8 @@ none looks as it did before.
   `frame-src` for pal's address, `connect-src` too (the tag asks pal
   whether the site is allowed: `/__pal/embed.json`).
 - Reserve the bar's room with `--pal-bar-h`, as above.
+- To match pal to its look, its `--pal-*` tokens, and CORS on the font
+  files they name ("Match your site").
 - Nothing else; the elements below are for a page that wants to place
   them itself.
 
