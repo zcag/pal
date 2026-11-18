@@ -12,7 +12,7 @@
  * selector to put the strip in instead of fixing it to the top), `keys`
  * (`panel:shift+p bar:shift+b`, `none`), `theme` (`light`, `dark`, `pal`).
  */
-import { PalBar, PalPanel, type PalEvent } from "./index.js";
+import { define, type PalBar, type PalEvent, type PalPanel } from "./index.js";
 import { matches, parseKeys } from "./keys.js";
 
 export type PalApi = {
@@ -217,6 +217,7 @@ declare global {
 }
 
 if (typeof document !== "undefined" && !window.pal) {
+  define();
   const script = [...document.querySelectorAll<HTMLScriptElement>("script[src]")].find((s) => s.src === import.meta.url);
   window.pal = start(script, new URL(import.meta.url).origin);
 }

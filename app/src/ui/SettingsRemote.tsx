@@ -73,9 +73,10 @@ export function useRemote(onCopy: (text: string) => void): RemoteProps | undefin
 function SiteBar({ hide, items, onHide }: { hide: string[]; items: { key: string; title: string }[]; onHide: (keys: string[]) => void }) {
   const known = new Set(items.map((i) => i.key));
   const flip = (key: string) => onHide(hide.includes(key) ? hide.filter((k) => k !== key) : [...hide, key]);
+  const label = (i: { key: string; title: string }) => (items.filter((x) => x.title === i.title).length > 1 ? `${i.title} (${i.key.split("/")[0]})` : i.title || i.key);
   return (
     <span className="pal-button-row" role="group" aria-label="Bar items shown there">
-      {items.map((i) => <button key={i.key} type="button" className="pal-button" aria-pressed={!hide.includes(i.key)} title={i.key} onClick={() => flip(i.key)}>{hide.includes(i.key) ? <s>{i.title || i.key}</s> : i.title || i.key}</button>)}
+      {items.map((i) => <button key={i.key} type="button" className="pal-button" aria-pressed={!hide.includes(i.key)} title={i.key} onClick={() => flip(i.key)}>{hide.includes(i.key) ? <s>{label(i)}</s> : label(i)}</button>)}
       {hide.filter((k) => !known.has(k)).map((k) => <button key={k} type="button" className="pal-button" aria-pressed={false} title="Not on the bar now" onClick={() => flip(k)}><s>{k}</s></button>)}
     </span>
   );
