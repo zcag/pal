@@ -71,6 +71,7 @@ export function pageScheme(): "light" | "dark" {
 
 const OVERLAY_CSS = `
 :host { all: initial; }
+:host([hidden]) { display: none; }
 [hidden] { display: none !important; }
 .scrim { position: fixed; inset: 0; z-index: 2147483600; background: rgb(0 0 0 / 0.3); animation: pal-fade 120ms ease-out; }
 .dialog { position: fixed; z-index: 2147483601; top: max(10vh, 16px); left: 50%; translate: -50% 0; width: min(720px, calc(100vw - 32px)); height: min(480px, calc(100dvh - max(10vh, 16px) - 16px)); border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgb(0 0 0 / 0.35); animation: pal-drop 140ms ease-out; }
