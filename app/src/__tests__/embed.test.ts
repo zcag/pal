@@ -8,6 +8,7 @@ import { embedOf, passOn, picked, themeOf } from "../embed";
 import { isFromPal, isToPal } from "../../../web/src/protocol";
 import { pictureUrl, servedSrc } from "../ui/icons";
 import { sheetLine, sheetSrc } from "../sheet";
+import { matches, parseKeys } from "../../../web/src/keys";
 
 describe("a page framed by another site", () => {
   it("reads what the host element asked for off its address", () => {
@@ -36,6 +37,20 @@ describe("a page framed by another site", () => {
     expect(isFromPal({ pal: "embed", event: "pick", detail: {} })).toBe(true);
     expect(isFromPal({ pal: "embed", hello: true })).toBe(false);
     expect(isFromPal("hello")).toBe(false);
+  });
+});
+
+describe("pal on a page with one tag", () => {
+  it("opens with pal's own keys, which the page can change or turn off, a letter also by its physical key", () => {
+    expect(parseKeys(undefined)).toEqual({ panel: "shift+p", bar: "shift+b" });
+    expect(parseKeys("panel:ctrl+k bar:none")).toEqual({ panel: "ctrl+k", bar: null });
+    expect(parseKeys("none")).toEqual({ panel: null, bar: null });
+    const key = (key: string, code: string, mods: Partial<KeyboardEvent> = {}) => ({ key, code, shiftKey: false, ctrlKey: false, altKey: false, metaKey: false, ...mods });
+    expect(matches("shift+p", key("P", "KeyP", { shiftKey: true }))).toBe(true);
+    expect(matches("shift+p", key("p", "KeyP")), "modifiers exact").toBe(false);
+    expect(matches("shift+p", key("P", "KeyP", { shiftKey: true, metaKey: true }))).toBe(false);
+    expect(matches("alt+p", key("π", "KeyP", { altKey: true })), "macOS Option's character").toBe(true);
+    expect(matches("ctrl+space", key(" ", "Space", { ctrlKey: true }))).toBe(true);
   });
 });
 

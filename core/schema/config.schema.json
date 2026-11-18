@@ -1106,6 +1106,25 @@
           "description": "The address other devices open, when a name in front of pal serves it\n(`https://pal.lan`); empty, Settings shows `http://<hostname>:<port>`.",
           "type": "string"
         },
+        "embed_bar_hide": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "default": {},
+          "description": "Per allowed site, the bar items hidden there unless a device picked its own\n(`\"https://app.example\" = [\"audio/volume\"]`, keys as `pal bar list` prints them).",
+          "type": "object"
+        },
+        "embed_denied": {
+          "default": [],
+          "description": "Sites that asked to show pal and were turned down: they are not asked about again.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "embed_origins": {
           "default": [],
           "description": "Other sites allowed to show pal inside their pages (`https://app.example`),\neach with its own token (`docs/embed.md`); empty, no other site can.",
@@ -1402,6 +1421,8 @@
       "$ref": "#/$defs/Remote",
       "default": {
         "address": "",
+        "embed_bar_hide": {},
+        "embed_denied": [],
         "embed_origins": [],
         "enabled": false,
         "port": 7373,

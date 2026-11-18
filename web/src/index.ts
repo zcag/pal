@@ -2,8 +2,9 @@
  * pal inside another web app (docs/embed.md): `<pal-panel>` and `<pal-bar>`
  * frame the pages a pal server serves (`?embed=panel`, `?embed=bar`), size
  * the frame as the page asks, and turn what the page says into DOM events
- * (`pal-pick`, `pal-hud`, `pal-copy`, `pal-open`, `pal-bar-open`,
- * `pal-bar-close`, each a `CustomEvent` with the detail in `EmbedEvents`).
+ * (`pal-pick`, `pal-hud`, `pal-copy`, `pal-open`, `pal-bar-open`, …, each a
+ * cancelable `CustomEvent` with the detail in `EmbedEvents`). `embed.ts` is
+ * the one-tag layer over them.
  */
 import { PARAMS, isFromPal, type EmbedEvents, type ToPal } from "./protocol.js";
 
@@ -57,12 +58,13 @@ abstract class PalFrame extends HTMLElement {
 
   attributeChangedCallback(name: string, before: string | null, after: string | null) {
     if (before === after || !this.isConnected) return;
-    if (name === "hide" && this.#ready) this.#send({ pal: "embed", call: "hide", keys: (after ?? "").split(",").map((k) => k.trim()).filter(Boolean) });
+    if (name === "hide") this.#send({ pal: "embed", call: "hide", keys: (after ?? "").split(",").map((k) => k.trim()).filter(Boolean) });
+    else if (name === "theme") this.#send({ pal: "embed", call: "theme", theme: after === "light" || after === "dark" ? after : null });
     else this.#load();
   }
 
-  /** The search field focused. */
-  focus() { this.#send({ pal: "embed", call: "focus" }); }
+  /** The frame focused, and the search field in it. */
+  focus() { this.frame.focus(); this.#send({ pal: "embed", call: "focus" }); }
   /** Back to the start: the root, or the element's `palette`. */
   reset() { this.#send({ pal: "embed", call: "reset" }); }
 
@@ -110,7 +112,7 @@ abstract class PalFrame extends HTMLElement {
       for (const q of this.#queue.splice(0)) this.#send(q);
     } else if ("size" in m) this.resized(m.size, m.strip);
     else if ("scheme" in m) this.frame.style.colorScheme = m.scheme;
-    else this.dispatchEvent(new CustomEvent(`pal-${m.event}`, { detail: m.detail, bubbles: true, composed: true }));
+    else this.dispatchEvent(new CustomEvent(`pal-${m.event}`, { detail: m.detail, bubbles: true, composed: true, cancelable: true }));
   };
 }
 
@@ -139,7 +141,8 @@ export class PalPanel extends PalFrame {
  * (the frame grows downward, the element keeps the strip's height, which
  * the page tells). Same attributes as `<pal-panel>` but `palette`, plus
  * `hide` (item keys, comma-separated, that leave the strip; changed live).
- * `pal-bar-items` lists every item for a host that lets someone pick.
+ * `pal-bar-items` lists every item; the strip's own picker (a right-click,
+ * or its ⋯) sets `hide` and tells `pal-bar-hide`, for the host to keep.
  */
 export class PalBar extends PalFrame {
   protected readonly kind = "bar";
@@ -149,8 +152,7 @@ export class PalBar extends PalFrame {
 
   constructor() {
     super();
-    this.addEventListener("pal-bar-open", () => { this.#open = true; });
-    this.addEventListener("pal-bar-close", () => { this.#open = false; });
+    this.addEventListener("pal-bar-hide", (e) => { e.detail.keys.length ? this.setAttribute("hide", e.detail.keys.join(",")) : this.removeAttribute("hide"); });
   }
 
   connectedCallback() {
@@ -166,9 +168,11 @@ export class PalBar extends PalFrame {
   /** The open popover closed. */
   close() { this.send({ pal: "embed", call: "close" }); }
 
+  /** Taller than the strip: a popover or the picker is open, and a click outside closes it. */
   protected resized(height: number, strip?: number) {
     super.resized(height);
     if (strip) this.style.height = `${strip}px`;
+    this.#open = !!strip && height > strip;
   }
 
   #outside = (e: PointerEvent) => { if (this.#open && !e.composedPath().includes(this)) this.close(); };
@@ -190,5 +194,8 @@ declare global {
     "pal-open": PalEvent<"open">;
     "pal-bar-open": PalEvent<"bar-open">;
     "pal-bar-close": PalEvent<"bar-close">;
+    "pal-bar-items": PalEvent<"bar-items">;
+    "pal-bar-hide": PalEvent<"bar-hide">;
+    "pal-dismiss": PalEvent<"dismiss">;
   }
 }

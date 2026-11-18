@@ -110,11 +110,16 @@ pub struct Remote {
     /// Other sites allowed to show pal inside their pages (`https://app.example`),
     /// each with its own token (`docs/embed.md`); empty, no other site can.
     pub embed_origins: Vec<String>,
+    /// Sites that asked to show pal and were turned down: they are not asked about again.
+    pub embed_denied: Vec<String>,
+    /// Per allowed site, the bar items hidden there unless a device picked its own
+    /// (`"https://app.example" = ["audio/volume"]`, keys as `pal bar list` prints them).
+    pub embed_bar_hide: BTreeMap<String, Vec<String>>,
 }
 
 impl Default for Remote {
     fn default() -> Self {
-        Self { enabled: false, port: 7373, address: String::new(), trusted_proxies: Vec::new(), embed_origins: Vec::new() }
+        Self { enabled: false, port: 7373, address: String::new(), trusted_proxies: Vec::new(), embed_origins: Vec::new(), embed_denied: Vec::new(), embed_bar_hide: BTreeMap::new() }
     }
 }
 

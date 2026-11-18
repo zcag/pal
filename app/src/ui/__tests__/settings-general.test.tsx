@@ -77,10 +77,12 @@ describe("SettingsGeneral permissions", () => {
     expect(find("unread")).toEqual(["Glance strip"]);
     expect(find("phone")).toEqual(["Use pal from other devices"]);
     expect(find("iframe")).toEqual(["Inside other sites"]);
-    const remote = { status: { enabled: true, serving: true, port: 7373, url: "https://pal.lan", address: "https://pal.lan", trusted_proxies: [], token: "t", connected: 1, embed_origins: ["https://app.example"], embeds: [{ origin: "https://app.example", token: "e" }] }, onEnabled: noop, onPort: noop, onProxy: noop, onReplaceToken: noop, onCopy: noop, onEmbedOrigins: noop };
+    const remote = { status: { enabled: true, serving: true, port: 7373, url: "https://pal.lan", address: "https://pal.lan", trusted_proxies: [], token: "t", connected: 1, embed_origins: ["https://app.example"], embeds: [{ origin: "https://app.example", token: "e", hide: ["audio/volume"] }], pending: ["https://asks.example"], denied: [] }, onEnabled: noop, onPort: noop, onProxy: noop, onReplaceToken: noop, onCopy: noop, onEmbedOrigins: noop, onEmbedAnswer: noop, onEmbedHide: noop, barItems: [{ key: "audio/volume", title: "Volume" }, { key: "stats/cpu", title: "CPU" }] };
     const html = page({ value: { ...general, glance: ["gmail/unread"] }, glanceItems: [{ key: "gmail/unread", title: "Gmail › Unread" }, { key: "weather/weather", title: "Weather › Weather" }], permissions: { accessibility: true, input_monitoring: true }, themeFile: { status: settingsThemeFile, onChange: noop, onEdit: noop, onOpenDir: noop }, remote });
     for (const e of generalIndex) expect(html, e.label).toContain(`data-anchor="${e.anchor}"`);
-    expect(html).toContain("Copy snippet for https://app.example");
+    expect(html).toContain("https://asks.example wants to show pal");
+    expect(html, "a site's default bar items, the hidden one struck").toMatch(/aria-pressed="false" title="audio\/volume"><s>Volume<\/s>/);
+    expect(html).toMatch(/aria-pressed="true" title="stats\/cpu">CPU</);
     // The glance strip's chosen item is pressed and numbered by its place in the strip.
     expect(html).toMatch(/aria-pressed="true"><span class="pal-glance-pick__n">1<\/span>Gmail › Unread/);
   });

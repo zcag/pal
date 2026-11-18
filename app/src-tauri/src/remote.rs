@@ -176,6 +176,8 @@ fn apply(app: &AppHandle, remote: &pal_core::config::Remote) {
         .route("/__icon/{*rest}", get(icon))
         .route("/__ext/{*rest}", get(ext))
         .route("/__pal/web.js", get(web_module))
+        .route("/__pal/embed.js", get(embed_module))
+        .route("/__pal/embed.json", get(embed_site))
         .route("/__pal/{*rest}", get(kit))
         .fallback(get(asset))
         .with_state(ctx);
@@ -311,7 +313,7 @@ const EMBED_COOKIE: &str = "pal_embed";
 /// as `scheme://host[:port]`; anything that does not parse as one is
 /// dropped, so nothing in the list can add to the header it goes in.
 fn embed_origins(list: &[String]) -> impl Iterator<Item = String> + '_ {
-    list.iter().filter_map(|o| url::Url::parse(o.trim()).ok()).filter(|u| matches!(u.scheme(), "http" | "https") && u.host().is_some()).map(|u| u.origin().ascii_serialization())
+    list.iter().filter_map(|o| origin_of(o))
 }
 
 /// Who may frame the pages: pal's own (a bar item's sheet) and the allowed origins.
@@ -521,9 +523,21 @@ async fn ext(State(ctx): State<Ctx>, ConnectInfo(peer): ConnectInfo<SocketAddr>,
 /// so a site imports the copy that matches the pal it frames. The public
 /// package, so no sign-in; readable cross-origin by an allowed site (`import()`).
 async fn web_module(State(ctx): State<Ctx>, headers: HeaderMap) -> Response {
-    let Some((_, bytes)) = frontend(&ctx.app, "/__pal/web.js") else { return StatusCode::NOT_FOUND.into_response() };
+    let allowed = allowed_origin(&crate::settings::config(&ctx.app).remote.embed_origins, &headers);
+    module(&ctx.app, "/__pal/web.js", allowed)
+}
+
+/// `/__pal/embed.js`: pal on a page with one tag (`@zcag/pal-web/embed`). Any
+/// site may load it, so one not yet allowed can ask (`embed_site`); it draws
+/// nothing until pal says the site is allowed.
+async fn embed_module(State(ctx): State<Ctx>) -> Response {
+    module(&ctx.app, "/__pal/embed.js", Some("*".into()))
+}
+
+fn module(app: &AppHandle, path: &str, cors: Option<String>) -> Response {
+    let Some((_, bytes)) = frontend(app, path) else { return StatusCode::NOT_FOUND.into_response() };
     let mut r = ([(header::CONTENT_TYPE, "text/javascript"), (header::CACHE_CONTROL, "no-cache")], bytes).into_response();
-    if let Some(v) = allowed_origin(&crate::settings::config(&ctx.app).remote.embed_origins, &headers).and_then(|o| HeaderValue::from_str(&o).ok()) {
+    if let Some(v) = cors.and_then(|o| HeaderValue::from_str(&o).ok()) {
         r.headers_mut().insert(header::ACCESS_CONTROL_ALLOW_ORIGIN, v);
     }
     r.headers_mut().insert(header::VARY, HeaderValue::from_static("Origin"));
@@ -534,6 +548,84 @@ async fn web_module(State(ctx): State<Ctx>, headers: HeaderMap) -> Response {
 fn allowed_origin(list: &[String], headers: &HeaderMap) -> Option<String> {
     let origin = headers.get(header::ORIGIN)?.to_str().ok()?;
     embed_origins(list).find(|o| o == origin)
+}
+
+/// What `/__pal/embed.json` tells the page that loaded `embed.js`.
+#[derive(Serialize, Debug, PartialEq)]
+struct Site {
+    /// The site is in `[remote] embed_origins`.
+    allowed: bool,
+    /// This device gets in (its tailnet, or the site's token), so the frames will not ask to sign in.
+    signed: bool,
+    /// The bar items hidden on this site unless the device picked its own (`[remote] embed_bar_hide`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    hide: Option<Vec<String>>,
+}
+
+/// `/__pal/embed.json`: whether the asking site may show pal, and this
+/// device with it. A site neither allowed nor turned down is listed in
+/// Settings to allow or deny (`remote_embed_answer`); it learns no more than no.
+async fn embed_site(State(ctx): State<Ctx>, ConnectInfo(peer): ConnectInfo<SocketAddr>, headers: HeaderMap, Query(auth): Query<Auth>) -> Response {
+    let remote = crate::settings::config(&ctx.app).remote;
+    let origin = headers.get(header::ORIGIN).and_then(|h| h.to_str().ok()).and_then(origin_of);
+    let site = match origin.as_deref().filter(|o| embed_origins(&remote.embed_origins).any(|a| &a == o)) {
+        Some(o) => Site { allowed: true, signed: allowed(&ctx.app, peer.ip(), &headers, auth.token.as_deref()).await, hide: Some(bar_hide(&remote, o)) },
+        None => {
+            if let Some(o) = origin.filter(|o| !embed_origins(&remote.embed_denied).any(|d| &d == o)) {
+                ask(&ctx.app, o);
+            }
+            Site { allowed: false, signed: false, hide: None }
+        }
+    };
+    let mut r = ([(header::CACHE_CONTROL, "no-store")], axum::Json(site)).into_response();
+    if let Some(v) = headers.get(header::ORIGIN).cloned() {
+        r.headers_mut().insert(header::ACCESS_CONTROL_ALLOW_ORIGIN, v);
+    }
+    r.headers_mut().insert(header::VARY, HeaderValue::from_static("Origin"));
+    r
+}
+
+/// `scheme://host[:port]` of an `Origin` or an address someone typed; `None` for anything else.
+fn origin_of(s: &str) -> Option<String> {
+    url::Url::parse(s.trim()).ok().filter(|u| matches!(u.scheme(), "http" | "https") && u.host().is_some()).map(|u| u.origin().ascii_serialization())
+}
+
+/// The site's default hidden bar items, its entry found however it was spelled.
+fn bar_hide(remote: &pal_core::config::Remote, origin: &str) -> Vec<String> {
+    remote.embed_bar_hide.iter().find(|(o, _)| origin_of(o).as_deref() == Some(origin)).map(|(_, keys)| keys.clone()).unwrap_or_default()
+}
+
+/// The sites that asked to show pal since it started and were not answered; a handful at most.
+static PENDING: Mutex<Vec<String>> = Mutex::new(Vec::new());
+const PENDING_MAX: usize = 8;
+
+fn ask(app: &AppHandle, origin: String) {
+    let mut pending = lock(&PENDING);
+    if pending.contains(&origin) || pending.len() >= PENDING_MAX {
+        return;
+    }
+    eprintln!("remote\tasks to show pal\t{origin}");
+    pending.push(origin);
+    drop(pending);
+    crate::events::emit(app, crate::events::REMOTE, ());
+}
+
+/// Settings' Allow or Deny for a site that asked (or one turned down before):
+/// allowed, it joins `embed_origins` and leaves `embed_denied`; denied, the other way round.
+#[tauri::command(async)]
+pub fn remote_embed_answer(app: AppHandle, origin: String, allow: bool) -> Result<Status, String> {
+    let origin = origin_of(&origin).ok_or_else(|| format!("{origin}: not a site address"))?;
+    let remote = crate::settings::config(&app).remote;
+    let without = |list: &[String]| list.iter().filter(|o| origin_of(o).as_deref() != Some(&origin)).cloned().collect::<Vec<_>>();
+    let (allowed, denied) = (without(&remote.embed_origins), without(&remote.embed_denied));
+    let (mut to, from, key_to, key_from) = if allow { (allowed, denied, "remote.embed_origins", "remote.embed_denied") } else { (denied, allowed, "remote.embed_denied", "remote.embed_origins") };
+    to.push(origin.clone());
+    let list = |l: Vec<String>| (!l.is_empty()).then(|| json!(l));
+    crate::settings::write(&app, key_to, list(to))?;
+    crate::settings::write(&app, key_from, list(from))?;
+    lock(&PENDING).retain(|o| o != &origin);
+    crate::events::emit(&app, crate::events::REMOTE, ());
+    Ok(remote_status(app))
 }
 
 /// `/__pal/<path>`: the surface kit, which a surface page asks for at its
@@ -706,15 +798,19 @@ pub struct Status {
     trusted_proxies: Vec<String>,
     token: String,
     connected: usize,
-    /// `[remote] embed_origins` as written, and each one that parses with its own token.
+    /// `[remote] embed_origins` as written, and each one that parses with its own token and hidden bar items.
     embed_origins: Vec<String>,
     embeds: Vec<Embed>,
+    /// Sites that asked to show pal, waiting on Allow or Deny, and those denied.
+    pending: Vec<String>,
+    denied: Vec<String>,
 }
 
 #[derive(Serialize)]
 struct Embed {
     origin: String,
     token: String,
+    hide: Vec<String>,
 }
 
 #[tauri::command]
@@ -723,8 +819,10 @@ pub fn remote_status(app: AppHandle) -> Status {
     let serving = lock(&app.state::<Server>().0).as_ref().is_some_and(|(_, t)| !t.inner().is_finished());
     let url = if remote.address.is_empty() { format!("http://{}:{}", hostname(), remote.port) } else { remote.address.trim_end_matches('/').to_string() };
     let token = token(&app);
-    let embeds = embed_origins(&remote.embed_origins).map(|origin| Embed { token: embed_token(&token, &origin), origin }).collect();
-    Status { enabled: remote.enabled, serving, port: remote.port, url, address: remote.address, trusted_proxies: remote.trusted_proxies, token, connected: lock(&conns().0).len(), embed_origins: remote.embed_origins, embeds }
+    let embeds = embed_origins(&remote.embed_origins).map(|origin| Embed { token: embed_token(&token, &origin), hide: bar_hide(&remote, &origin), origin }).collect();
+    let denied = embed_origins(&remote.embed_denied).collect();
+    let pending = lock(&PENDING).iter().filter(|o| !embed_origins(&remote.embed_origins).any(|a| &a == *o)).cloned().collect();
+    Status { enabled: remote.enabled, serving, port: remote.port, url, address: remote.address, trusted_proxies: remote.trusted_proxies, token, connected: lock(&conns().0).len(), embed_origins: remote.embed_origins, embeds, pending, denied }
 }
 
 /// Settings' Replace: a new token; every page signed in with the old one
@@ -754,6 +852,17 @@ mod tests {
         assert!(!valid_label("remote::main"));
         assert!(!valid_label("remote:a-b:main"));
         assert!(!valid_label("main"));
+    }
+
+    #[test]
+    fn a_site_is_its_origin_however_it_was_written() {
+        assert_eq!(origin_of("https://atc.lan/x?y").as_deref(), Some("https://atc.lan"));
+        assert_eq!(origin_of(" http://a.example:8080 ").as_deref(), Some("http://a.example:8080"));
+        assert_eq!(origin_of("null"), None);
+        assert_eq!(origin_of("file:///etc"), None);
+        let remote = pal_core::config::Remote { embed_bar_hide: [("https://atc.lan/".to_string(), vec!["audio/volume".to_string()])].into(), ..Default::default() };
+        assert_eq!(bar_hide(&remote, "https://atc.lan"), ["audio/volume"]);
+        assert!(bar_hide(&remote, "https://wisp.lan").is_empty());
     }
 
     #[test]

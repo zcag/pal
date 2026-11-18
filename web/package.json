@@ -10,7 +10,7 @@
   "type": "module",
   "sideEffects": true,
   "types": "./dist/index.d.ts",
-  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
+  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" }, "./embed": { "types": "./dist/embed.d.ts", "default": "./dist/embed.js" } },
   "files": ["dist", "src", "README.md"],
   "scripts": {
     "build": "tsc",

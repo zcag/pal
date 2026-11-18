@@ -8,13 +8,15 @@ import { useEffect, useRef, type RefObject } from "react";
 import { listen } from "@tauri-apps/api/event";
 import type { EmbedHandle } from "./App";
 import { emitHost, handOver, onHost, toHost, type Embed } from "./embed";
+import { askTheme } from "./theme";
 
 /** `<pal-bar>`'s strip (embed.css), where a sheet's card starts, the room under it for its shadow, and its height before it says. */
 const STRIP_H = 26, SHEET_TOP = 30, SHEET_ROOM = 16, SHEET_H = 240;
 
-type Shell = { app: RefObject<EmbedHandle | null>; sheet: { key: string; title: string } | null; height: number | null; close: () => void; scheme: "light" | "dark"; onHide: (keys: string[]) => void; all: { key: string; title: string }[] };
+/** `sheet`: the item whose popover is open; `dropped`: the height of the card open under the strip (a popover's, `null` while it has not said, or the item picker's). */
+type Shell = { app: RefObject<EmbedHandle | null>; sheet: { key: string; title: string } | null; height: number | null; picker: number | null; close: () => void; scheme: "light" | "dark"; onHide: (keys: string[]) => void; all: { key: string; title: string }[] };
 
-export function useEmbedShell(embed: Embed | null, { app, sheet, height, close, scheme, onHide, all }: Shell) {
+export function useEmbedShell(embed: Embed | null, { app, sheet, height, picker, close, scheme, onHide, all }: Shell) {
   const on = !!embed;
   useEffect(() => { if (on) toHost({ pal: "embed", scheme }); }, [on, scheme]);
   useEffect(() => {
@@ -27,6 +29,7 @@ export function useEmbedShell(embed: Embed | null, { app, sheet, height, close, 
       else if (m.call === "query") app.current?.type(m.text);
       else if (m.call === "close") close();
       else if (m.call === "hide") onHide(m.keys);
+      else if (m.call === "theme") askTheme(m.theme);
       else app.current?.[m.call]();
     });
     return () => { off(); for (const un of uns) un.then((f) => f()); };
@@ -43,10 +46,11 @@ export function useEmbedShell(embed: Embed | null, { app, sheet, height, close, 
   const opened = useRef<string | null>(null);
   useEffect(() => {
     if (embed?.kind !== "bar") return;
-    toHost({ pal: "embed", size: sheet ? SHEET_TOP + (height ?? SHEET_H) + SHEET_ROOM : STRIP_H, strip: STRIP_H });
+    const card = sheet ? (height ?? SHEET_H) : picker;
+    toHost({ pal: "embed", size: card !== null ? SHEET_TOP + card + SHEET_ROOM : STRIP_H, strip: STRIP_H });
     if (sheet && opened.current !== sheet.key) emitHost("bar-open", { key: sheet.key, title: sheet.title });
     else if (!sheet && opened.current) emitHost("bar-close", {});
     opened.current = sheet?.key ?? null;
-  }, [embed, sheet, height]);
+  }, [embed, sheet, height, picker]);
 
 }

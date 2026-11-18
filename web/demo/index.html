@@ -7,7 +7,9 @@
   <style>
     :root { color-scheme: light dark; --bg: #f4f4f1; --fg: #1d1d1b; --muted: #6b6b66; --card: #fff; --line: #0001; }
     @media (prefers-color-scheme: dark) { :root { --bg: #18181a; --fg: #ececea; --muted: #9a9a96; --card: #232326; --line: #fff2; } }
-    body { margin: 0; font: 15px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--fg); }
+    :root[data-theme="light"] { --bg: #f4f4f1; --fg: #1d1d1b; --muted: #6b6b66; --card: #fff; --line: #0001; }
+    :root[data-theme="dark"] { --bg: #18181a; --fg: #ececea; --muted: #9a9a96; --card: #232326; --line: #fff2; }
+    body { margin: 0; padding-top: var(--pal-bar-h, 0px); font: 15px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--fg); }
     header { display: flex; align-items: center; gap: 16px; padding: 0 16px; height: 44px; border-bottom: 1px solid var(--line); background: var(--card); }
     header b { flex: none; }
     pal-bar { flex: 1; min-width: 0; }
@@ -18,21 +20,38 @@
     button, input { font: inherit; padding: 4px 10px; }
     ol { margin: 0; padding: 0 0 0 20px; font: 13px/1.6 ui-monospace, monospace; color: var(--muted); max-height: 520px; overflow: auto; }
     ol li b { color: var(--fg); }
+    [data-mode]:not([data-mode~="on"]) { display: none; }
   </style>
 </head>
 <body>
+  <!--
+    ?server=https://pal.lan&token=<this site's token from Settings>
+    As it is: the one tag (/__pal/embed.js) from that pal, which draws the bar and the panel itself.
+    With &elements: <pal-bar> and <pal-panel> placed by this page (build the package first).
+  -->
   <header>
     <b>Acme app</b>
-    <pal-bar id="bar"></pal-bar>
+    <span data-mode="elements"><pal-bar id="bar"></pal-bar></span>
   </header>
   <main>
     <section>
-      <pal-panel id="panel" links="host"></pal-panel>
-      <div class="controls">
-        <button id="focus">focus()</button>
-        <input id="q" placeholder="query(text)">
-        <input id="palette" placeholder="open(ext/palette)">
-        <button id="reset">reset()</button>
+      <div data-mode="tag">
+        <p>pal's bar is across the top; shift P opens the panel, shift B hides the bar, a right-click on the bar picks its items.</p>
+        <div class="controls">
+          <button id="toggle">pal.toggle()</button>
+          <input id="open" placeholder="pal.open(ext/palette)">
+          <button id="flip">pal.bar()</button>
+          <button id="theme">Flip this page's theme</button>
+        </div>
+      </div>
+      <div data-mode="elements">
+        <pal-panel id="panel" links="host"></pal-panel>
+        <div class="controls">
+          <button id="focus">focus()</button>
+          <input id="q" placeholder="query(text)">
+          <input id="palette" placeholder="open(ext/palette)">
+          <button id="reset">reset()</button>
+        </div>
       </div>
     </section>
     <section>
@@ -41,26 +60,46 @@
     </section>
   </main>
   <script type="module">
-    // ?server=https://pal.lan&token=<this site's token from Settings>
-    import "../dist/index.js";
     const q = new URLSearchParams(location.search);
-    const panel = document.getElementById("panel"), bar = document.getElementById("bar");
-    for (const el of [panel, bar]) {
-      if (q.get("token")) el.setAttribute("token", q.get("token"));
-      el.setAttribute("server", q.get("server") ?? "https://pal.lan");
-    }
+    const server = q.get("server") ?? "https://pal.lan";
+    const elements = q.has("elements");
+    document.querySelector(`[data-mode="${elements ? "elements" : "tag"}"]`).dataset.mode += " on";
+    if (elements) document.querySelector('header [data-mode]').dataset.mode += " on";
     const log = (name, detail) => {
       const li = document.createElement("li");
       li.innerHTML = `<b>${name}</b> `;
       li.append(JSON.stringify(detail));
       document.getElementById("log").prepend(li);
     };
-    for (const name of ["pal-pick", "pal-hud", "pal-copy", "pal-open", "pal-bar-open", "pal-bar-close"]) document.addEventListener(name, (e) => log(name, e.detail));
-    document.addEventListener("pal-open", (e) => window.open(e.detail.url, "_blank", "noopener"));
-    document.getElementById("focus").onclick = () => panel.focus();
-    document.getElementById("reset").onclick = () => panel.reset();
-    document.getElementById("q").onkeydown = (e) => { if (e.key === "Enter") panel.query(e.target.value); };
-    document.getElementById("palette").onkeydown = (e) => { if (e.key === "Enter") panel.open(e.target.value); };
+    for (const name of ["pal-pick", "pal-hud", "pal-copy", "pal-open", "pal-bar-open", "pal-bar-close", "pal-bar-items", "pal-bar-hide", "pal-dismiss"]) document.addEventListener(name, (e) => log(name, e.detail));
+
+    if (!elements) {
+      const tag = document.createElement("script");
+      tag.type = "module";
+      tag.src = `${server}/__pal/embed.js`;
+      if (q.get("token")) tag.dataset.token = q.get("token");
+      tag.onload = () => window.pal.ready.then((up) => log("pal.ready", up));
+      document.head.append(tag);
+      document.getElementById("toggle").onclick = () => window.pal?.toggle();
+      document.getElementById("flip").onclick = () => window.pal?.bar();
+      document.getElementById("open").onkeydown = (e) => { if (e.key === "Enter") window.pal?.open(e.target.value); };
+      document.getElementById("theme").onclick = () => {
+        const dark = getComputedStyle(document.body).backgroundColor === "rgb(24, 24, 26)";
+        document.documentElement.dataset.theme = dark ? "light" : "dark";
+      };
+    } else {
+      await import("../dist/index.js");
+      const panel = document.getElementById("panel"), bar = document.getElementById("bar");
+      for (const el of [panel, bar]) {
+        if (q.get("token")) el.setAttribute("token", q.get("token"));
+        el.setAttribute("server", server);
+      }
+      document.addEventListener("pal-open", (e) => window.open(e.detail.url, "_blank", "noopener"));
+      document.getElementById("focus").onclick = () => panel.focus();
+      document.getElementById("reset").onclick = () => panel.reset();
+      document.getElementById("q").onkeydown = (e) => { if (e.key === "Enter") panel.query(e.target.value); };
+      document.getElementById("palette").onkeydown = (e) => { if (e.key === "Enter") panel.open(e.target.value); };
+    }
   </script>
 </body>
 </html>

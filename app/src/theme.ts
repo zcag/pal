@@ -85,10 +85,20 @@ export function applyThemeFile(t: ThemeFile | null, el: HTMLElement = document.d
 
 type ConfigEvent = { config?: { general?: { theme?: Theme; compact?: boolean; design?: string } } };
 
+/** The theme an embed's host asked for (`?theme=`, then its live `theme` call), over the configured one. */
+let asked: Theme | null = null;
+let configured: Theme | undefined;
+
+/** The host's theme, changed while the page is up (embed-shell.ts); `null` goes back to pal's own. */
+export function askTheme(t: "light" | "dark" | null) {
+  asked = t;
+  applyTheme(asked ?? configured);
+}
+
 /** Applies the theme now and keeps it applied, or the one a remote page's address asks for (`?theme=`, an embed's); returns the stop function. */
 export function followTheme(): () => void {
-  const asked = isRemote() ? themeOf(location.search) : null;
-  const apply = (t: Theme | undefined) => applyTheme(asked ?? t);
+  asked = isRemote() ? themeOf(location.search) : null;
+  const apply = (t: Theme | undefined) => { configured = t; applyTheme(asked ?? t); };
   if (asked) apply(asked);
   invoke<Theme>("settings_theme").then(apply).catch(() => {});
   invoke<{ compact?: boolean; design?: string }>("settings_general").then((g) => { applyDensity(g?.compact); applyDesign(g?.design); }).catch(() => {});

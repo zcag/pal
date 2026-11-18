@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- **pal on any web page with one tag**: `<script type="module" src="https://pal.lan/__pal/embed.js">` puts pal's bar across the top and the panel on shift P, follows the page's light or dark, and gives the page `window.pal` to open pal from its own menus. Nothing shows until you allow the site ([pal inside other web apps](embed.md)).
+- **A site asks before it shows pal**: the first time a page with the tag opens, Settings › General › Remote lists it with Allow and Deny, instead of you copying its address in.
+- **Which bar items show on a site**: a right-click on the bar there picks them for that device; each allowed site also has its own default in Settings.
+
 ## 0.18.11 · 2026-11-16
 
 - **Bar items can sit in a capsule**: on sketchybar an item's background now runs behind all its segments with round ends, and `subtle` draws it in the bar's own text colour, faint, so a group of counts reads as one thing on a busy bar. Wisp's inbox uses it.

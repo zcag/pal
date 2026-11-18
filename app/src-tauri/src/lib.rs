@@ -454,6 +454,7 @@ pub fn run() {
             theme::theme_open_dir,
             remote::remote_status,
             remote::remote_replace_token,
+            remote::remote_embed_answer,
         ])
         .on_page_load(move |webview, payload| {
             // The panel's page: the settings window loads later and on demand.

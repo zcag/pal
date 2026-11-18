@@ -16,6 +16,7 @@ import { MenubarItem, defaultLook, shapeItem, type BarLook, type BarStripItem } 
 import { partsOf } from "./ui/bar-model";
 import { touchFirst, useMedia } from "./ui/touch";
 import { POPOVER_W } from "./ui/popover-size";
+import { ItemPicker, pickerHeight } from "./embed-picker";
 
 /** `bar_web_items` and `pal://bar/strip`: the bar's items as the web target draws them, in order, each with its configured `position`; `all`, every item by key and title. */
 export type WebStrip = { items: { key: string; item: BarStripItem; look?: Partial<BarLook>; position?: string }[]; all?: { key: string; title: string }[] };
@@ -111,7 +112,15 @@ export default function RemoteShell() {
   const sheetUp = useRef(false);
   sheetUp.current = !!sheet;
 
-  const close = useCallback(() => setSheet(null), []);
+  /** The strip's item picker (an embed's, embed-picker.tsx), open under `x`. */
+  const [picking, setPicking] = useState<number | null>(null);
+  const close = useCallback(() => { setSheet(null); setPicking(null); }, []);
+  const pick = (key: string) => {
+    const next = new Set(hidden);
+    if (!next.delete(key)) next.add(key);
+    setHidden(next);
+    emitHost("bar-hide", { keys: [...next] });
+  };
   /** A glance card: its item's sheet (or the sheet of one of its lines), placed under the item on the strip when it is there. */
   const glance = useCallback((key: string, line?: number) => {
     const item = document.querySelector<HTMLElement>(`.pal-remote__item[data-key="${CSS.escape(key)}"]`), r = item?.getBoundingClientRect();
@@ -139,8 +148,9 @@ export default function RemoteShell() {
   }, [close]);
   useEffect(() => { if (!sheet) setHeight(null); }, [sheet]);
   const scaled = fit.scale < 1 ? { width: POPOVER_W, height: `${100 / fit.scale}%`, transform: `scale(${fit.scale})`, transformOrigin: "0 0" } : undefined;
+  const dropped = !!sheet || picking !== null;
   useEffect(() => {
-    if (!sheet) {
+    if (!dropped) {
       if (embed?.kind !== "bar") return;
       const esc = (e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); emitHost("dismiss", { reason: "escape" }); } };
       window.addEventListener("keydown", esc);
@@ -149,9 +159,9 @@ export default function RemoteShell() {
     const esc = (e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); close(); } };
     window.addEventListener("keydown", esc);
     return () => window.removeEventListener("keydown", esc);
-  }, [sheet, close, embed]);
+  }, [dropped, close]);
 
-  useEmbedShell(embed, { app, sheet, height, close, scheme, onHide, all });
+  useEmbedShell(embed, { app, sheet, height, picker: picking === null ? null : pickerHeight(all.length), close, scheme, onHide, all });
   const remote = useMemo<AppRemote>(() => ({ touch, narrow, onGlance: glance, onLayers: setPanelLayers, handle: app, home: embed?.palette, onPick: embed ? (item, action) => emitHost("pick", picked(item, action)) : undefined, onDismiss: embed ? (reason) => emitHost("dismiss", { reason }) : undefined }), [touch, narrow, glance]);
   /** A mouse wheel scrolls a strip wider than the page sideways, as a trackpad does. */
   const sideways = (e: WheelEvent<HTMLDivElement>) => { if (!e.deltaX && e.deltaY) e.currentTarget.scrollLeft += e.deltaY; };
@@ -160,7 +170,7 @@ export default function RemoteShell() {
   return (
     <div className="pal-remote" data-sheet={sheet ? "" : undefined}>
       {strip && <header className="pal-remote__top">
-        <div className="g-bar pal-remote__strip" data-theme={scheme} role="toolbar" aria-label="Bar items" onWheel={sideways}>
+        <div className="g-bar pal-remote__strip" data-theme={scheme} role="toolbar" aria-label="Bar items" onWheel={sideways} onContextMenu={embed?.kind === "bar" ? (e) => { e.preventDefault(); setSheet(null); setPicking(e.clientX); } : undefined}>
           <div className="g-mb pal-remote__items">
             {/* A pictured item is a button per part, as the menu bar draws it (`Draw::parts`): a segment's opens the sheet on that segment. */}
             {SIDES.map((side) => <div key={side} className="pal-remote__side" data-side={side}>{shaped[side].flatMap(({ key, look, item }) => partsOf(item).map((part, i) => {
@@ -174,7 +184,7 @@ export default function RemoteShell() {
                   data-key={key}
                   data-open={open || undefined}
                   aria-label={part.title || part.tooltip || item.tooltip || key}
-                  onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setSheet(open ? null : { key, segment, x: r.left + r.width / 2, title: item.title || item.tooltip || key }); }}
+                  onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setPicking(null); setSheet(open ? null : { key, segment, x: r.left + r.width / 2, title: item.title || item.tooltip || key }); }}
                 >
                   <MenubarItem item={part} look={look} dark={scheme === "dark"} />
                 </button>
@@ -182,6 +192,7 @@ export default function RemoteShell() {
             }))}</div>)}
           </div>
         </div>
+        {embed?.kind === "bar" && <button type="button" className="pal-remote__more" aria-label="Items shown here" title="Items shown here" data-open={picking !== null || undefined} onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setSheet(null); setPicking(picking === null ? r.left + r.width / 2 : null); }}>⋯</button>}
         <span className="pal-remote__link" aria-hidden title="Reconnecting to pal" />
         {!embed && <a className="pal-remote__settings" href="?settings" aria-label="Settings" title="Settings">{SLIDERS}</a>}
       </header>}
@@ -194,6 +205,16 @@ export default function RemoteShell() {
             <div className="pal-remote-sheet__scrim" onClick={close} aria-hidden />
             <div ref={fit.ref} className="pal-remote-sheet__card" role="dialog" aria-label={sheet.title} data-sized={height !== null || undefined} style={height !== null ? ({ "--pal-sheet-h": `${height}px` } as CSSProperties) : undefined}>
               <iframe key={`${sheet.key}:${sheet.line}:${sheet.segment ?? ""}`} className="pal-remote-sheet__frame" src={sheetSrc(sheet.key, sheet.line, sheet.segment) + (embed ? passOn(location.search) : "")} title={sheet.title} allow="clipboard-write" style={scaled} />
+            </div>
+          </div>
+        )}
+      </Presence>
+      <Presence show={picking !== null} dur="base">
+        {picking !== null && (
+          <div className="pal-remote-sheet" style={{ "--pal-sheet-x": `${picking}px` } as CSSProperties}>
+            <div className="pal-remote-sheet__scrim" onClick={close} aria-hidden />
+            <div className="pal-remote-sheet__card" role="dialog" aria-label="Items shown here" data-sized style={{ "--pal-sheet-h": `${pickerHeight(all.length)}px` } as CSSProperties}>
+              <ItemPicker all={all} hidden={hidden} onFlip={pick} />
             </div>
           </div>
         )}

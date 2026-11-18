@@ -108,6 +108,9 @@ pub const ACCOUNT: &str = "pal://account";
 /// To every page: a secret went into the keychain behind a reference the
 /// file already held; Settings re-reads (the "Add your key" field is filled).
 pub const CONFIG_SECRETS: &str = "pal://secrets";
+/// To every page: a site asked to show pal (`remote::Status::pending`);
+/// Settings › General › Remote re-reads.
+pub const REMOTE: &str = "pal://remote";
 
 /// Emit to every window and every remote page; a failure (the payload does not serialise) is a
 /// bug worth a log line, never an error for the caller.

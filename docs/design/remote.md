@@ -227,6 +227,34 @@ no sign-in and `Access-Control-Allow-Origin` for an allowed site), so a
 site loads the copy that matches the pal it frames and carries none of its
 own.
 
+**One tag** (`/__pal/embed.js`, `web/src/embed.ts`, built by the same
+config with `--mode embed`). Every host ended up writing the same code
+around the elements (atc's was ~90 lines: the overlay, the keys, a store
+for the bar's on/off and hidden items, a Settings section to pick them,
+`--palbar-h`), so it moved into pal and a host carries the tag only.
+- *Asking.* The module is served to any origin (`*`): it holds nothing,
+  and a site not yet allowed has to load it to ask. It then fetches
+  `/__pal/embed.json` (any origin may read the answer): `allowed`, `signed`
+  (this device gets in: its tailnet or `?token=`, so the frames will not
+  show the sign-in page) and the site's default `hide`. A site neither
+  allowed nor in `embed_denied` is kept in memory as pending (8 at most,
+  until pal restarts) and Settings lists it with Allow and Deny
+  (`remote_embed_answer`); the allow list stays pal's, a site cannot add
+  itself.
+- *Hidden items.* The strip's own picker (a right-click or its ⋯,
+  `embed-picker.tsx`) changes the frame's hidden set at once and tells
+  the host `bar-hide`; `<pal-bar>` takes it as its `hide`, and the module
+  keeps it in the host page's `localStorage`, which is per site by
+  construction. Until a device picks, `[remote] embed_bar_hide` for the
+  site applies, so a site's quiet default needs no host config.
+- *Theme.* The host page's background, read through a 1×1 canvas so any
+  CSS colour works (`oklch()` included), else its `color-scheme`, else the
+  device's; watched with a MutationObserver on `<html>` and `<body>`. A
+  change reaches the frames as a live `theme` call, not a reload.
+- *Keys* are pal's (shift P, shift B) on every site, so a person learns
+  them once; `data-keys` changes or drops them, and a key in a field or one
+  the page already handled is left alone.
+
 Left open: an embed token is accepted by any page, not only framed by its origin (it
 is a bearer token like the main one); a host cannot place a bar popover
 itself; and pal as a library (an app shipping its own extensions and
