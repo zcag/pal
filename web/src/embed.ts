@@ -201,7 +201,9 @@ function start(script: HTMLScriptElement | undefined, server: string): PalApi {
     if (!overlay || overlay.hidden) return;
     overlay.hidden = true;
     panel?.reset();
-    if (before instanceof HTMLElement && before.isConnected) before.focus();
+    if (document.activeElement === overlay) (overlay as HTMLElement).blur();
+    window.focus();
+    if (before instanceof HTMLElement && before !== document.body && before.isConnected) before.focus();
   };
 
   const open = (palette?: string) => {
