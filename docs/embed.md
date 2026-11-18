@@ -59,10 +59,41 @@ So a page can put pal in its own command palette or menu:
 | `pal.open(palette?)` | The panel opened, in `ext/palette` when given. |
 | `pal.close()` | The panel closed. |
 | `pal.bar(on?)` | The bar shown or hidden (flipped without `on`), remembered for this site on this device. |
+| `pal.theme(tokens)` | Theme tokens over those the page's CSS sets (below): `{ accent: "#0a7", radius_row: "3px" }`, keys as in a theme file or as `--pal-` names; `null` clears them. |
 | `pal.ready` | A promise: `true` once pal is up on the page, `false` when it will not be. A page can hide its own pal entry on `false`. |
 
 The module is also `@zcag/pal-web/embed` for a build that bundles it; it
 then asks the pal at its own address, so serving it from pal is the usual way.
+
+### Match your site
+
+pal draws itself in its own theme unless the page says otherwise. A page
+says it with the tokens of a [theme file](config.md#theme-file), set as
+custom properties on `<html>`, `--pal-<key>` with `_` as `-`:
+
+```css
+:root { --pal-accent: #1d1d1b; --pal-bg: #f4f4f1; --pal-fg: #1d1d1b; --pal-font-ui: Recursive, sans-serif; --pal-radius-row: 3px; }
+:root[data-theme="dark"] { --pal-accent: #ececea; --pal-bg: #18181a; --pal-fg: #ececea; }
+```
+
+The tag reads them on load and again whenever `<html>` or `<body>`
+changes an attribute (a class, a style, a `data-` flag) or the device
+flips between light and dark, so tokens set inside the page's own
+dark-mode rules make a matching pal with no script. `pal.theme({...})`
+sets them from code instead, over the CSS ones.
+
+| tokens | kind |
+| --- | --- |
+| `accent`, `accent-fg`, `accent-soft`, `bg`, `bg-glass`, `bg-elevated`, `bg-sunken`, `fg`, `fg-muted`, `fg-faint`, `line`, `line-strong`, `selection`, `scrim`, `match`, `knob`, `destructive`(`-soft`), `success`(`-soft`), the `tag-*` and `brand-*` colours, `tile-fg`, `tile-ring` | a colour: anything the browser reads (`oklch()` and names are passed on as `rgba()`) |
+| `radius-panel`, `radius-popover`, `radius-hud`, `radius-tile`, `radius-row`, `radius-icon`, `radius-control`, `radius-tag`, `radius-kbd` | pixels (`3px`) |
+| `font-ui`, `font-mono` | a font stack; the font has to load inside pal's frame, so name one the device has or one pal's page loads |
+
+[Theme file](config.md#theme-file) says what each one colours. pal checks
+every value as it checks a theme file's; one it cannot use is dropped with
+a console warning on the page naming the token (`pal: --pal-radius-row:
+ignored: expected a number of pixels`), and the rest apply. Only that
+page's frames change; pal elsewhere keeps its own theme. A page that sets
+none looks as it did before.
 
 ### What the page still does
 
@@ -155,6 +186,7 @@ or its ⋯, opens the item picker: it changes `hide` and tells
 
 | method | on | what |
 | --- | --- | --- |
+| `tokens(map)` | both | Theme tokens over pal's own in this frame (`{ "--pal-accent": "#0a7" }`, "Match your site" above), kept across reloads; `{}` clears them. |
 | `focus()` | both | The search field focused. |
 | `reset()` | both | Back to the start (the root, or `palette`). |
 | `open(palette)` | panel | Straight into a palette (`ext/palette`). |

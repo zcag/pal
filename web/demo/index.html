@@ -21,6 +21,9 @@
     ol { margin: 0; padding: 0 0 0 20px; font: 13px/1.6 ui-monospace, monospace; color: var(--muted); max-height: 520px; overflow: auto; }
     ol li b { color: var(--fg); }
     [data-mode]:not([data-mode~="on"]) { display: none; }
+    /* "Match your site" (docs/embed.md): with ?match, pal takes this page's look, and follows its theme flip. */
+    :root.match { --pal-accent: #b4532a; --pal-bg: #fffdf8; --pal-fg: #1d1d1b; --pal-selection: #f1e3d8; --pal-radius-panel: 4px; --pal-radius-popover: 4px; --pal-radius-row: 2px; --pal-font-ui: Georgia, serif; }
+    :root.match[data-theme="dark"] { --pal-accent: #e8956b; --pal-bg: #201c19; --pal-fg: #efe7df; --pal-selection: #3a2e26; }
   </style>
 </head>
 <body>
@@ -28,6 +31,7 @@
     ?server=https://pal.lan&token=<this site's token from Settings>
     As it is: the one tag (/__pal/embed.js) from that pal, which draws the bar and the panel itself.
     With &elements: <pal-bar> and <pal-panel> placed by this page (build the package first).
+    With &match: this page sets pal's theme tokens in its CSS, light and dark.
   -->
   <header>
     <b>Acme app</b>
@@ -63,6 +67,7 @@
     const q = new URLSearchParams(location.search);
     const server = q.get("server") ?? "https://pal.lan";
     const elements = q.has("elements");
+    if (q.has("match")) document.documentElement.classList.add("match");
     document.querySelector(`[data-mode="${elements ? "elements" : "tag"}"]`).dataset.mode += " on";
     if (elements) document.querySelector('header [data-mode]').dataset.mode += " on";
     const log = (name, detail) => {

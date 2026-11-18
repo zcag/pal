@@ -6,9 +6,9 @@
  * cancelable `CustomEvent` with the detail in `EmbedEvents`). `embed.ts` is
  * the one-tag layer over them.
  */
-import { PARAMS, isFromPal, type EmbedEvents, type ToPal } from "./protocol.js";
+import { PARAMS, isFromPal, type EmbedEvents, type FontFace, type ToPal } from "./protocol.js";
 
-export type { EmbedEvents } from "./protocol.js";
+export type { EmbedEvents, FontFace } from "./protocol.js";
 export type PalEvent<K extends keyof EmbedEvents> = CustomEvent<EmbedEvents[K]>;
 
 const STYLE = `
@@ -28,6 +28,7 @@ abstract class PalFrame extends HTMLElement {
   protected readonly frame = document.createElement("iframe");
   #ready = false;
   #queue: ToPal[] = [];
+  #tokens: { tokens: Record<string, string>; fonts?: FontFace[] } = { tokens: {} };
   #hello = 0;
 
   constructor() {
@@ -67,6 +68,11 @@ abstract class PalFrame extends HTMLElement {
   focus() { this.frame.focus(); this.#send({ pal: "embed", call: "focus" }); }
   /** Back to the start: the root, or the element's `palette`. */
   reset() { this.#send({ pal: "embed", call: "reset" }); }
+  /** Theme tokens over pal's own in this frame (`{ "--pal-accent": "#0a7" }`, docs/embed.md "Match your site"), and the page's faces of the fonts they name; kept across reloads; `{}` clears them. */
+  tokens(tokens: Record<string, string>, fonts?: FontFace[]) {
+    this.#tokens = { tokens, fonts };
+    if (this.#ready) this.#send({ pal: "embed", call: "tokens", ...this.#tokens });
+  }
 
   protected send(msg: ToPal) { this.#send(msg); }
   /** The page's own height for its content (`<pal-bar>` with a sheet open). */
@@ -109,9 +115,11 @@ abstract class PalFrame extends HTMLElement {
     if ("ready" in m) {
       this.#ready = true;
       clearInterval(this.#hello);
+      if (Object.keys(this.#tokens.tokens).length) this.#send({ pal: "embed", call: "tokens", ...this.#tokens });
       for (const q of this.#queue.splice(0)) this.#send(q);
     } else if ("size" in m) this.resized(m.size, m.strip);
     else if ("scheme" in m) this.frame.style.colorScheme = m.scheme;
+    else if ("warnings" in m) for (const w of m.warnings) console.warn(`pal: ${w}`);
     else this.dispatchEvent(new CustomEvent(`pal-${m.event}`, { detail: m.detail, bubbles: true, composed: true, cancelable: true }));
   };
 }

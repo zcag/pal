@@ -240,6 +240,25 @@ pub fn parse(text: &str) -> Parsed {
     out
 }
 
+/// Tokens a page sets for itself (an embed's host, docs/embed.md "Match
+/// your site"), checked as a theme file's are: each key a token by its key
+/// (`accent_fg`) or its variable (`--pal-accent-fg`), each value a string as
+/// CSS writes it. The valid ones as variables, and a warning per other one.
+pub fn check(tokens: &BTreeMap<String, String>) -> (BTreeMap<String, String>, Vec<Diagnostic>) {
+    let mut vars = BTreeMap::new();
+    let mut diagnostics = Vec::new();
+    for (key, value) in tokens {
+        let key = key.trim().trim_start_matches("--pal-").replace('-', "_");
+        match token("", &key, &toml::Value::String(value.clone())) {
+            Ok((var, val)) => {
+                vars.insert(var, val);
+            }
+            Err(d) => diagnostics.push(d),
+        }
+    }
+    (vars, diagnostics)
+}
+
 /// Where the themes a picker lists live: `<config dir>/themes/`, next to
 /// `config.toml`.
 pub fn themes_dir(config_dir: &Path) -> PathBuf {
@@ -303,6 +322,22 @@ pub fn load(path: &Path) -> Parsed {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_page_s_tokens_are_checked_as_a_file_s() {
+        let given = BTreeMap::from([("--pal-accent".to_string(), "#FF0000".to_string()), ("radius-row".to_string(), "3px".to_string()), ("font_ui".to_string(), "Recursive, sans-serif".to_string()), ("bg".to_string(), "oklch(0.2 0 0)".to_string()), ("--pal-bar-h".to_string(), "26px".to_string())]);
+        let (vars, diags) = check(&given);
+        assert_eq!(vars, BTreeMap::from([("--pal-accent".to_string(), "#ff0000".to_string()), ("--pal-radius-row".to_string(), "3px".to_string()), ("--pal-font-ui".to_string(), "Recursive, sans-serif".to_string())]));
+        assert_eq!(diags.iter().map(|d| d.path.as_str()).collect::<Vec<_>>(), ["bar_h", "bg"], "{diags:?}");
+    }
+
+    #[test]
+    fn the_embed_knows_every_token() {
+        let ts = include_str!("../../web/src/tokens.ts");
+        let listed: Vec<(String, &str)> = ts.lines().filter_map(|l| l.trim().strip_prefix('"')?.split_once("\": \"").map(|(k, rest)| (k.to_string(), rest.split('"').next().unwrap_or_default()))).collect();
+        let ours: Vec<(String, &str)> = TOKENS.iter().map(|(k, kind)| (k.to_string(), match kind { Kind::Color => "colour", Kind::Length => "px", Kind::Font => "font" })).collect();
+        assert_eq!(listed, ours, "web/src/tokens.ts lists TOKENS, in order");
+    }
 
     #[test]
     fn keys_map_to_variables_and_values_are_checked() {

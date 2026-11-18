@@ -61,6 +61,14 @@ export function schemeInForce(el: HTMLElement = document.documentElement): "ligh
   return typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+/** An embed host's tokens (embed-shell.ts, already checked), over the theme file's for whichever scheme is in force: the host sends its own scheme's. */
+let hostTokens: Record<string, string> = {};
+
+export function applyHostTokens(vars: Record<string, string>) {
+  hostTokens = vars;
+  applyThemeFile(current);
+}
+
 /** What `applyThemeFile` last set, so a scheme flip re-applies the right section and a new file clears the old one's variables. */
 let current: ThemeFile | null = null;
 let applied: string[] = [];
@@ -74,8 +82,7 @@ export function applyThemeFile(t: ThemeFile | null, el: HTMLElement = document.d
   current = t;
   for (const k of applied) el.style.removeProperty(k);
   applied = [];
-  if (!t) return;
-  const vars = t.theme[schemeInForce(el)] ?? {};
+  const vars = { ...(t?.theme[schemeInForce(el)] ?? {}), ...hostTokens };
   for (const [k, v] of Object.entries(vars)) {
     if (!k.startsWith("--pal-")) continue;
     el.style.setProperty(k, v);

@@ -449,6 +449,7 @@ pub fn run() {
             keycast::keycast_state,
             keycast::keycast_ring_color,
             theme::theme_current,
+            theme::theme_check,
             theme::theme_status,
             theme::theme_open,
             theme::theme_open_dir,

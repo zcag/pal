@@ -251,6 +251,16 @@ for the bar's on/off and hidden items, a Settings section to pick them,
   CSS colour works (`oklch()` included), else its `color-scheme`, else the
   device's; watched with a MutationObserver on `<html>` and `<body>`. A
   change reaches the frames as a live `theme` call, not a reload.
+- *Host tokens.* A page's `--pal-<token>` custom properties (the theme
+  file's set, `web/src/tokens.ts`, kept equal to `pal_core::theme::TOKENS`
+  by a test) are read off `<html>`'s computed style, colours the browser
+  reads but pal does not (`oklch()`) passed as `rgba()` through the
+  canvas, and sent to each frame (`tokens` call, kept by the element across
+  reloads). The frame has them checked by the theme file's own checker
+  (`theme_check`, `theme::check`) and sets them over the file's section
+  (`applyHostTokens`); dropped ones come back as `warnings`, which the
+  element logs on the host's console. Re-read on the same observer as the
+  scheme, so CSS inside the host's dark rules is enough.
 - *Keys* are pal's (shift P, shift B) on every site, so a person learns
   them once; `data-keys` changes or drops them, and a key in a field or one
   the page already handled is left alone.

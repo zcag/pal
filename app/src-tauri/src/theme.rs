@@ -123,6 +123,20 @@ pub fn theme_current(st: tauri::State<'_, State>) -> Current {
     lock(&st.current).clone()
 }
 
+/// An embed host's tokens checked as a theme file's (`theme::check`): the
+/// variables to set over the theme and a line per dropped token.
+#[derive(Serialize)]
+pub struct Checked {
+    vars: std::collections::BTreeMap<String, String>,
+    warnings: Vec<String>,
+}
+
+#[tauri::command]
+pub fn theme_check(tokens: std::collections::BTreeMap<String, String>) -> Checked {
+    let (vars, diags) = theme::check(&tokens);
+    Checked { vars, warnings: diags.into_iter().map(|d| format!("--pal-{}: {}", d.path.replace('_', "-"), d.message)).collect() }
+}
+
 /// What Settings > General shows: the setting, the file it resolves to,
 /// its name and diagnostics, the themes dir and what is in it.
 #[derive(Serialize)]

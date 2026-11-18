@@ -40,7 +40,12 @@ export type ToPal =
   /** `<pal-bar>`'s `hide`, changed: these keys leave the strip. */
   | { pal: "embed"; call: "hide"; keys: string[] }
   /** The element's `theme`, changed (`null`: pal's own). */
-  | { pal: "embed"; call: "theme"; theme: "light" | "dark" | null };
+  | { pal: "embed"; call: "theme"; theme: "light" | "dark" | null }
+  /** The host's theme tokens (`--pal-<key>`: value as CSS writes it), over pal's theme in this frame; `{}` clears them. */
+  | { pal: "embed"; call: "tokens"; tokens: Record<string, string>; fonts?: FontFace[] };
+
+/** A host's own `@font-face` for a family its `font-ui`/`font-mono` token names, its `url()`s absolute, so the frame can load it (cross-origin: the font's server answers with CORS). */
+export type FontFace = { family: string; src: string; weight?: string; style?: string };
 
 /** Pal to host. */
 export type FromPal =
@@ -49,11 +54,13 @@ export type FromPal =
   | { pal: "embed"; size: number; strip?: number }
   /** The scheme pal draws in: the frame takes it, or the browser paints an opaque backdrop behind a page whose scheme differs from its frame's. */
   | { pal: "embed"; scheme: "light" | "dark" }
+  /** Host tokens pal dropped, a line each naming the token and why. */
+  | { pal: "embed"; warnings: string[] }
   | { [K in keyof EmbedEvents]: { pal: "embed"; event: K; detail: EmbedEvents[K] } }[keyof EmbedEvents];
 
 const tagged = (data: unknown): data is { pal: "embed" } => !!data && typeof data === "object" && (data as { pal?: unknown }).pal === "embed";
 export const isToPal = (data: unknown): data is ToPal => tagged(data) && ("hello" in data || "call" in data);
-export const isFromPal = (data: unknown): data is FromPal => tagged(data) && ("ready" in data || "size" in data || "scheme" in data || "event" in data);
+export const isFromPal = (data: unknown): data is FromPal => tagged(data) && ("ready" in data || "size" in data || "scheme" in data || "warnings" in data || "event" in data);
 
 /** The frame's query for each element attribute it carries (`embed`, the kind, is set apart). */
 export const PARAMS = ["token", "palette", "theme", "links", "transparent", "hide"] as const;

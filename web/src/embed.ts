@@ -11,9 +11,12 @@
  * `token` (this site's token, off your tailnet), `bar` (`none`, or a CSS
  * selector to put the strip in instead of fixing it to the top), `keys`
  * (`panel:shift+p bar:shift+b`, `none`), `theme` (`light`, `dark`, `pal`).
+ * The page's own `--pal-<token>` custom properties, or `pal.theme({...})`,
+ * restyle pal to match it (docs/embed.md, "Match your site").
  */
-import { define, type PalBar, type PalEvent, type PalPanel } from "./index.js";
+import { define, type FontFace, type PalBar, type PalEvent, type PalPanel } from "./index.js";
 import { matches, parseKeys } from "./keys.js";
+import { TOKENS } from "./tokens.js";
 
 export type PalApi = {
   /** Settles once pal is up on the page (`true`), or will not be (`false`: unreachable, not allowed, not signed in). */
@@ -25,6 +28,8 @@ export type PalApi = {
   close(): void;
   /** The bar shown or hidden on this device (flipped without `on`), remembered for this site. */
   bar(on?: boolean): void;
+  /** Theme tokens (`{ accent: "#0a7", radius_row: "3px" }`, or by `--pal-` name) over those the page's CSS sets; `null` clears them. */
+  theme(tokens: Record<string, string> | null): void;
 };
 
 type Site = { allowed: boolean; signed: boolean; hide?: string[] };
@@ -69,6 +74,55 @@ export function pageScheme(): "light" | "dark" {
   return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+/** `accent_fg`, `accent-fg` or `--pal-accent-fg` as the custom property. */
+const tokenVar = (key: string) => `--pal-${key.replace(/^--pal-/, "").replaceAll("_", "-")}`;
+
+/** A colour in a form pal takes (hex, `rgb()`, `hsl()`): any other the browser reads (`oklch()`, a name) as `rgba()`; one it does not read as written, for pal to name. */
+function cssColor(v: string): string {
+  if (/^(#|rgba?\(|hsla?\()/i.test(v)) return v;
+  if (!CSS.supports("color", v)) return v;
+  const c = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+  if (!c) return v;
+  c.canvas.width = c.canvas.height = 1;
+  c.fillStyle = v;
+  c.fillRect(0, 0, 1, 1);
+  const [r, g, b, a] = c.getImageData(0, 0, 1, 1).data;
+  return `rgba(${r}, ${g}, ${b}, ${+(a / 255).toFixed(3)})`;
+}
+
+/** The theme tokens the page's CSS sets on `<html>` (`--pal-accent: …`), each as the browser resolved it. */
+export function pageTokens(): Record<string, string> {
+  const cs = getComputedStyle(document.documentElement), out: Record<string, string> = {};
+  for (const [key, kind] of Object.entries(TOKENS)) {
+    const name = tokenVar(key), v = cs.getPropertyValue(name).trim();
+    if (v) out[name] = kind === "colour" ? cssColor(v) : v;
+  }
+  return out;
+}
+
+/** The families a font stack names (`"Recursive", ui-sans-serif` is `Recursive` and `ui-sans-serif`). */
+const families = (stack: string) => stack.split(",").map((f) => f.trim().replace(/^["']|["']$/g, "").toLowerCase()).filter(Boolean);
+
+/** The page's own `@font-face` rules for `wanted` families (its readable sheets), their `url()`s made absolute. */
+function pageFaces(wanted: Set<string>): FontFace[] {
+  const out: FontFace[] = [];
+  if (!wanted.size) return out;
+  for (const sheet of document.styleSheets) {
+    let rules: CSSRuleList;
+    try { rules = sheet.cssRules; } catch { continue; }
+    const base = sheet.href ?? location.href;
+    for (const r of rules) {
+      if (!(r instanceof CSSFontFaceRule)) continue;
+      const family = families(r.style.getPropertyValue("font-family"))[0];
+      if (!family || !wanted.has(family)) continue;
+      const src = r.style.getPropertyValue("src").replace(/url\((['"]?)([^'")]+)\1\)/g, (_m, _q, u: string) => `url("${new URL(u, base).href}")`);
+      const weight = r.style.getPropertyValue("font-weight").trim(), style = r.style.getPropertyValue("font-style").trim();
+      out.push({ family: r.style.getPropertyValue("font-family").trim().replace(/^["']|["']$/g, ""), src, ...(weight && { weight }), ...(style && { style }) });
+    }
+  }
+  return out;
+}
+
 const OVERLAY_CSS = `
 :host { all: initial; }
 :host([hidden]) { display: none; }
@@ -89,6 +143,14 @@ function start(script: HTMLScriptElement | undefined, server: string): PalApi {
   const asked = data.theme === "light" || data.theme === "dark" || data.theme === "pal" ? data.theme : null;
   const place = data.bar && data.bar !== "none" && data.bar !== "top" ? data.bar : null;
   const els: (PalBar | PalPanel)[] = [];
+  let coded: Record<string, string> = {}, sent: Record<string, string> = {}, faces: FontFace[] = [];
+  const tokens = () => {
+    const now = { ...pageTokens(), ...coded };
+    if (JSON.stringify(now) === JSON.stringify(sent)) return;
+    sent = now;
+    faces = pageFaces(new Set([now["--pal-font-ui"], now["--pal-font-mono"]].flatMap((s) => (s ? families(s) : []))));
+    for (const el of els) el.tokens(now, faces);
+  };
   let up = false, barOn = !noBar && store.get<boolean>("pal:bar") !== false;
   let bar: PalBar | null = null, panel: PalPanel | null = null, overlay: HTMLElement | null = null, before: Element | null = null;
 
@@ -99,6 +161,7 @@ function start(script: HTMLScriptElement | undefined, server: string): PalApi {
     el.setAttribute("links", "host");
     const t = asked ?? pageScheme();
     if (t !== "pal") el.setAttribute("theme", t);
+    if (Object.keys(sent).length) el.tokens(sent, faces);
     els.push(el);
     return el;
   };
@@ -164,6 +227,10 @@ function start(script: HTMLScriptElement | undefined, server: string): PalApi {
     open,
     close,
     bar: (on) => { if (noBar) return; const next = on ?? !barOn; store.set("pal:bar", next ? null : false); showBar(next); },
+    theme: (t) => {
+      coded = Object.fromEntries(Object.entries(t ?? {}).map(([k, v]) => [tokenVar(k), String(v)]));
+      if (up) tokens();
+    },
   };
 
   api.ready = (async () => {
@@ -194,20 +261,21 @@ function start(script: HTMLScriptElement | undefined, server: string): PalApi {
       else if (keys.bar && matches(keys.bar, e)) { e.preventDefault(); api.bar(); }
     });
 
-    if (!asked) {
-      let frame = 0;
-      const follow = () => {
-        cancelAnimationFrame(frame);
-        frame = requestAnimationFrame(() => {
-          const t = pageScheme(), bg = background();
-          for (const el of els) if (el.getAttribute("theme") !== t) el.setAttribute("theme", t);
-          if (bar && !place) bar.style.background = bg ?? "";
-        });
-      };
-      const mo = new MutationObserver(follow);
-      for (const el of [document.documentElement, document.body]) mo.observe(el, { attributes: true });
-      matchMedia("(prefers-color-scheme: dark)").addEventListener("change", follow);
-    }
+    let frame = 0;
+    const follow = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        tokens();
+        if (asked) return;
+        const t = pageScheme(), bg = background();
+        for (const el of els) if (el.getAttribute("theme") !== t) el.setAttribute("theme", t);
+        if (bar && !place) bar.style.background = bg ?? "";
+      });
+    };
+    tokens();
+    const mo = new MutationObserver(follow);
+    for (const el of [document.documentElement, document.body]) mo.observe(el, { attributes: true });
+    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", follow);
     return true;
   })().catch(() => false);
   return api;

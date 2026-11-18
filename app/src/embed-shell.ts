@@ -8,7 +8,20 @@ import { useEffect, useRef, type RefObject } from "react";
 import { listen } from "@tauri-apps/api/event";
 import type { EmbedHandle } from "./App";
 import { emitHost, handOver, onHost, toHost, type Embed } from "./embed";
-import { askTheme } from "./theme";
+import type { FontFace } from "../../web/src/protocol";
+import { invoke } from "@tauri-apps/api/core";
+import { askTheme, applyHostTokens } from "./theme";
+
+/** The host's faces of the fonts its tokens name, loaded once each; only `url()`s over http(s), so a face cannot reach anything else. */
+const loaded = new Set<string>();
+function loadFaces(faces: FontFace[]) {
+  for (const f of faces) {
+    const id = JSON.stringify(f);
+    if (loaded.has(id) || /["'\\]/.test(f.family) || [...f.src.matchAll(/url\(([^)]*)\)/g)].some(([, u]) => !/^"?https?:\/\//.test(u))) continue;
+    loaded.add(id);
+    new window.FontFace(f.family, f.src, { weight: f.weight, style: f.style }).load().then((face) => document.fonts.add(face), () => {});
+  }
+}
 
 /** `<pal-bar>`'s strip (embed.css), where a sheet's card starts, the room under it for its shadow, and its height before it says. */
 const STRIP_H = 26, SHEET_TOP = 30, SHEET_ROOM = 16, SHEET_H = 240;
@@ -30,6 +43,7 @@ export function useEmbedShell(embed: Embed | null, { app, sheet, height, picker,
       else if (m.call === "close") close();
       else if (m.call === "hide") onHide(m.keys);
       else if (m.call === "theme") askTheme(m.theme);
+      else if (m.call === "tokens") { loadFaces(m.fonts ?? []); invoke<{ vars: Record<string, string>; warnings: string[] }>("theme_check", { tokens: m.tokens }).then((c) => { applyHostTokens(c.vars); if (c.warnings.length) toHost({ pal: "embed", warnings: c.warnings }); }, () => {}); }
       else app.current?.[m.call]();
     });
     return () => { off(); for (const un of uns) un.then((f) => f()); };
